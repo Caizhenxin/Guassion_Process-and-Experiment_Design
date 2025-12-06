@@ -1,0 +1,1290 @@
+---
+title: "Check Generate Data"
+output: html_document
+date: "2025-12-6"
+---
+
+```{r}
+if (!requireNamespace('pacman', quietly = TRUE)) {
+    install.packages('pacman')
+}
+
+pacman::p_load(
+  tidyverse, bruceR, rsm,
+  ggplot2, plotly
+  )
+
+# 不使用科学计数法显示
+options(scipen = 999)
+```
+
+```{r}
+# 导入的数据就是match条件下的
+# response = 1是正确， = 0是错误
+data <- import("../../2_Data/Generate_Data/gp_ddm_simulation_v2.csv") 
+
+data$RT <- data$RT * 1000
+```
+
+# General
+```{r}
+gen_data <- data %>%
+  group_by(subject) %>%
+  summarise(
+    mean_RT = mean(RT),                    # 每个条件的平均反应时间
+    sd_RT = sd(RT),                        # 每个条件的反应时间标准差
+    mean_ACC = mean(response == 1),        # 每个条件的平均准确率
+    sd_ACC = sd(response == 1),            # 准确率标准差
+    P = first(P),                          # 保留每个 subject 的 P
+    T = first(T),                          # 保留每个 subject 的 T
+    W = first(W),                          # 保留每个 subject 的 W
+    a = mean(a),                           # 额外变量 a
+    v = mean(v),                           # 额外变量 v
+    n = n(),                               # 每个条件的样本量
+    .groups = "drop"
+  )
+```
+
+# label 
+```{r}
+# 计算每个被试的平均反应时间、标准差、准确率和准确率的标准差
+data_summary <- data %>%
+  group_by(subject, label) %>%
+  summarise(
+    mean_RT = mean(RT),                    # 每个条件的平均反应时间
+    sd_RT = sd(RT),                        # 每个条件的反应时间标准差
+    mean_ACC = mean(response == 1),        # 每个条件的平均准确率
+    sd_ACC = sd(response == 1),            # 准确率标准差
+    P = first(P),                          # 保留每个 subject 的 P
+    T = first(T),                          # 保留每个 subject 的 T
+    W = first(W),                          # 保留每个 subject 的 W
+    a = mean(a),                           # 额外变量 a
+    v = mean(v),                           # 额外变量 v
+    n = n(),                               # 每个条件的样本量
+    .groups = "drop"
+  )
+
+# 确保每个 subject 有 self 和 stranger 两种 condition 的数据，并且转换为宽格式
+data_wide <- data_summary %>%
+  pivot_wider(
+    id_cols = c(subject, P, T, W),  # 按照 subject、P、T、W 分组，保留它们
+    names_from = label,         # 将 condition 作为列名的一部分
+    values_from = c(mean_RT, sd_RT, mean_ACC, sd_ACC, n, a, v)  # 转换的列
+  )
+
+# 计算 Cohen's d
+data_wide <- data_wide %>%
+  mutate(
+    # RT 的 Cohen's d: stranger - self,值越大SPE越大
+    cohen_d_RT = ifelse(
+      !is.na(mean_RT_self) & !is.na(mean_RT_stranger),
+      (mean_RT_stranger - mean_RT_self) / 
+      sqrt(((n_stranger - 1) * sd_RT_stranger^2 + (n_self - 1) * sd_RT_self^2) / 
+           (n_self + n_stranger - 2)),
+      NA
+    ),
+    
+    # ACC 的 Cohen's d: self - stranger,值越大SPE越大
+    cohen_d_ACC = ifelse(
+      !is.na(mean_ACC_self) & !is.na(mean_ACC_stranger),
+      (mean_ACC_self - mean_ACC_stranger) / 
+      sqrt(((n_self - 1) * sd_ACC_self^2 + (n_stranger - 1) * sd_ACC_stranger^2) / 
+           (n_self + n_stranger - 2)),
+      NA
+    )
+  )
+
+# 查看结果
+print(data_wide)
+```
+
+```{r}
+# data preprocessing-Cohen's d
+# 逐个被试计算效应量，保持了被试的个体差异
+# 这个可以不跑，和上面直接用均值算是一样的，排除一下计算方法是否带来差异
+
+# 定义计算 Cohen's d 的函数
+calculate_cohen_d <- function(data) {
+  # 提取自我条件和非自我条件的反应时间
+  self_condition <- data$RT[data$condition == "self"]
+  stranger_condition <- data$RT[data$condition == "stranger"]
+  
+  # 计算均值和标准差
+  mean_self <- mean(self_condition)
+  mean_stranger <- mean(stranger_condition)
+  sd_self <- sd(self_condition)
+  sd_stranger <- sd(stranger_condition)
+  
+  # 样本量
+  n_self <- length(self_condition)
+  n_stranger <- length(stranger_condition)
+  
+  # 合并标准差
+  pooled_sd <- sqrt(((n_self - 1) * sd_self^2 + (n_stranger - 1) * sd_stranger^2) / (n_self + n_stranger - 2))
+  
+  # 计算 Cohen's d
+  cohen_d <- (mean_stranger - mean_self) / pooled_sd
+  return(cohen_d)
+}
+
+# 创建一个新的列来存储 Cohen's d
+data$cohen_d <- NA
+
+# 获取唯一的被试 ID
+unique_subjects <- unique(data$subject)
+
+# 使用 for 循环逐个计算每个被试的 Cohen's d
+for (subj in unique_subjects) {
+  # 筛选出当前被试的所有 trial 数据
+  subj_data <- data[data$subject == subj, ]
+  
+  # 计算当前被试的 Cohen's d
+  cohen_d_value <- calculate_cohen_d(subj_data)
+  
+  # 将计算好的 Cohen's d 填入 df 中对应的行
+  data$cohen_d[data$subject == subj] <- cohen_d_value
+}
+
+rm(subj_data)
+```
+
+```{r}
+# data preprocessing-mean
+mean <- data %>%
+  mutate(rt = RT) %>%
+  group_by(subject, label) %>%
+  summarise(
+    RT = mean(rt), RT_sd = sd(rt),
+    ACC = mean(response == 1), ACC_sd = sd(response == 1), 
+    cohen_d = mean(cohen_d),
+    P = mean(P), T = mean(T), W = mean(W),
+    a = mean(a), v = mean(v),
+    n = n(),
+    .groups = "drop"
+  )
+```
+
+```{r}
+# data preprocessing-diff
+diff <- mean %>%
+  group_by(subject) %>%  # 按 subject 分组
+  summarise(
+    RT_diff = RT[label == "stranger"] - RT[label == "self"],  # 计算差值
+    ACC_diff = ACC[label == "self"] - ACC[label == "stranger"],
+    cohen_d = mean(cohen_d),
+    P = mean(P), T = mean(T), W = mean(W)
+  )
+
+diff_ACC <- diff %>%
+  filter(ACC_diff == 0)
+```
+
+# Traditional Analysis
+```{r}
+unique(data_wide$P)
+
+ggplot(data_wide, aes(x = P)) +
+  geom_histogram(aes(y = ..density..), 
+                 bins = 50, 
+                 fill = "skyblue", 
+                 color = "black", 
+                 alpha = 0.6) +
+  geom_density(color = "red", size = 1) +
+  labs(x = "P", y = "density") +
+  theme_classic() +
+  scale_x_continuous(limits = c(0, 150),  # 设置X轴的范围
+                     breaks = seq(0, 150, by = 10))  # 设置X轴的间隔
+```
+
+```{r}
+unique(data_wide$T)
+
+ggplot(data_wide, aes(x = T)) +
+  geom_histogram(aes(y = ..density..), 
+                 bins = 50, 
+                 fill = "skyblue", 
+                 color = "black", 
+                 alpha = 0.6) +
+  geom_density(color = "red", size = 1) +
+  labs(x = "T", y = "density") +
+  theme_classic() +
+  scale_x_continuous(limits = c(30, 600),  # 设置X轴的范围
+                     breaks = seq(30, 600, by = 30))  # 设置X轴的间隔
+```
+
+```{r}
+unique(data_wide$W)
+
+ggplot(data_wide, aes(x = W)) +
+  geom_histogram(aes(y = ..density..), 
+                 bins = 50, 
+                 fill = "skyblue", 
+                 color = "black", 
+                 alpha = 0.6) +
+  geom_density(color = "red", size = 1) +
+  labs(x = "W", y = "density") +
+  theme_classic() +
+  scale_x_continuous(limits = c(300, 1500),  # 设置X轴的范围
+                     breaks = seq(300, 1500, by = 100))  # 设置X轴的间隔
+```
+
+# Contour Plot
+```{r}
+# 定义颜色映射函数
+color_palette <- colorRampPalette(c("#B61D2F", "white", "#2769AF"))
+```
+
+## Parameter
+```{r}
+# Pass
+# 绘制参数随T + W变化的曲线，分别显示self和stranger条件
+ggplot(mean, aes(x = T + W, y = a, color = Label)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "gam", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "a", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$a), by = 0.1)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = T + W, y = v, color = Label)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "gam", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "v", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+```{r}
+plot_ly(data_wide, x = ~W, y = ~T, z = ~P, color = ~a_self, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'W'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "P")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+plot_ly(data_wide, x = ~W, y = ~T, z = ~P, color = ~a_stranger, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'W'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "P")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+plot_ly(data_wide, x = ~P, y = ~T, z = ~W, color = ~v_self, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'P'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "W")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+plot_ly(data_wide, x = ~P, y = ~T, z = ~W, color = ~v_stranger, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'P'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "W")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+## General data
+```{r}
+plot_ly(gen_data, x = ~ P, y = ~ T, z = ~ W, color = ~ mean_RT,
+        colors = color_palette(100), type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(
+           xaxis = list(
+             title = 'P',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           yaxis = list(
+             title = 'T',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           zaxis = list(
+             title = "W",
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           camera = list(
+             eye = list(x = 1.5, y = 1.5, z = 1)
+           )
+         ))
+```
+
+```{r}
+plot_ly(gen_data, x = ~ P, y = ~ T, z = ~ W, color = ~ mean_ACC,
+        colors = color_palette(100), type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(
+           xaxis = list(
+             title = 'P',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           yaxis = list(
+             title = 'T',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           zaxis = list(
+             title = "W",
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           camera = list(
+             eye = list(x = 1.5, y = 1.5, z = 1)
+           )
+         ))
+```
+
+### RT
+```{r}
+# P & w
+plot_ly(gen_data, x = ~W, y = ~P, z = ~mean_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "RT")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & w
+plot_ly(gen_data, x = ~W, y = ~T, z = ~mean_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "RT")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & P
+plot_ly(gen_data, x = ~ P, y = ~ T, z = ~ mean_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "RT")) %>%
+  layout(
+    xaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+### ACC
+```{r}
+# P & w
+plot_ly(gen_data, x = ~ W, y = ~ P, z = ~ mean_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & w
+plot_ly(gen_data, x = ~ T, y = ~ W, z = ~ mean_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & P
+plot_ly(gen_data, x = ~ P, y = ~ T, z = ~ mean_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+## Diff
+```{r}
+plot_ly(diff, x = ~W, y = ~T, z = ~P, color = ~RT_diff, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'W'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "P")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+plot_ly(diff, x = ~P, y = ~T, z = ~W, color = ~ACC_diff, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'P'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "W")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+### RT
+```{r}
+# P & w
+plot_ly(diff, x = ~W, y = ~P, z = ~RT_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "W"),
+         yaxis = list(title = "P"))
+```
+
+```{r}
+# T & w
+plot_ly(diff, x = ~W, y = ~T, z = ~RT_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "W"),
+         yaxis = list(title = "T"))
+```
+
+```{r}
+# T & P
+plot_ly(diff, x = ~P, y = ~T, z = ~RT_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "P"),
+         yaxis = list(title = "T"))
+```
+
+### ACC
+```{r}
+# P & w
+plot_ly(diff, x = ~W, y = ~P, z = ~ACC_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "W"),
+         yaxis = list(title = "P"))
+```
+
+```{r}
+# T & w
+plot_ly(diff, x = ~T, y = ~W, z = ~ACC_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "T"),
+         yaxis = list(title = "W"))
+```
+
+```{r}
+# T & P
+plot_ly(diff, x = ~P, y = ~T, z = ~ACC_diff, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "diff")) %>%
+  layout(title = "Contour Plot",
+         xaxis = list(title = "P"),
+         yaxis = list(title = "T"))
+```
+
+## Cohen's d
+```{r}
+data_wide <- data_wide %>% filter(!is.na(cohen_d_ACC) & !is.na(cohen_d_RT))
+```
+
+```{r}
+plot_ly(data_wide, x = ~ P, y = ~ T, z = ~ W, color = ~ cohen_d_RT,
+        colors = color_palette(100), type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(
+           xaxis = list(
+             title = 'P',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           yaxis = list(
+             title = 'T',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           zaxis = list(
+             title = "W",
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           camera = list(
+             eye = list(x = 1.5, y = 1.5, z = 1)
+           )
+         ))
+```
+
+```{r}
+plot_ly(data_wide, x = ~ P, y = ~ T, z = ~ W, color = ~ cohen_d_ACC,
+        colors = color_palette(100), type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(
+           xaxis = list(
+             title = 'P',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           yaxis = list(
+             title = 'T',
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           zaxis = list(
+             title = "W",
+             titlefont = list(size = 16, family = "Arial Black"),
+             tickfont = list(size = 13, family = "Arial Black")
+           ),
+           camera = list(
+             eye = list(x = 1.5, y = 1.5, z = 1)
+           )
+         ))
+```
+
+### RT
+```{r}
+# P & w
+plot_ly(data_wide, x = ~W, y = ~P, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & w
+plot_ly(data_wide, x = ~W, y = ~T, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & P
+plot_ly(data_wide, x = ~P, y = ~T, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+### ACC
+```{r}
+# P & w
+plot_ly(data_wide, x = ~W, y = ~P, z = ~cohen_d_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & w
+plot_ly(data_wide, x = ~W, y = ~T, z = ~cohen_d_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "W",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+```{r}
+# T & P
+plot_ly(data_wide, x = ~P, y = ~T, z = ~cohen_d_ACC, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d ACC")) %>%
+  layout(
+    xaxis = list(
+      title = "P",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      ),
+    yaxis = list(
+      title = "T",
+      titlefont = list(size = 20, family = "Arial Black", color = "black"),
+      tickfont = list(size = 16, family = "Arial Black", color = "black")
+      )
+    )
+```
+
+# Gaussian Smooth(需修改)
+## Method 1
+```{r}
+library(MBA)
+library(reshape2)
+
+# 提前初始化结果列表
+smoothed_list <- list()
+
+# 遍历每一个 P 值（或 P 的近似分层）
+unique_P <- sort(unique(data_wide$P))
+
+for (p_val in unique_P) {
+  slice <- data_wide %>% filter(P == p_val)
+  
+  # 保证 slice 有数据
+  if (nrow(slice) >= 10) {  # 至少一些点才有意义平滑
+    # 2D 平滑：W, T → cohen_d_RT
+    mba_out <- mba.surf(slice[, c("W", "T", "cohen_d_RT")], no.X = 100, no.Y = 100, h = 3)
+    
+    melted <- melt(mba_out$xyz.est, varnames = c("W", "T"), value.name = "cohen_d_RT")
+    melted$P <- p_val  # 补上当前层的 P 值
+    
+    smoothed_list[[as.character(p_val)]] <- melted
+  }
+}
+
+# 合并所有层的结果
+smoothed_data <- bind_rows(smoothed_list)
+```
+
+```{r}
+plot_ly(smoothed_data, x = ~W, y = ~T, z = ~P, color = ~cohen_d_RT,
+        colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 2)) %>%
+  layout(scene = list(
+    xaxis = list(title = 'W'),
+    yaxis = list(title = 'T'),
+    zaxis = list(title = 'P')
+  ))
+```
+
+```{r}
+# P & w
+plot_ly(smoothed_data, x = ~W, y = ~P, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(title = "W"),
+    yaxis = list(title = "P")
+    )
+```
+
+```{r}
+# T & w
+plot_ly(smoothed_data, x = ~W, y = ~T, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(title = "W"),
+    yaxis = list(title = "T")
+    )
+```
+
+```{r}
+# T & P
+plot_ly(smoothed_data, x = ~P, y = ~T, z = ~cohen_d_RT, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(title = "P"),
+    yaxis = list(title = "T")
+    )
+```
+
+## Method 2
+```{r}
+# install.packages("imager")
+library(imager)
+library(purrr)
+```
+
+```{r}
+# 加载必要的库
+library(dplyr)
+library(tidyr)
+library(tibble) # column_to_rownames
+library(purrr)  # map, pmap, map_lgl
+library(imager) # as.cimg, isoblur
+
+# 假设 data_wide 是你的输入数据框
+# smoothing_sigma 保持不变
+smoothing_sigma <- 2
+
+# Step 1: 过滤掉无法构成至少 2x2 矩阵的组
+# (确保组内至少有 2 个不同的 T 和 2 个不同的 W)
+valid_data <- data_wide %>%
+  group_by(P) %>%
+  filter(n_distinct(T) > 1, n_distinct(W) > 1) %>%
+  ungroup()
+
+# Step 2: 对每个有效组进行处理、平滑并合并
+smoothed_results <- valid_data %>%
+  group_by(P) %>%
+  summarise(
+    # 使用 list() 来包装处理结果，因为 summarise 需要返回单个值（或长度为1的列表）
+    processed_data = list({
+      df_group <- cur_data() # 获取当前 P 组的数据
+
+      # 构建原始矩阵
+      mat_raw <- tryCatch({
+        df_group %>%
+          # 对于 P 内部可能存在的重复 T/W 组合，计算平均值
+          group_by(T, W) %>%
+          summarise(mean_cohen_d = mean(cohen_d_RT, na.rm = TRUE), .groups = 'drop') %>%
+          # 重塑为宽格式
+          pivot_wider(names_from = W, values_from = mean_cohen_d) %>%
+          # 确保 T 列是数值类型，以便排序和作为行名
+          mutate(T = as.numeric(as.character(T))) %>%
+          # 按 T 排序以确保行序一致
+          arrange(T) %>%
+          # 将 T 列设为行名
+          column_to_rownames("T") %>%
+          # 转换为矩阵
+          as.matrix()
+      }, error = function(e) {
+        # 如果在构建矩阵过程中出错 (例如，pivot_wider 问题)，返回 NULL
+        warning("Matrix creation failed for P=", unique(df_group$P), ": ", e$message)
+        NULL
+      })
+
+      # 如果矩阵创建失败，则返回 NULL
+      if (is.null(mat_raw)) {
+        return(NULL)
+      }
+
+      # 用 0 填充 NA (可能由 pivot_wider 产生)
+      mat_raw[is.na(mat_raw)] <- 0
+
+      # 检查矩阵维度是否都大于 1
+      if (nrow(mat_raw) > 1 && ncol(mat_raw) > 1) {
+        # 提取行名和列名 (在平滑之前，使用原始矩阵的维度)
+        t_vals <- as.numeric(rownames(mat_raw))
+        w_vals <- as.numeric(colnames(mat_raw))
+
+        # 进行平滑处理，增加错误处理
+        mat_smoothed <- tryCatch({
+           as.matrix(isoblur(as.cimg(mat_raw), sigma = smoothing_sigma))
+        }, error = function(e) {
+           warning("Smoothing failed for P=", unique(df_group$P), ": ", e$message)
+           NULL # 平滑失败返回 NULL
+        })
+
+        # 如果平滑成功，返回包含所有信息的列表
+        if (!is.null(mat_smoothed)) {
+          list(
+            smoothed_matrix = mat_smoothed,
+            T_vals = t_vals,
+            W_vals = w_vals
+          )
+        } else {
+          NULL # 平滑失败
+        }
+      } else {
+        # 维度不满足要求
+        NULL
+      }
+    }),
+    .groups = 'drop' # 计算完后取消分组
+  ) %>%
+  # 过滤掉处理过程中返回 NULL 的行 (代表处理失败的 P 组)
+  filter(!map_lgl(processed_data, is.null)) %>%
+  # 将 processed_data 列表中的元素提取到单独的列
+  # 注意：现在 processed_data 列本身就是一个列表，其元素也是列表
+  mutate(
+    smoothed_matrix = map(processed_data, "smoothed_matrix"),
+    T_vals = map(processed_data, "T_vals"),
+    W_vals = map(processed_data, "W_vals")
+  ) %>%
+  # 选择需要的列，准备 unnest
+  select(P, T_vals, W_vals, smoothed_matrix) %>%
+  # 使用 pmap 将 T_vals, W_vals 和 smoothed_matrix 重新组合成长格式
+  mutate(
+    grid_data = pmap(list(T_vals, W_vals, smoothed_matrix), function(t, w, m) {
+      # 创建 T 和 W 的所有组合
+      expand.grid(T = t, W = w) %>%
+        # 将平滑后的矩阵向量化并添加到新列
+        # R 中 as.vector(matrix) 是按列读取的, expand.grid 先变化 T (第一个参数)
+        # 所以这是匹配的：第一列的 T 从 min 到 max，然后第二列的 T 从 min 到 max...
+        mutate(smoothed_d = as.vector(m))
+    })
+  ) %>%
+  # 只保留 P 和包含长格式数据的 grid_data 列
+  select(P, grid_data) %>%
+  # 展开 grid_data 列中的数据框
+  unnest(grid_data)
+
+# 查看结果的前几行
+# print(head(smoothed_results))
+
+# (可选) 查看结果摘要
+# summary(smoothed_results)
+```
+
+```{r}
+# Step 1: 获取数据矩阵 (T, W, cohen_d_RT)
+data_matrix <- data_wide %>%
+  group_by(T, W) %>%
+  summarise(cohen_d_RT = mean(cohen_d_RT, na.rm = TRUE), .groups = 'drop') %>%
+  pivot_wider(names_from = W, values_from = cohen_d_RT) %>%
+  column_to_rownames("T") %>%
+  as.matrix()
+
+# Step 2: 对数据应用高斯平滑
+data_matrix[is.na(data_matrix)] <- 0
+smoothed_matrix <- as.matrix(isoblur(as.cimg(data_matrix), sigma = 2))
+
+# Step 3: 将平滑后的矩阵转换为数据框
+T_vals <- as.numeric(rownames(data_matrix))
+W_vals <- as.numeric(colnames(data_matrix))
+smoothed_df <- expand.grid(T = T_vals, W = W_vals) %>%
+  mutate(smoothed_d = as.vector(t(smoothed_matrix)))  # 转置矩阵对齐
+```
+
+```{r}
+# T & w
+plot_ly(smoothed_df, x = ~W, y = ~T, z = ~smoothed_d, type = 'contour',
+        colors = color_palette(100), colorbar = list(title = "cohen's d RT")) %>%
+  layout(
+    xaxis = list(title = "W"),
+    yaxis = list(title = "T")
+    )
+```
+
+# Condition Plot
+```{r}
+# 绘制随T变化的曲线，分别显示self和stranger条件
+ggplot(mean, aes(x = T, y = RT, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "T", y = "RT", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 600, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$RT), by = 100)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = T, y = ACC, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "T", y = "ACC", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 600, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+```{r}
+# 绘制随P变化的曲线，分别显示self和stranger条件
+ggplot(mean, aes(x = P, y = RT, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "P", y = "RT", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 600, by = 10)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$RT), by = 100)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = P, y = ACC, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "P", y = "ACC", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 600, by = 10)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+```{r}
+# 绘制随W变化的曲线，分别显示self和stranger条件
+ggplot(mean, aes(x = W, y = RT, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "W", y = "RT", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 1500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$RT), by = 100)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = W, y = ACC, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "W", y = "ACC", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 1500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+```{r}
+# 绘制随T + W变化的曲线，分别显示self和stranger条件
+ggplot(mean, aes(x = T + W, y = RT, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "RT", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$RT), by = 100)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = T + W, y = ACC, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "loess", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "ACC", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+```{r}
+# T + W, 换个拟合方法，没啥区别
+ggplot(mean, aes(x = T + W, y = RT, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "gam", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "RT", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(mean$RT), by = 100)   # 设置RT轴的刻度间隔为50（可以根据需要调整）
+  )
+
+ggplot(mean, aes(x = T + W, y = ACC, color = condition)) +
+  geom_point(size = 2, alpha = 0.2) +                             # 数据点
+  geom_smooth(method = "gam", se = TRUE, size = 1) +
+  scale_color_manual(values = c("self" = "blue", "stranger" = "red")) + # 手动设置颜色
+  labs(x = "M", y = "ACC", 
+      color = "Condition") +
+  theme_classic(base_size = 14) +                    # 简洁主题
+  theme(legend.position = "top") +
+  scale_x_continuous(
+    breaks = seq(0, 2500, by = 100)      # 设置T轴的刻度间隔为1（可以根据需要调整）
+  )
+```
+
+# Surface
+## RT
+```{r}
+# 只保留绝对值小于某阈值的数据
+rt_dw <- data_wide[data_wide$cohen_d_RT > 0.9 & data_wide$cohen_d_RT < 1.0, ]
+T_dw <- data_wide[data_wide$P > 80 & data_wide$P < 120, ]
+
+plot_ly(rt_dw, x = ~W, y = ~T, z = ~P, color = ~cohen_d_RT, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'W'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "P")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+# 安装并加载
+# install.packages("mgcv")  # 如果没装
+
+library(mgcv)
+
+# 创建网格
+P_rt_seq <- seq(min(rt_dw$P), max(rt_dw$P), length.out = 50)
+W_rt_seq <- seq(min(rt_dw$W), max(rt_dw$W), length.out = 50)
+grid <- expand.grid(P = P_rt_seq, W = W_rt_seq)  # 这将创建 2500 行的组合网格
+
+# 拟合模型
+fit_T <- gam(T ~ s(P, W), data = rt_dw)
+fit_d <- gam(cohen_d_RT ~ s(P, W), data = rt_dw)
+
+# 预测
+grid$T_pred <- predict(fit_T, newdata = grid)
+grid$cohen_d_pred <- predict(fit_d, newdata = grid)
+
+# 转换为矩阵以画曲面
+T_rt_matrix <- matrix(grid$T_pred, nrow = length(P_rt_seq), ncol = length(W_rt_seq))
+color_matrix <- matrix(grid$cohen_d_pred, nrow = length(P_rt_seq), ncol = length(W_rt_seq))
+```
+
+```{r}
+plot_ly(
+  x = ~W_rt_seq,
+  y = ~P_rt_seq,
+  z = ~T_rt_matrix,
+  surfacecolor = ~color_matrix,
+  colorscale = "RdBu",
+  type = "surface",
+  opacity = 0.7,
+  cmin = min(rt_dw$cohen_d_RT, na.rm = TRUE),
+  cmax = max(rt_dw$cohen_d_RT, na.rm = TRUE),
+  showscale = TRUE,
+  contours = list(
+    z = list(
+      show = TRUE,
+      usecolormap = TRUE,            # 使用与 surfacecolor 相同的 colorscale
+      highlightcolor = "#ff0000",    # 鼠标悬停时高亮颜色
+      project = list(z = TRUE)
+    )
+  )
+) %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "W"),
+      yaxis = list(title = "P"),
+      zaxis = list(title = "T")
+    )
+  )
+
+```
+
+```{r}
+# 画曲面图，颜色映射 cohen_d
+plot_ly(x = ~W_rt_seq, y = ~P_rt_seq, z = ~T_rt_matrix,
+        surfacecolor = ~color_matrix,
+        colorscale = "RdBu",
+        type = "surface",
+        cmin = min(rt_dw$cohen_d_RT), cmax = max(rt_dw$cohen_d_RT),
+        showscale = TRUE) %>%
+  layout(scene = list(
+    xaxis = list(title = "W"),
+    yaxis = list(title = "P"),
+    zaxis = list(title = "T")
+  ))
+```
+
+```{r}
+plot_ly(
+  x = ~W_rt_seq,
+  y = ~P_rt_seq,
+  z = ~T_rt_matrix,
+  type = "surface",
+  opacity = 0.7,  # 透明度可调
+  colorscale = list(c(0, "#9d858f"), c(1, "#9d858f")), 
+  showscale = FALSE,  # 隐藏色标条（因为颜色不再变化）
+) %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "W"),
+      yaxis = list(title = "P"),
+      zaxis = list(title = "T")
+    )
+  )
+```
+
+## ACC
+```{r}
+# 只保留绝对值小于某阈值的数据
+acc_dw <- data_wide[data_wide$cohen_d_ACC > 0.8, ]
+
+plot_ly(acc_dw, x = ~W, y = ~T, z = ~P, color = ~cohen_d_ACC, colors = color_palette(100),
+        type = 'scatter3d', mode = 'markers',
+        marker = list(size = 5)) %>%
+  layout(scene = list(xaxis = list(title = 'W'),
+                      yaxis = list(title = 'T'),
+                      zaxis = list(title = "P")),
+         coloraxis = list(colorbar = list(title = "diff"),
+                          colorscale = color_palette(100)))
+```
+
+```{r}
+# 记得去掉NA
+# 创建网格
+P_acc_seq <- seq(min(acc_dw$P), max(acc_dw$P), length.out = 50)
+W_acc_seq <- seq(min(acc_dw$W), max(acc_dw$W), length.out = 50)
+grid <- expand.grid(P = P_acc_seq, W = W_acc_seq)  # 这将创建 2500 行的组合网格
+
+# 拟合模型
+fit_T <- gam(T ~ s(P, W), data = acc_dw)
+fit_d <- gam(cohen_d_ACC ~ s(P, W), data = acc_dw)
+
+# 预测
+grid$T_pred <- predict(fit_T, newdata = grid)
+grid$cohen_d_pred <- predict(fit_d, newdata = grid)
+
+# 转换为矩阵以画曲面
+T_acc_matrix <- matrix(grid$T_pred, nrow = length(P_acc_seq), ncol = length(W_acc_seq))
+color_matrix <- matrix(grid$cohen_d_pred, nrow = length(P_acc_seq), ncol = length(W_acc_seq))
+```
+
+```{r}
+# 画曲面图，颜色映射 cohen_d
+plot_ly(x = ~W_acc_seq, y = ~P_acc_seq, z = ~T_acc_matrix,
+        surfacecolor = ~color_matrix,
+        colorscale = "RdBu",
+        type = "surface",
+        cmin = min(acc_dw$cohen_d_ACC), cmax = max(acc_dw$cohen_d_ACC),
+        showscale = TRUE) %>%
+  layout(scene = list(
+    xaxis = list(title = "T"),
+    yaxis = list(title = "W"),
+    zaxis = list(title = "P")
+  ))
+```
+
+```{r}
+plot_ly(
+  x = ~W_acc_seq,
+  y = ~P_acc_seq,
+  z = ~T_acc_matrix,
+  surfacecolor = ~color_matrix,
+  colorscale = "RdBu",
+  type = "surface",
+  cmin = min(acc_dw$cohen_d_ACC),
+  cmax = max(acc_dw$cohen_d_ACC),
+  showscale = TRUE,
+  contours = list(
+    z = list(
+      show = TRUE,
+      usecolormap = TRUE,
+      project = list(z = TRUE)
+    )
+  )
+) %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "T"),
+      yaxis = list(title = "W"),
+      zaxis = list(title = "P"),
+      camera = list(
+        eye = list(x = 1.87, y = 0.88, z = -0.64)
+      )
+    )
+  )
+```
