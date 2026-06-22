@@ -1,0 +1,482 @@
+
+--- PAGE 1 ---
+*: These authors contributed equally and shared first authorship. 
+#: These authors contributed equally and shared senior authorship. 
+Correspondence can be addressed to Xiamin Leng (xiamin_leng@berkeley.edu) or Alexander Fengler 
+(alexander_fengler@brown.edu). 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+The Perils of Omitting Omissions when Modeling Evidence Accumulation 
+ 
+ 
+ 
+Xiamin Leng1*, Alexander Fengler2*, Amitai Shenhav1,3#, Michael J. Frank2,4# 
+ 
+1. Department of Psychology, University of California, Berkeley 
+2. Department of Cognitive and Psychological Sciences, Brown University 
+3. Helen Wills Neuroscience Institute, University of California, Berkeley 
+4. Carney Institute of Brain Science, Brown University 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 2 ---
+1 
+Abstract 
+Response deadlines are commonly imposed in decision-making research to incentivize speedy decisions 
+and sustained attention. This procedure frequently leads to a proportion of trials in which no response is 
+made, and these omissions are often simply removed from the data during analysis. Here we show that 
+this seemingly trivial assumption is in fact quite consequential for parameter estimation. We propose that 
+omissions should instead be treated as observations to inform inference of the underlying generative 
+process that led to their occurrence. Using new tools from likelihood-free inference applicable to a broad 
+class of sequential sampling models (SSMs), we enable fast computation of omission probability without 
+explicit integration, and clarify the degree to which omitting omissions – even in seemingly benign 
+settings – can lead researchers astray. We explore this phenomenon in the setting of SSMs with constant 
+and time-varying boundaries, and show that parameter recovery is improved by incorporating a model of 
+omission probability. We show that the benefits of modeling omission probability are distinct from 
+benefits gained from past approaches of modeling attentional lapses to account for these omissions. Our 
+findings shine a light on the consequences of omitting omission in modeling choice behavior with SSMs, 
+and demonstrate how joint modeling of observed and omitted data can improve parameter inference and 
+therefore the reliability of downstream scientific conclusions. 
+ 
+Keywords: likelihood-free; Bayesian inference; sequential sampling models; omissions 
+ 
+
+--- PAGE 3 ---
+2 
+Introduction 
+Joint modeling of choices and response times is a core methodological approach for unveiling the 
+dynamics of decision making. An important class of cognitive process models used for this purpose is 
+known as Sequential Sampling Models (SSM; Bogacz et al., 2006; Fengler et al., 2022; Forstmann et al., 
+2016; Ratcliff, 1978). Variants of such SSMs are routinely used to dissect choice behavior into 
+interpretable components. These models conceptualize decision making as boundary crossings of a 
+random particle with drift. The momentary position of the particle represents a state of evidence of the 
+system, and the momentary distance between choice boundaries represents the amount of accumulated 
+evidence required to commit to a choice (or decision threshold). Crossing the boundary implies a choice 
+and a corresponding response time on a given trial. Many studies have shown that this class of models 
+provides a coherent account of choice proportions and their RT distributions across a range of paradigms 
+whereby, for example, the drift rate is related to the strength of evidence in the signal (high rates lead to 
+more accurate and faster RTs) and the boundary separation modulates the speed-accuracy tradeoff (higher 
+bounds lead to slower but more accurate responding; Bogacz et al., 2006; Busemeyer et al., 2019). 
+However, not every decision process ends in a boundary crossing, leaving open questions about how to 
+treat trials without a recorded choice. 
+ 
+Based on normative analyses, recent extensions of SSM models allow decision boundaries to collapse 
+over time, such that the amount of evidence needed to commit to a choice is lower as time evolves 
+(Tajima et al., 2016). This dynamic is believed to be especially beneficial for decision-making studies that 
+involve a choice deadline: as the deadline approaches, the decision-maker should commit to the choice 
+that has the most evidence even if they are not as confident about that choice as they would like to be 
+given sufficient time (Drugowitsch et al., 2012; Yu et al., 2009). In addition to deadlines, boundary 
+dynamics are also sensitive to properties of the choice options, such as those that lead to more difficult 
+decisions (Malhotra et al., 2018) or otherwise generate decision conflict (Frank et al., 2015; Ging-Jehli et 
+al., 2025; Herz et al., 2016, 2024; Kirschner et al., 2024). Such collapsing boundaries then serve as an 
+“urgency-signal” for the subject to force a decision in service of a global objective function imposed by 
+the experiment design (Frömer & Shenhav, 2022; Hawkins et al., 2015). Thus, estimating how decision 
+parameters, including boundaries, vary according to cognitive and neural factors remains an active area of 
+research that is informed by rigorous parameter estimation. 
+ 
+In practice, while deadlines incentivize speedy decision-making, it is often inevitable to have trials for 
+which no response is given (e.g., omissions). When analyzing such data, it is commonplace to exclude 
+such omissions and focus only on the trials with committed responses (Blurton et al., 2023; Katsimpokis 
+
+--- PAGE 4 ---
+3 
+et al., 2020; Noorbaloochi et al., 2015; Weindel et al., 2021). The implicit assumption has been that 
+excluding these omitted trials will not significantly impact parameter estimation, and therefore 
+downstream conclusions, but the extent to which this is the case typically goes untested. A more practical 
+limitation has been that a majority of SSMs are only able to make predictions about committed responses, 
+preventing studies from using these models to make inferences about omissions. While a few studies have 
+attempted to estimate omission probabilities (Damaso et al., 2022; Hawkins & Heathcote, 2021), the 
+available approaches can be computationally demanding. This challenge is especially important because it 
+can discourage researchers from including omissions in their models at all. 
+ 
+This paper addresses three questions: 1) What are the consequences of omitting omissions when inferring 
+decision dynamics? 2) How to efficiently incorporate omissions into parameter estimation? 3) To what 
+extent does including omission improve the identification of model parameters? Past studies (Damaso et 
+al., 2022; Hawkins & Heathcote, 2021) estimated omission probabilities by integrating the post-deadline 
+proportion of probability density function. However, these methods can be computationally expensive 
+even for SSMs with analytic likelihood function, and this issue is especially pernicious for a broad class 
+of SSMs that don’t have analytic likelihood functions. It would be beneficial to incorporate estimation of 
+omission probability into sequential sampling models in an efficient way. The introduction of Likelihood 
+Approximation Networks (LANs; Fengler et al., 2021, 2022) has enabled researchers to fit a broad class 
+of such models by pretraining neural networks to approximate likelihood functions, comprising a form of 
+amortized Bayesian inference (Radev et al., 2020, 2022). Building on this advancement, we extended the 
+LAN framework to empirically investigate the vulnerability to misleading conclusions that arise when 
+omissions are ignored. Rather than computing integrals analytically, we trained a second type of network, 
+dubbed Omission Probability Network (OPN), directly on the omission probabilities, given SSM 
+parameters and a deadline. We show with a series of numerical experiments that parameter estimation 
+(and therefore conclusions about mechanisms driving cross-condition differences in behavior) can be 
+severely affected if omissions are not explicitly modeled, even when such omissions are relatively rare. 
+We then demonstrated that this limitation can be eliminated by joint modeling of observed data and 
+omission using our LAN+OPN approach. We validate this conclusion with three different types of 
+decision boundary (constant, linearly collapsing, and nonlinearly collapsing), and show that our model 
+can distinguish between omissions arising from evidence accumulation and those arising from attentional 
+lapses.  
+ 
+ 
+ 
+
+--- PAGE 5 ---
+4 
+Methods 
+Sequential sampling models  
+In this paper, we begin with the drift diffusion model (DDM) as the basis from which we derive two 
+additional variations as test-beds for our numerical experiments: the ANGLE and WEIBULL models. The 
+DDM is a basic sequential sampling model (SSM), ubiquitously applied with a long history in cognitive 
+science (Ratcliff, 1978). The standard DDM is formulated as  
+𝑑𝑋𝑡= 𝑣𝑑𝑡+ 𝑐𝑑𝑊, 𝑋0 = 𝑧  
+by setting 𝑓𝑏𝑜𝑢𝑛𝑑
+𝐷𝐷𝑀(𝑡) = 𝑎, a fixed boundary value, 𝑣 the drift rate, 𝑐𝑑𝑊 , a Gaussian noise scaling over 
+time, and 𝑧, the bias at the starting point of the diffusion process. A decision is made when 𝑋𝑡 reaches 
+lower (𝑎) or upper boundary (−𝑎). It is common to add a non-decision time 𝜏 to the model as a means to 
+collect residual time spent on perceptual or motor processes not related to the choice process. Here, 
+without loss of generality, we set 𝑧 at 0.5 (e.g., equal distance to upper and lower boundary) and 𝜏 at 0.3 
+s. 
+ 
+DDMs with collapsing bounds have been used in particular for situations with response deadlines (Frazier 
+& Yu, 2007; Rapoport & Burkheimer, 1971), as a rational decision maker can force themselves to decide 
+with incomplete evidence, especially if rational under a global objective function to maximize reward of 
+an entire block of trials (Tajima et al., 2016). We will call a DDM with a linearly collapsing boundary the 
+ANGLE model, and define the boundary as follows, 
+𝑓𝑏𝑜𝑢𝑛𝑑
+𝐴𝑁𝐺𝐿𝐸(𝑡) = 𝑎−𝑡× 𝑠𝑖𝑛(𝜃)
+𝑐𝑜𝑠(𝜃) 
+Here 𝜃 indicates the boundary collapsing angle with allowable range in the interval (0, 𝜋/2). The linearly 
+collapsing boundary serves to represent the concept of urgency in decision making, which, as mentioned, 
+has been proposed as theoretically relevant repeatedly. Our third alternative, which we call the WEIBULL 
+model, takes as boundary shape the nonlinear Weibull function (Hawkins et al., 2015): 
+𝑓𝑏𝑜𝑢𝑛𝑑
+𝑊𝑒𝑖𝑏𝑢𝑙𝑙(𝑡) = 𝑎× 𝑒𝑥𝑝(−(𝑡
+𝛽)𝛼) 
+where 𝛼 is the shape parameter and 𝛽 is the scale parameter.  
+ 
+Our analysis in this paper will cover the DDM with all three types of boundary shape (constant, ANGLE, 
+WEIBULL; Figure 1A). However, because the DDM with constant boundary is less suitable for 
+responses with a time limit, we will primarily focus on the two models with collapsing bounds.  
+ 
+ 
+
+--- PAGE 6 ---
+5 
+Likelihood 
+When there is no response deadline, an SSM will eventually produce a response on each trial, and there 
+will be no omissions. The likelihoods for observed responses based on SSMs with two alternatives are 
+described by a set of two defective distributions (one for each choices, 𝑐= 1 and 𝑐= −1), 𝑓𝑐(𝑡; 𝜃𝑆𝑆𝑀), 
+where, 
+∫
+𝑓1(𝑡|𝜃𝑆𝑆𝑀)𝑑𝑡
++∞
+0
++ ∫
+𝑓−1(𝑡|𝜃𝑆𝑆𝑀)𝑑𝑡
++∞
+0
+= 1 
+and 𝜃𝑆𝑆𝑀 represents the set of parameters for our given SSM. However, when a response deadline 𝑑exist, 
+only responses before the deadline will be observed, and the rest of trials will be treated as omissions. 
+Here we are specifically interested in the influence of inclusion and exclusion of omissions on parameter 
+recovery, and thus two types of data need to be considered in the model. 
+ 
+1. Observed data 𝐷: 𝑑𝑖= (𝑟𝑡𝑖, 𝑐𝑖) where 𝑟𝑡𝑖≤𝑑 and both RT and choice are recorded. 
+2. Omission 𝑂: 𝑑𝑖= (𝑟𝑡𝑖, 𝑐𝑖) where 𝑟𝑡𝑖> 𝑑 and neither RT or choice is recorded. Instead, the trial is 
+masked with a boolean value indicating omission. 
+ 
+For observed data points we use our functions 𝑓𝑐(𝑡; 𝜃𝑆𝑆𝑀) above. For omissions, however, we need to 
+compute the following integral, 
+𝑝(𝑜𝑚𝑖𝑠𝑠𝑖𝑜𝑛|𝜃𝑆𝑆𝑀) = ∫
+𝑓1(𝑡|𝜃𝑆𝑆𝑀)𝑑𝑡
++∞
+𝑑
++ ∫
+𝑓−1(𝑡|𝜃𝑆𝑆𝑀)𝑑𝑡
++∞
+𝑑
+ 
+In this integral, 𝑑 indicates the response deadline imposed by experiment and is treated as a known 
+parameter. Since these integrals are not typically considered or available in relevant software packages for 
+SSM parameter estimation researchers choose to treat omissions as missing data, and thus perform 
+inference using only the probability density functions for observed data described above. In this paper, we 
+used 1.25 s as the deadline, but the general pattern persists with different deadline settings when omission 
+rate is similar. 
+ 
+Here we address this problem by extending the framework of likelihood approximation networks (LAN; 
+Fengler et al., 2021), to enable fast inference of arbitrary SSMs while including the likelihood of 
+omissions explicitly. To be consistent across our analyses and without loss of generality, we use the LAN 
+as the likelihood for all observed responses from SSMs, even though analytical likelihoods are available 
+for the standard DDM case. We previously showed that the LAN provides an excellent approximation of 
+the DDM likelihood and can even be more efficient in computation time than the analytical likelihood, 
+because it can be parallelized over trials. Thus, all of our comparisons to the “LAN only” approach would 
+
+--- PAGE 7 ---
+6 
+apply equally for analytic likelihoods; the main results of this paper should thus be taken to showcase the 
+utility of OPNs, not to judge the adequacy or inadequacy of LANs per se. In particular, we use a 
+simulator that returns the probability of missing the deadline, which can then be used to train an OPN to 
+estimate this probability based on SSM parameters and response deadline. Hence, we train two LANs for 
+each model, one for the function 𝑓𝑐𝐿𝐴𝑁(𝑡|𝜃𝑆𝑆𝑀) that will, and one for the function 𝑓𝑂𝑃𝑁(𝑜𝑚𝑖𝑠𝑠𝑖𝑜𝑛|𝜃𝑆𝑆𝑀). 
+The log-likelihood of a given dataset (𝐷, 𝑂), is then computed as, 
+𝑙𝑜𝑔𝑙(𝐷, 𝑂|𝜃𝑆𝑆𝑀, 𝑑) = ∑𝑓𝑐𝑖
+𝐿𝐴𝑁(𝑟𝑡𝑖|𝜃𝑆𝑆𝑀)
+|𝐷|
+𝑖=0
++ |𝑂| × 𝑓𝑂𝑃𝑁(𝑜𝑚𝑖𝑠𝑠𝑖𝑜𝑛|𝜃𝑆𝑆𝑀,𝑑) 
+this combined approach enables estimation of 𝜃𝑆𝑆𝑀 via fitting observed choice data and omissions jointly 
+(Figure 1B). 
+ 
+ 
+Figure 1. Illustration of the log-likelihood formulation with the help of a LAN and 
+an OPN. A) We consider drift diffusion model (DDM), a representative sequential 
+sampling model (SSM), with constant, linearly collapsing, and nonlinearly collapsing 
+boundary shapes. B) In our proposed framework, the OPN provides a function 𝑓𝑂𝑃𝑁for 
+the log-likelihood of omissions, given a deadline setting. We simply multiply the log-
+likelihood of omissions by the number of omitted trials, which is enough for the 
+numerical experiments introduced here. In principle, trial-wise deadlines can be 
+incorporated at no extra cost. The LAN provides the function 𝑓𝐿𝐴𝑁for the log-likelihood 
+of observing a given (𝑟𝑡, 𝑐) response time and choice pair prior to the deadline. Both 
+networks take 𝜃𝑆𝑆𝑀-the parameters of the underlying sequential sampling model. The 
+LANs input adds to this the observed pair (𝑟𝑡, 𝑐), while the OPN adds to this the deadline 
+𝑑. The general framework is applicable to a large class of sequential sampling models 
+(A), of which the model shown here is simply a concrete example based on ANGLE 
+model (B). 
+
+--- PAGE 8 ---
+7 
+Inclusion of lapse distribution 
+While our primary analysis assumes that all choices are generated from a single SSM parameterization, 
+empirically, it is also possible that some proportion of responses and omissions reflect attentional lapses. 
+To test how our approach performs in this case, we modeled a lapse distribution as a uniform distribution 
+over a wide range of time 𝑇 (5s in our analysis) and assuming that lapses generate random choices (in this 
+case, p=0.5 for each choice option): 
+𝑓𝐿𝑎𝑝𝑠𝑒(𝑡) =
+1
+2 × 𝑇 𝑓𝑜𝑟 𝑡∈[0, 𝑇] 
+In this case, omissions from the lapse distribution simply means a sample with 𝑟𝑡> 𝑑 drawn from lapse 
+distribution.  
+ 
+With this setting of lapse distribution, both observed data and omissions are drawn from a mixed 
+distribution of SSM and lapse. The proportion of lapse is quantified as 𝑝𝑙𝑎𝑝𝑠𝑒 and thus the weight of SSM 
+is 1 −𝑝𝑙𝑎𝑝𝑠𝑒. The joint likelihood of observed data and omission is 
+𝑙𝑖𝑘𝑒𝑙𝑖ℎ𝑜𝑜𝑑= (1 −𝑝𝑙𝑎𝑝𝑠𝑒) × 𝑙𝑖𝑘𝑒𝑙𝑖ℎ𝑜𝑜𝑑𝑆𝑆𝑀+ 𝑝𝑙𝑎𝑝𝑠𝑒× 𝑓𝐿𝑎𝑝𝑠𝑒 
+where 𝑙𝑖𝑘𝑒𝑙𝑖ℎ𝑜𝑜𝑑𝑆𝑆𝑀 is based on Equation (6). This likelihood enables joint estimation of SSM 
+parameters as well as the lapse proportion, whether considering omission or not. 
+ 
+Results 
+Influence of omitting omissions for DDM with constant boundary 
+A DDM with a constant decision boundary—where evidence accumulates over time until it reaches a 
+fixed threshold—typically predicts response time (RT) distributions with a long tail, meaning that a non-
+negligible portion of responses would occur only after very long delays. Therefore, it also predicts that a 
+considerable fraction of these expected responses will be omitted under a realistic response deadline. 
+Without compensation for these omissions, constant-boundary DDMs that are fit to the remainder of the 
+data will estimate the threshold 𝑎 as being lower than it actually is (Figure 1A). Moreover, fitting with 
+only a LAN (in this case, equivalent to fitting the analytical likelihood function for the DDM but ignoring 
+omissions) also overestimates drift rate 𝑣 and recovers larger than accurate bias parameters for higher 
+omission rates (Figure 1B). These misestimations arise because the model cannot penalize omissions 
+through the likelihood term and therefore prioritizes parameters supported by faster responses (e.g., lower 
+threshold and higher drift rate). In contrast, when we jointly model observed choices and omission with 
+the LAN+OPN approach, we obtained reliable parameter recovery for various combinations of (𝑎, 𝑣) 
+with different levels of omission rate (Figure 1C-D). 
+
+--- PAGE 9 ---
+8 
+ 
+Figure 2. Parameter recovery performance for DDM model with constant threshold, 
+when either ignoring omissions (e.g., only considering likelihood of responses before 
+deadline; LAN-only model; A-B) or including them via the omission probability network 
+as explained in Figure 1 (e.g., including integral of post-deadline likelihood; LAN+OPN 
+model; C-D). When omission exists, the LAN-only approach underestimates response 
+threshold a (A) and overestimates drift rate v (B). With the LAN+OPN approach, both 
+threshold a (C) and drift rate v (D) are properly recovered. Error bars refer to 95% 
+confidence intervals of mean posteriors across multiple synthetic data sets from the same 
+parameter configuration. Gray lines represent identity lines. 
+ 
+Influence of omitting omission for DDM with linearly collapsing boundary 
+While we have confirmed that the existence of omissions can bias parameter estimation when a model 
+ignores omissions, as noted above, the constant bound DDM may not be the ideal model with response 
+deadline, as it does not take urgency into consideration (Frazier & Yu, 2007; Yu et al., 2009). A DDM 
+with a collapsing boundary may therefore be less vulnerable to the existence of omissions because it 
+better captures distributions of responses under time pressure (e.g., shorter reaction time responses). We 
+begin by examining a version of the collapsing boundary model that collapses linearly, using the ANGLE 
+model which we have previously shown can be efficiently estimated with a LAN (Fengler et al., 2021). 
+Here we primarily focused on the recovery of boundary parameters (𝑎, 𝜃). When there is no omission in 
+the simulated data, the LAN-only model adequately recovers r the boundary parameters (blue dots in 
+Figure 3). But when omissions exist in the data (reddish dots in Figure 3), recovered values of 𝑎 and 𝜃 are 
+overestimated when only a LAN is used. Specifically, when omission is not considered, the LAN-only 
+
+--- PAGE 10 ---
+9 
+model inferred more aggressive collapsing boundary than the generative process, with 𝑎 overestimated 
+especially when true 𝑎 is high and 𝜃 overestimated when true 𝜃 is low (Figure 3A and 3B), as this leads 
+to minimal omission probability. While the bias increases as omission rate increases (e.g., more missing 
+data), it is worth noting that significant bias emerges even when omission rates are lower than 5%. In 
+contrast, using the LAN+OPN approach, we obtained reliable parameter recovery for various 
+combinations of (𝑎, 𝜃) and different levels of omission rate (Figure 3C-D), as the inclusion of omissions 
+informs the model of the fact that the actual response boundary does not collapse fast enough to eliminate 
+omissions. 
+ 
+ 
+Figure 3. Parameter recovery performance for DDM model with linearly collapsing 
+boundary, with either the LAN-only approach (A-B) or the LAN+OPN approach (C-D). 
+When omission exists, LAN-only model overestimates both initial response threshold a 
+(A) and angle of collapsing boundary 𝜃 (B). With the LAN+OPN-based approach, both 
+initial threshold a (C) and angle of collapsing boundary 𝜃 (D) are properly recovered. 
+Error bars refer to 95% confidence interval of mean posteriors across multiple synthetic 
+data sets from the same parameter configuration. Gray lines represent identity lines. 
+Black lines indicate same true theta value in A and C, and same true a value in B and D. 
+ 
+Modeling omissions better estimates experimental condition effects on decision boundary: a synthetic 
+demonstration 
+In addition to the overestimation bias, we also sought to assess how taking omissions into account 
+impacts a typical experimental setting in which one may test whether a model parameter varies by 
+
+--- PAGE 11 ---
+10 
+experimental condition. In this case, we simulate conditions in which 𝜃 differs across two experimental 
+conditions (e.g., speed vs accuracy emphasis) but the analysis yields similar results with regard to the 
+remaining model boundary parameters; Figure 4A). In a synthetic two-condition experiment, we found 
+that the LAN-only approach underestimates the difference in 𝜃 between the two conditions (true 𝛥𝜃=
+0.2; dashed line in Figure 4B). However, the LAN+OPN approach correctly recovers this difference 
+between conditions (Figure 4B). This improved recovery of experimental condition on 𝜃 held across 
+several combinations of the other model parameters drift rate and threshold that were tested (Figure 4B). 
+Beyond parameter recovery, posterior predictive checks also confirmed that the LAN-only model fails to 
+capture the true omission rate of each condition (Figure 4C) while including the OPN resolves this 
+discrepancy. 
+ 
+Figure 4. Estimation of change in boundary collapse in synthetic experiments. (A) 
+Settings of synthetic experiments. Data is simulated from two conditions, with 𝜃 values 
+of 0.9 and 0.7 respectively (true 𝛥𝜃= 0.2), for a variety of settings of drift rate (v) and 
+initial threshold (a) parameters. (B) Recovery of collapse difference. While properly 
+accounting for omissions correctly recovers 𝛥𝜃, the parameter difference, ignoring 
+omissions, severely underestimates it across conditions. Error bars indicate 95% 
+confidence interval of posterior distribution. (C) Prediction of omission rate. 
+Correspondingly, omission rates in posterior predictive distributions are wrongly 
+calibrated if omissions are not appropriately accounted for during the inference stage. 
+Models fit without omissions systematically predict much lower overall omission rates 
+and smaller variance in omission rates. 
+ 
+ 
+ 
+
+--- PAGE 12 ---
+11 
+Identifying model parameters and lapse rate jointly 
+While the direct cause of omissions in our simulations so far is the response deadline, the underlying 
+process leading to that omission could be multiply determined. We have assumed that omissions are due to 
+not having hit the bound, but it is also possible that in empirical data, they reflect a lapse in attention and thus a 
+different generative process in some proportion of trials. In empirical data analysis, researchers often include 
+a lapse distribution (typically formulated as a uniform distribution of responses; Ratcliff & Tuerlinckx, 
+2002) to adjust the likelihood of outlier data points. Under a lapse distribution, omissions can result 
+simply from sampling parts of the distribution with reaction times longer than the deadline. We have so 
+far shown that, in the absence of explicit lapses, our model can effectively eliminate the omission-related 
+bias in parameter recovery. However, when lapses are present, it is unclear whether our model can 
+correctly attribute omissions to these lapses versus to the evidence accumulation process (Damaso et al., 
+2022).  
+ 
+To address this question, we generated data jointly from SSM and a lapse distribution with a uniform 
+probabilistic density function over a wide range of reaction time (Figure 5A). The proportion of data from 
+the lapse distribution is indexed as 𝑝𝑙𝑎𝑝𝑠𝑒. For both the LAN-only method and the LAN+OPN approach, 
+we characterized the distribution of observed data (and omissions for LAN+OPN) as a mixture of SSM 
+and the lapse distribution, which allows us to estimate both parameters of the SSM and 𝑝𝑙𝑎𝑝𝑠𝑒. We tested 
+the performance of parameter recovery with low (0.01) and high (0.05) values of 𝑝𝑙𝑎𝑝𝑠𝑒. Consistent with 
+our previous results, our LAN+OPN approach properly recovered the parameters (𝑎, 𝜃) for both levels of 
+𝑝𝑙𝑎𝑝𝑠𝑒, while, as expected, a model without the inclusion of omission cannot recover the parameters 
+(Figure 5BD). Importantly, we found that the LAN+OPN method not only recovered the parameters from 
+SSM, but also provides accurate inference of the ratio of the lapse distribution, while a LAN-only 
+approach significantly underestimated 𝑝𝑙𝑎𝑝𝑠𝑒, since a large proportion of the lapse distribution is 
+represented as omissions and ignored (Figure 5CE). 
+
+--- PAGE 13 ---
+12 
+ 
+ 
+
+--- PAGE 14 ---
+13 
+Figure 5. Parameter recovery when including lapse. (A) The model, whether 
+considering omission or not, combines observed data (and omissions) generated from 
+SSM and lapse process with a uniform distribution over rt and equal probability for 
+choices. With a low lapse rate (p=0.01; B-C), the LAN+OPN approach can properly 
+recover both boundary parameters, while the LAN-only approach cannot (B). Illustrates 
+the same phenomenon for the low lapse rate (C). This is confirmed with a higher lapse 
+rate (p=0.05; D-E). Error bars indicate 95% confidence intervals across mean posteriors. 
+Gray lines represent identity lines. 
+ 
+Extension to DDM with nonlinearly collapsing boundary 
+We have considered our approach for DDMs with either a constant or a linearly collapsing boundary. Past 
+research suggests that the urgency process may not be constant over time, such that the boundary 
+collapses nonlinearly. A typical formulation of this type of boundary shape is based on a Weibull 
+cumulative distribution function (Figure 6; Hawkins et al., 2015). Since a nonlinearly collapsing 
+boundary may better capture the dynamics of the urgency process, it is possible that such a model may be 
+less vulnerable to omissions. We therefore sought to extend our approach to DDMs with a Weibull 
+boundary, and test to what extent our model can improve parameter recovery under these conditions. 
+ 
+As suggested in past efforts of parameter recovery, it is difficult to recover the parameters of the Weibull 
+boundary (Fengler et al., 2021) unless the task includes multiple experimental conditions to help constrain 
+parameter estimates (Ging-Jehli et al., 2025), but the recovery of the overall boundary shape works much 
+better. We first looked at the recovery of the Weibull boundary with the LAN-only approach (Figure 6A). 
+Similar to the results of ANGLE model, the LAN-Only estimated boundary model collapses more steeply 
+than true parameters in the generative process and with less variability at later time points, because the 
+model does not consider the likelihood of omissions and is biased by observed RTs. When looking at the 
+individual boundary parameters, the LAN-only model underestimated the initial boundary a (Figure 6B), 
+overestimated the shape parameter 𝛼 (Figure 6C), and underestimated the scale parameter 𝛽 (Figure 6D). 
+More importantly, regardless of the true scale parameter, the LAN-only approach always generated a 
+similar qualitative estimation of the overall boundary shape (Figure 6D). This is consistent with the fact 
+that the LAN-only model excludes variability in responding after the deadline (i.e., the omissions). 
+ 
+In contrast, with the LAN+OPN approach, the boundary shape was better recovered (Figure 6E). While 
+the true parameters were still not perfectly recovered, which is a known identifiability limitation for this 
+model when only a single experimental condition exists in the data (Fengler et al., 2021), the LAN+OPN 
+approach considerably improved parameter estimation bias relative to the LAN-Only approach. More 
+specifically, LAN+OPN model reduced the bias in the initial boundary and shape parameter (Figure 6E-
+F) and better captured variability in the scale parameter (Figure 6G).  
+
+--- PAGE 15 ---
+14 
+ 
+Figure 6. Parameter recovery performance for DDM model with a nonlinearly 
+collapsing boundary. The boundary shape is characterized as a Weibull cdf function 
+with initial threshold a, shape parameter 𝛼, and scale parameter 𝛽. Without considering 
+omissions, a LAN-only approach failed to properly recover the boundary, with estimated 
+boundaries collapsing down to nearly 0 much earlier than the true boundary (A). 
+Correspondingly, the model tends to underestimate initial threshold a (B), overestimate 
+shape parameter 𝛼 (C), and fail to capture most of the variance in scale parameter 𝛽 (D). 
+The LAN+OPN approach recovers the true boundary much better (E), with the recovery 
+of all three boundary parameters improved (F-H). Error bars indicate 95% confidence 
+intervals of the mean posterior. Gray lines represent identity lines. 
+
+--- PAGE 16 ---
+15 
+ 
+Enabling the use of OPNs for the Scientific Community: HSSM 
+While we have thus far demonstrated the utility of OPNs for reducing bias in parameter estimation in 
+custom code base, we also wanted to make the tool more readily usable for arbitrary modeling studies. 
+We thus refined the implementation of the LAN+OPN approach for deployment in the Hierarchical 
+Sequential Sampling Model (HSSM) python toolbox which enables hierarchical Bayesian estimation for 
+a wide class of cognitive process models (Fengler, A., et al., in prep). While the default setting in HSSM 
+(Figure 7A) is to only include observed data in the inference and thus omissions (as well as the deadline 
+information) will be ignored, we modified the toolbox to allow it to incorporate omissions via 
+LAN+OPN. As a simple proof of concept, we reproduce the findings reported above: when omissions 
+exist in the data, the default setting can lead to bias in the posterior distribution (Figure 7B). HSSM can 
+incorporate the OPN with a simple configuration change (Figure 7C). Compared to the default settings, 
+accounting for omission with OPN can improve the posterior distribution with better alignment with the 
+true parameters (Figure 7D). This proof of concept using the ANGLE model can be easily extended in 
+HSSM, where users can add additional LANs and corresponding OPNs for any arbitrary SSM. 
+ 
+ 

@@ -291,7 +291,10 @@ compute_crf_bins <- function(df, identity_sel = NULL, matching_sel = NULL,
   y_mode <- match.arg(y_mode)
   if (!is.null(identity_sel)) df <- df[df$Identity %in% identity_sel, ]
   if (!is.null(matching_sel)) df <- df[df$Matching %in% matching_sel, ]
-  if (nrow(df) < 10) return(data.frame())
+  if (nrow(df) < 10) {
+    return(data.frame(x = numeric(0), y = numeric(0), xSEM = numeric(0),
+                      ySEM = numeric(0), n = integer(0), stringsAsFactors = FALSE))
+  }
 
   # 按 RT 排序
   df <- df[order(df$RT_ms), ]

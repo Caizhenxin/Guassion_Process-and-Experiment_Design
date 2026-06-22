@@ -67,10 +67,19 @@ generate_single_crf <- function(subj_data, n_q = 5) {
     subj_data, identity_sel = "Stranger", n_quantiles = n_q, y_mode = "pMatch"
   )
   if (nrow(bins_self) == 0 && nrow(bins_stranger) == 0) return(NULL)
-  bind_rows(
-    data.frame(bins_self, Identity = "Self", stringsAsFactors = FALSE),
-    data.frame(bins_stranger, Identity = "Stranger", stringsAsFactors = FALSE)
-  )
+  result <- list()
+  if (nrow(bins_self) > 0) {
+    result[[length(result) + 1]] <- data.frame(
+      bins_self, Identity = "Self", stringsAsFactors = FALSE
+    )
+  }
+  if (nrow(bins_stranger) > 0) {
+    result[[length(result) + 1]] <- data.frame(
+      bins_stranger, Identity = "Stranger", stringsAsFactors = FALSE
+    )
+  }
+  if (length(result) == 0) return(NULL)
+  bind_rows(result)
 }
 
 # 为所有被试生成 CRF，用于聚合分析
@@ -105,13 +114,26 @@ plot_single_crf <- function(bins, title_str) {
 }
 
 # 前 16 个被试的 CRF 面板
-example_sids <- unique(crf_all$Subject)[1:min(16, length(unique(crf_all$Subject)))]
-crf_plots <- lapply(example_sids, function(sid) {
-  plot_single_crf(crf_all[crf_all$Subject == sid, ], paste0("Subject ", sid))
-})
-p_grid <- cowplot::plot_grid(plotlist = crf_plots, ncol = 4)
-save_plot_png(p_grid, file.path(OUT_DIR, "CRF_Single_Subject_Grid.png"),
-              width = 16, height = 12, dpi = 150)
+if (nrow(crf_all) == 0) {
+  cat("WARNING: No CRF data available for any subject. Skipping single-subject grid.\n")
+} else {
+  example_sids <- unique(crf_all$Subject)[1:min(16, length(unique(crf_all$Subject)))]
+  crf_plots <- lapply(example_sids, function(sid) {
+    bins <- crf_all[crf_all$Subject == sid, ]
+    if (nrow(bins) == 0) return(NULL)
+    plot_single_crf(bins, paste0("Subject ", sid))
+  })
+  # 移除 NULL 条目
+  crf_plots <- crf_plots[!sapply(crf_plots, is.null)]
+  if (length(crf_plots) == 0) {
+    cat("WARNING: No valid CRF plots generated. Skipping single-subject grid.\n")
+  } else {
+    p_grid <- cowplot::plot_grid(plotlist = crf_plots, ncol = min(4, length(crf_plots)))
+    save_plot_png(p_grid, file.path(OUT_DIR, "CRF_Single_Subject_Grid.png"),
+                  width = 16, height = 12, dpi = 150)
+    cat("Saved single-subject CRF grid with", length(crf_plots), "subjects.\n")
+  }
+}
 
 # ===========================================================================
 # 3. 聚合组 CRF + SPE 差异图
@@ -162,10 +184,19 @@ for (g in sort(unique(formal$groupID))) {
   self_bins   <- compute_crf_bins(gdata, identity_sel = "Self",    n_quantiles = 5, y_mode = "pMatch")
   strang_bins <- compute_crf_bins(gdata, identity_sel = "Stranger", n_quantiles = 5, y_mode = "pMatch")
   if (nrow(self_bins) < 2 || nrow(strang_bins) < 2) next
-  g_bins <- bind_rows(
-    data.frame(self_bins,   Identity = "Self", stringsAsFactors = FALSE),
-    data.frame(strang_bins, Identity = "Stranger", stringsAsFactors = FALSE)
-  )
+  g_parts <- list()
+  if (nrow(self_bins) > 0) {
+    g_parts[[length(g_parts) + 1]] <- data.frame(
+      self_bins, Identity = "Self", stringsAsFactors = FALSE
+    )
+  }
+  if (nrow(strang_bins) > 0) {
+    g_parts[[length(g_parts) + 1]] <- data.frame(
+      strang_bins, Identity = "Stranger", stringsAsFactors = FALSE
+    )
+  }
+  if (length(g_parts) == 0) next
+  g_bins <- bind_rows(g_parts)
   g_bins$Group <- g
   group_crf_list[[as.character(g)]] <- g_bins
 }
