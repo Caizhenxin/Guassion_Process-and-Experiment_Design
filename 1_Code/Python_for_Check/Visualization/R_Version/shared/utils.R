@@ -323,6 +323,91 @@ compute_crf_bins <- function(df, identity_sel = NULL, matching_sel = NULL,
 }
 
 # ===========================================================================
+# 7b. d' (信号检测论辨别力指数) CRF 分箱计算
+# 对标 JS computeCRF_dprime() + zScore()
+# ===========================================================================
+
+#' 确定被试的"匹配"键 (对标 Python app_server.py get_match_key)
+#' 匹配键在被试间轮换: f, j, j, f, f, j, j, f, ...
+get_match_key <- function(subject_id) {
+  match_keys <- c("f", "j", "j", "f")
+  idx <- (as.integer(subject_id) - 1L) %% 4L + 1L
+  match_keys[idx]
+}
+
+#' 信号检测论 d' CRF 分箱计算
+#' 对标 JS computeCRF_dprime()
+#'
+#' 对每个 RT 分位数箱:
+#'   1. 统计 Matching 试次中按"匹配键"的比例 → Hit Rate (HR)
+#'   2. 统计 NonMatching 试次中按"匹配键"的比例 → False Alarm Rate (FAR)
+#'   3. 使用 log-linear 校正 (分子+0.5, 分母+1) 避免极端 0/1
+#'   4. d' = qnorm(HR) - qnorm(FAR)
+#'
+#' @param df          data.frame, 需含 subjectID, RT_ms, Response, Matching 列
+#' @param n_quantiles 分箱数, 默认 5
+#' @param log_rt      是否对 RT 取对数, 默认 FALSE
+#' @return data.frame 含 rtMean, dprime, hr, far, nMatch, nNonmatch, n
+compute_crf_dprime <- function(df, n_quantiles = 5, log_rt = FALSE) {
+  if (nrow(df) < n_quantiles * 4) {
+    return(data.frame(rtMean = numeric(0), dprime = numeric(0),
+                      hr = numeric(0), far = numeric(0),
+                      nMatch = integer(0), nNonmatch = integer(0),
+                      n = integer(0), stringsAsFactors = FALSE))
+  }
+
+  # 计算 RT 值 (log 或原始)
+  if (log_rt) {
+    df$rt_val <- log(pmax(0.001, df$RT_ms))
+  } else {
+    df$rt_val <- df$RT_ms
+  }
+
+  # 确定每行的匹配键和 ResponseIsMatch
+  df$match_key <- sapply(df$subjectID, get_match_key)
+  df$ResponseIsMatch <- tolower(df$Response) == df$match_key
+
+  # 按 RT 排序并分箱
+  df <- df[order(df$rt_val), ]
+  n <- nrow(df)
+  bin_size <- floor(n / n_quantiles)
+
+  bins <- lapply(seq_len(n_quantiles), function(i) {
+    start <- (i - 1L) * bin_size + 1L
+    end   <- if (i == n_quantiles) n else i * bin_size
+    bin_data <- df[start:end, ]
+
+    rt_mean <- mean(bin_data$rt_val)
+
+    # Matching vs NonMatching 试次
+    is_match_trial <- bin_data$Matching == "Matching"
+    n_match_stim    <- sum(is_match_trial)
+    n_nonmatch_stim <- sum(!is_match_trial)
+
+    # Hit: Matching 试次中按了匹配键 (正确判断为"匹配")
+    hit_count <- sum(bin_data$ResponseIsMatch[is_match_trial])
+    # FA:  NonMatching 试次中按了匹配键 (错误判断为"匹配")
+    fa_count  <- sum(bin_data$ResponseIsMatch[!is_match_trial])
+
+    # Log-linear 校正 (对标 JS: (count + 0.5) / (total + 1))
+    hr  <- if (n_match_stim    > 0) (hit_count + 0.5) / (n_match_stim    + 1) else 0.5
+    far <- if (n_nonmatch_stim > 0) (fa_count  + 0.5) / (n_nonmatch_stim + 1) else 0.5
+
+    # 钳制极端值后用 R 内置 qnorm (精确正态分位数, 对标 JS zScore 近似)
+    hr_clamped  <- pmin(pmax(hr,  1e-10), 1 - 1e-10)
+    far_clamped <- pmin(pmax(far, 1e-10), 1 - 1e-10)
+    dprime <- qnorm(hr_clamped) - qnorm(far_clamped)
+
+    data.frame(
+      rtMean = rt_mean, dprime = dprime, hr = hr, far = far,
+      nMatch = n_match_stim, nNonmatch = n_nonmatch_stim,
+      n = nrow(bin_data), stringsAsFactors = FALSE
+    )
+  })
+  bind_rows(bins)
+}
+
+# ===========================================================================
 # 8. 导出图片辅助
 # ===========================================================================
 save_plot_png <- function(plot, path, width = 8, height = 5, dpi = 150) {
