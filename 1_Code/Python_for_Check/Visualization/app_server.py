@@ -14,15 +14,15 @@ SCRIPT_DIR = Path(__file__).parent
 HTML_FILE = SCRIPT_DIR / "visualization_app.html"
 
 CONDITIONS = {
-    1: {"P": 0, "T": 0.03, "W": 0.3, "label": "G1 | P0_T30_W300"},
-    2: {"P": 0, "T": 0.03, "W": 0.6, "label": "G2 | P0_T30_W600"},
-    3: {"P": 120, "T": 0.03, "W": 0.6, "label": "G3 | P120_T30_W600"},
-    4: {"P": 120, "T": 0.08, "W": 0.6, "label": "G4 | P120_T80_W600"},
-    5: {"P": 8, "T": 0.1, "W": 1.1, "label": "G5 | P8_T100_W1100"},
-    6: {"P": 120, "T": 0.5, "W": 1.5, "label": "G6 | P120_T500_W1500"},
-    7: {"P": 0, "T": 0.1, "W": 1.1, "label": "G7 | P0_T100_W1100"},
-    8: {"P": 120, "T": 0.03, "W": 0.8, "label": "G8 | P120_T30_W800"},
-    9: {"P": 120, "T": 0.08, "W": 0.8, "label": "G9 | P120_T80_W800"},
+    1: {"P": 0, "T": 0.03, "W": 0.3, "label": "D1 | P0_T30_W300"},
+    2: {"P": 0, "T": 0.03, "W": 0.6, "label": "D2 | P0_T30_W600"},
+    3: {"P": 120, "T": 0.03, "W": 0.6, "label": "D3a | P120_T30_W600"},
+    4: {"P": 120, "T": 0.08, "W": 0.6, "label": "D4a | P120_T80_W600"},
+    5: {"P": 8, "T": 0.1, "W": 1.1, "label": "D5 | P8_T100_W1100"},
+    6: {"P": 120, "T": 0.5, "W": 1.5, "label": "D6 | P120_T500_W1500"},
+    7: {"P": 120, "T": 0.03, "W": 0.8, "label": "D3b | P120_T30_W800"},
+    8: {"P": 120, "T": 0.08, "W": 0.8, "label": "D4b | P120_T80_W800"},
+    # 9: {"P": 120, "T": 0.08, "W": 0.8, "label": "G9 | P120_T80_W800"},  # deprecated, merged into D4b
 }
 
 
@@ -942,6 +942,160 @@ def load_identity_summary(identity_source="label"):
     return {"identity_summary": result, "total_experiments": overview.get("count", 0)}
 
 
+def run_self_check():
+    """数据自查: 检查原始数据中的RT是否超过 T+W 理论最大值, T/W参数一致性等"""
+    from collections import defaultdict
+    import hashlib
+
+    report = {
+        "design": {},
+        "groups": {},
+        "summary": {"totalFiles": 0, "totalFormalTrials": 0, "totalOverMax": 0, "criticalIssues": [], "warnings": []}
+    }
+
+    # 实验设计参数
+    for gid, cond in CONDITIONS.items():
+        report["design"][str(gid)] = {
+            "P": cond["P"], "T": cond["T"], "W": cond["W"],
+            "maxRtExpected": round(cond["T"] + cond["W"], 4),
+            "label": cond["label"]
+        }
+
+    # 扫描所有数据文件
+    raw_files = list(RAW_DIR.glob("EXP_data_group*.csv"))
+    report["summary"]["totalFiles"] = len(raw_files)
+
+    # 按组组织
+    groups_data = defaultdict(list)
+    for fp in raw_files:
+        parts = fp.stem.replace("EXP_data_group", "").split("_")
+        gid = int(parts[0])
+        groups_data[gid].append(fp)
+
+    file_hashes = {}  # 用于检测数据重复
+
+    for gid in sorted(groups_data.keys()):
+        design = CONDITIONS.get(gid, {"P": None, "T": None, "W": None, "label": f"G{gid}"})
+        max_rt_expected = round(design["T"] + design["W"], 4)
+
+        group_report = {
+            "designT": design["T"], "designW": design["W"],
+            "maxRtExpected": max_rt_expected,
+            "label": design["label"],
+            "actualT": None, "actualW": None, "tWMatch": None,
+            "nFiles": len(groups_data[gid]),
+            "nFormalTrials": 0, "nPracticeTrials": 0,
+            "nOverMax": 0, "overMaxPct": 0,
+            "maxRt": 0, "maxOverBy": 0,
+            "overMaxDetails": [],
+            "tWMismatches": [],
+            "issues": [],
+        }
+
+        for fp in groups_data[gid]:
+            try:
+                raw = fp.read_bytes()
+                fhash = hashlib.md5(raw).hexdigest()
+                fname = fp.name
+            except Exception:
+                fhash = None
+                fname = fp.name
+
+            if fhash:
+                if fhash in file_hashes:
+                    group_report["issues"].append(f"数据重复: {fname} 与 {file_hashes[fhash]} 内容完全相同")
+                else:
+                    file_hashes[fhash] = fname
+
+            try:
+                with open(fp, 'r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        stage = row.get('stage', 'formal')
+                        rt_str = row.get('RT', '')
+                        t_val = float(row.get('T', 0))
+                        w_val = float(row.get('W', 0))
+
+                        # 记录实际 T/W
+                        if group_report["actualT"] is None:
+                            group_report["actualT"] = t_val
+                            group_report["actualW"] = w_val
+                            group_report["tWMatch"] = (t_val == design["T"] and w_val == design["W"])
+                        elif t_val != group_report["actualT"] or w_val != group_report["actualW"]:
+                            group_report["tWMismatches"].append({
+                                "file": fname, "trialID": row.get("trialID", "?"),
+                                "expectedT": design["T"], "expectedW": design["W"],
+                                "actualT": t_val, "actualW": w_val
+                            })
+
+                        if stage == 'formal':
+                            group_report["nFormalTrials"] += 1
+                        else:
+                            group_report["nPracticeTrials"] += 1
+
+                        # 检查 RT 是否超过 T+W
+                        if rt_str and rt_str not in ['NA', 'nan', '']:
+                            try:
+                                rt = float(rt_str)
+                                actual_max = t_val + w_val
+                                if rt > actual_max:
+                                    group_report["nOverMax"] += 1
+                                    group_report["maxRt"] = max(group_report["maxRt"], rt)
+                                    over_by = round(rt - actual_max, 5)
+                                    group_report["maxOverBy"] = max(group_report["maxOverBy"], over_by)
+                                    if len(group_report["overMaxDetails"]) < 50:
+                                        group_report["overMaxDetails"].append({
+                                            "file": fname, "trialID": row.get("trialID", "?"),
+                                            "stage": stage, "RT": rt,
+                                            "actualT": t_val, "actualW": w_val,
+                                            "maxExpected": round(actual_max, 4),
+                                            "overBy": over_by
+                                        })
+                            except (ValueError, TypeError):
+                                pass
+
+            except Exception as e:
+                group_report["issues"].append(f"读取文件失败 {fname}: {str(e)}")
+
+        # 计算超限率
+        if group_report["nFormalTrials"] > 0:
+            group_report["overMaxPct"] = round(group_report["nOverMax"] / group_report["nFormalTrials"] * 100, 2)
+
+        report["summary"]["totalFormalTrials"] += group_report["nFormalTrials"]
+        report["summary"]["totalOverMax"] += group_report["nOverMax"]
+
+        # 严重问题检测
+        if not group_report["tWMatch"] and group_report["tWMatch"] is not None:
+            report["summary"]["criticalIssues"].append(
+                f"{design['label']} T/W参数与设计不符: 设计(T={design['T']},W={design['W']}), "
+                f"数据(T={group_report['actualT']},W={group_report['actualW']})"
+            )
+        if group_report["nOverMax"] > 0:
+            severity = "严重" if group_report["overMaxPct"] > 2 else ("注意" if group_report["overMaxPct"] > 0.5 else "轻微")
+            report["summary"]["warnings"].append(
+                f"{design['label']}: {group_report['nOverMax']}/{group_report['nFormalTrials']} "
+                f"({group_report['overMaxPct']}%) Formal试次RT超过T+W, 最大超出{round(group_report['maxOverBy']*1000,1)}ms [{severity}]"
+            )
+
+        report["groups"][str(gid)] = group_report
+
+    # 检查缺少数据的组
+    for gid in range(1, 9):
+        if gid not in groups_data:
+            design_info = CONDITIONS.get(gid, {"T": 0, "W": 0, "label": f"旧G{gid}"})
+            label = design_info["label"]
+            report["summary"]["criticalIssues"].append(f"{label} 没有任何数据文件")
+            report["groups"][str(gid)] = {
+                "designT": design_info["T"], "designW": design_info["W"],
+                "maxRtExpected": round(design_info["T"] + design_info["W"], 4),
+                "label": label,
+                "nFiles": 0, "nFormalTrials": 0, "nOverMax": 0,
+                "issues": ["该组没有任何数据文件"]
+            }
+
+    return report
+
+
 class AppHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
@@ -997,6 +1151,8 @@ class AppHandler(http.server.BaseHTTPRequestHandler):
             elif path == '/api/spe/identity-summary':
                 src = params.get('source', ['label'])[0]
                 self._json(load_identity_summary(identity_source=src))
+            elif path == '/api/data/self_check':
+                self._json(run_self_check())
             elif path == '/' or path == '' or path == '/index.html':
                 self._serve_html()
             else:

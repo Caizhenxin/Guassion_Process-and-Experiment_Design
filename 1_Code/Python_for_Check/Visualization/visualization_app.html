@@ -199,6 +199,7 @@ button.danger { background: #d32f2f; border-color: #d32f2f; }
 
 <div class="tab-nav">
   <button class="tab-btn active" data-tab="tab-experiment">实验按键逻辑模拟</button>
+  <button class="tab-btn" data-tab="tab-selfcheck">数据自查</button>
   <button class="tab-btn" data-tab="tab-data">数据选择与浏览</button>
   <button class="tab-btn" data-tab="tab-visualization">交互式CRF可视化</button>
   <button class="tab-btn" data-tab="tab-design">设计空间分析</button>
@@ -226,6 +227,9 @@ let appState = {
   selectedGroups: new Set([1,2,3,4,5,6,7,8]),
   theme: 'dark',
 };
+
+const GROUP_LABELS = {1:'D1',2:'D2',3:'D3a',4:'D4a',5:'D5',6:'D6',7:'D3b',8:'D4b'};
+const GROUP_IDS = [1,2,3,4,5,6,7,8];
 
 Chart.register({
   id: 'globalCanvasBg',
@@ -323,7 +327,7 @@ function generateGroupOptions() {
   [1,2,3,4,5,6,7,8].forEach(g => {
     const opt = document.createElement('option');
     opt.value = g;
-    const labels = {1:'G1 exclude',2:'G2 exclude',3:'G3 caution',4:'G4 good',5:'G5 good',6:'G6 good',7:'G7 good',8:'G8 good'};
+    const labels = {1:'D1 exclude',2:'D2 exclude',3:'D3a caution',4:'D4a good',5:'D5 good',6:'D6 good',7:'D3b good',8:'D4b good'};
     opt.textContent = labels[g];
     sel.appendChild(opt);
   });
@@ -349,6 +353,7 @@ function renderTabContent() {
     case 'tab-visualization': renderVisualizationTab(lp, rp); break;
     case 'tab-design': renderDesignTab(lp, rp); break;
     case 'tab-spe': renderSPETab(lp, rp); break;
+    case 'tab-selfcheck': renderSelfCheckTab(lp, rp); break;
   }
 }
 
@@ -361,7 +366,7 @@ function renderExperimentTab(lp, rp) {
         <input type="number" id="simSubjectID" value="1" min="1" style="width:100%;"></div>
       <div><label style="font-size:0.8em;color:var(--text-secondary);">组别 (Group ID)</label>
         <select id="simGroupID" style="width:100%;">
-          ${[1,2,3,4,5,6,7,8].map(g => `<option value="${g}">G${g}</option>`).join('')}
+          ${GROUP_IDS.map(g => `<option value="${g}">${GROUP_LABELS[g]}</option>`).join('')}
         </select></div>
       <button id="btnSimParams">查询实验参数</button>
     </div>
@@ -511,7 +516,7 @@ function _populateSelect() {
   appState.allFiles.forEach(f => {
     const opt = document.createElement('option');
     opt.value = f.name;
-    opt.textContent = `${f.name} (G${f.groupID}-S${f.subjectID})`;
+    opt.textContent = `${f.name} (${GROUP_LABELS[f.groupID] || 'G'+f.groupID}-S${f.subjectID})`;
     sel.appendChild(opt);
   });
 }
@@ -546,7 +551,7 @@ async function doVerifyFile(batchMode) {
         summaryHTML += `
           <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.82em;">
             <span style="color:${statusColor};">${statusIcon}</span>
-            <span><b>${fname}</b>: G${result.groupID}-S${result.subjectID} | 正确率:${result.stats.accuracy}% | 遗漏率:${result.stats.omissionRate}% | 错误:${result.totalErrors}</span>
+            <span><b>${fname}</b>: ${GROUP_LABELS[result.groupID] || 'G'+result.groupID}-S${result.subjectID} | 正确率:${result.stats.accuracy}% | 遗漏率:${result.stats.omissionRate}% | 错误:${result.totalErrors}</span>
           </div>`;
 
         if (!result.passed && result.errors.length > 0) {
@@ -598,7 +603,7 @@ async function doVerifyFile(batchMode) {
         <div class="stat-card"><div class="value">${result.stats.omissionRate}%</div><div class="label">遗漏率</div></div>
       </div>
       <div style="margin-top:8px;font-size:0.78em;color:#90a4ae;background:var(--bg-card);padding:8px;border-radius:4px;">
-        G${result.groupID}-S${result.subjectID} | 匹配键: <b>${result.experimentParams.matchKey.toUpperCase()}</b> | 不匹配键: <b>${result.experimentParams.mismatchKey.toUpperCase()}</b>
+        ${GROUP_LABELS[result.groupID] || 'G'+result.groupID}-S${result.subjectID} | 匹配键: <b>${result.experimentParams.matchKey.toUpperCase()}</b> | 不匹配键: <b>${result.experimentParams.mismatchKey.toUpperCase()}</b>
         <br>P=${result.experimentParams.P} | T=${result.experimentParams.T}s | W=${result.experimentParams.W}s
         <br>正确配对: ${result.experimentParams.correctOrder}
       </div>`;
@@ -632,7 +637,7 @@ async function renderDataTab(lp, rp) {
   lp.innerHTML = `
     <div class="section-title">被试数据文件</div>
     <div class="group-tabs" style="margin-bottom:8px;">
-      ${[1,2,3,4,5,6,7,8].map(g => `<button class="group-tab ${appState.selectedGroups.has(g)?'selected':''}" data-g="${g}">G${g}</button>`).join('')}
+      ${GROUP_IDS.map(g => `<button class="group-tab ${appState.selectedGroups.has(g)?'selected':''}" data-g="${g}">${GROUP_LABELS[g]}</button>`).join('')}
       <button class="group-tab" data-g="all" style="${appState.selectedGroups.size===8?'background:#64b5f6;color:#0d1b2a;':''}">全部</button>
     </div>
     <input type="text" id="fileSearch" placeholder="搜索文件名..." style="width:100%;margin-bottom:8px;">
@@ -711,7 +716,7 @@ async function renderDataTab(lp, rp) {
       <div class="multi-subj-controls">
         <select id="multiSubjGroupSelect" style="font-size:0.8em;">
           <option value="">-- 选择组别加载 --</option>
-          ${[1,2,3,4,5,6,7,8].map(g => `<option value="${g}" ${appState.selectedGroups.has(g)?'selected':''}>G${g}</option>`).join('')}
+          ${GROUP_IDS.map(g => `<option value="${g}" ${appState.selectedGroups.has(g)?'selected':''}>${GROUP_LABELS[g]}</option>`).join('')}
         </select>
         <button id="btnLoadMultiSubj" style="font-size:0.78em;">加载并分析</button>
         <label class="crf-filter-chip" id="chipMSOnlyCorrect" style="background:rgba(156,39,176,0.12);border:1px solid rgba(156,39,176,0.35);padding:2px 8px;border-radius:10px;cursor:pointer;font-size:0.75em;">
@@ -813,7 +818,7 @@ function renderFileList() {
         <span style="color:#64b5f6;">${f.name}</span>
         <div style="font-size:0.7em;color:#90a4ae;">${f.groupLabel}</div>
       </div>
-      <span class="badge badge-self">G${f.groupID}-S${f.subjectID}</span>
+      <span class="badge badge-self">${GROUP_LABELS[f.groupID] || 'G'+f.groupID}-S${f.subjectID}</span>
     </div>
   `).join('');
   document.getElementById('fileList').innerHTML = html || '<div style="padding:16px;text-align:center;color:#90a4ae;">无匹配文件</div>';
@@ -1622,7 +1627,7 @@ async function loadMultiSubjectData(groupId) {
   try {
     const resp = await fetchAPI(`/api/data/all?group=${groupId}`);
     appState._multiSubjData = resp;
-    title.textContent = `— G${groupId}`;
+    title.textContent = `— ${GROUP_LABELS[groupId] || 'G'+groupId}`;
     renderMultiSubjectComparison(resp);
   } catch (e) {
     statusRT.innerHTML = '<div style="color:#f44336;">加载失败</div>';
@@ -2191,7 +2196,7 @@ async function renderVisualizationTab(lp, rp) {
     <!-- 组别聚合模式 -->
     <div id="crfAggregateMode">
       <div class="group-tabs" style="margin-bottom:6px;" id="crfGroupTabs">
-        ${[1,2,3,4,5,6,7,8].map(g => `<button class="group-tab ${appState.selectedGroups.has(g)?'selected':''}" data-g="${g}">G${g}</button>`).join('')}
+        ${GROUP_IDS.map(g => `<button class="group-tab ${appState.selectedGroups.has(g)?'selected':''}" data-g="${g}">${GROUP_LABELS[g]}</button>`).join('')}
         <button class="group-tab" data-g="all" style="${appState.selectedGroups.size===8?'background:var(--accent);color:#fff;':''}">全部</button>
         <button class="group-tab" data-g="clear">清空</button>
       </div>
@@ -2551,8 +2556,8 @@ function initCRFGroupTabs() {
       const infoEl = document.getElementById('crfGroupSummary');
       if (appState.selectedGroups.size > 0) {
         const labels = [];
-        [1,2,3,4,5,6,7,8].forEach(g => {
-          if (appState.selectedGroups.has(g)) labels.push(`G${g}`);
+        GROUP_IDS.forEach(g => {
+          if (appState.selectedGroups.has(g)) labels.push(GROUP_LABELS[g]);
         });
         infoEl.textContent = `已选: ${labels.join(', ')} (${appState.selectedGroups.size}组)`;
       } else {
@@ -2599,7 +2604,7 @@ function renderCRFFileList() {
   let html = '';
   Object.keys(groups).sort().forEach(gid => {
     const qualityMap = {1:'exclude',2:'exclude',3:'caution',4:'good',5:'good',6:'good',7:'good',8:'good'};
-    html += `<div style="font-size:0.7em;color:var(--accent);padding:4px 8px 2px;font-weight:600;">G${gid} <span style="color:var(--text-secondary);font-weight:400;">[${qualityMap[gid]}]</span></div>`;
+    html += `<div style="font-size:0.7em;color:var(--accent);padding:4px 8px 2px;font-weight:600;">${GROUP_LABELS[gid] || 'G'+gid} <span style="color:var(--text-secondary);font-weight:400;">[${qualityMap[gid]}]</span></div>`;
     groups[gid].forEach(f => {
       const sel = appState.selectedFile === f.name;
       html += `<div class="file-item ${sel?'selected':''}" data-file="${f.name}" style="padding:6px 8px;">
@@ -2623,9 +2628,9 @@ function renderCRFFileList() {
       try {
         appState.currentData = await fetchAPI(`/api/data/file?name=${encodeURIComponent(fname)}`);
         document.getElementById('crfDataInfo').textContent =
-          `已加载: ${fname} | G${appState.currentData.groupID}-S${appState.currentData.subjectID} | ${appState.currentData.stats.formal}正式试次 | 正确率${appState.currentData.stats.accuracy}%`;
+          `已加载: ${fname} | ${GROUP_LABELS[appState.currentData.groupID] || 'G'+appState.currentData.groupID}-S${appState.currentData.subjectID} | ${appState.currentData.stats.formal}正式试次 | 正确率${appState.currentData.stats.accuracy}%`;
         document.getElementById('crfSingleInfo').textContent =
-          `G${appState.currentData.groupID}-S${appState.currentData.subjectID} | 遗漏率${appState.currentData.stats.omissionRate}%`;
+          `${GROUP_LABELS[appState.currentData.groupID] || 'G'+appState.currentData.groupID}-S${appState.currentData.subjectID} | 遗漏率${appState.currentData.stats.omissionRate}%`;
         updateCRFChart();
       } catch(e) {
         document.getElementById('crfDataInfo').innerHTML = '<span style="color:#f44336;">加载失败</span>';
@@ -3268,7 +3273,8 @@ async function loadAggregatedData() {
     appState.currentData = null;
     const totalTrials = appState.allData.trials.length;
     const totalFiles = appState.allData.summary.length;
-    infoEl.textContent = `已加载: ${totalFiles}个文件, ${totalTrials}试次 (G${groups})`;
+    const groupLabelsTxt = groups.split(',').map(g => GROUP_LABELS[parseInt(g)] || 'G'+g).join(',');
+    infoEl.textContent = `已加载: ${totalFiles}个文件, ${totalTrials}试次 (${groupLabelsTxt})`;
     updateCRFChart();
   } catch(e) {
     infoEl.innerHTML = '<span style="color:#f44336;">加载失败，请重试</span>';
@@ -3301,14 +3307,14 @@ function renderCRFSourceCode() {
       lang: 'Python (app_server.py)',
       code: `# 8组实验条件 (P/T/W参数)
 CONDITIONS = {
-    1: {"P": 0, "T": 0.03, "W": 0.3, "label": "G1"},
-    2: {"P": 0, "T": 0.03, "W": 0.6, "label": "G2"},
-    3: {"P": 120, "T": 0.03, "W": 0.6, "label": "G3"},
-    4: {"P": 120, "T": 0.08, "W": 0.6, "label": "G4"},
-    5: {"P": 8, "T": 0.1, "W": 1.1, "label": "G5"},
-    6: {"P": 120, "T": 0.5, "W": 1.5, "label": "G6"},
-    7: {"P": 120, "T": 0.03, "W": 0.8, "label": "G7"},
-    8: {"P": 120, "T": 0.08, "W": 0.8, "label": "G8"},
+    1: {"P": 0, "T": 0.03, "W": 0.3, "label": "D1"},
+    2: {"P": 0, "T": 0.03, "W": 0.6, "label": "D2"},
+    3: {"P": 120, "T": 0.03, "W": 0.6, "label": "D3a"},
+    4: {"P": 120, "T": 0.08, "W": 0.6, "label": "D4a"},
+    5: {"P": 8, "T": 0.1, "W": 1.1, "label": "D5"},
+    6: {"P": 120, "T": 0.5, "W": 1.5, "label": "D6"},
+    7: {"P": 120, "T": 0.03, "W": 0.8, "label": "D3b"},
+    8: {"P": 120, "T": 0.08, "W": 0.8, "label": "D4b"},
 }
 
 # 按键映射规则: 4种模式 (subjectID % 4 决定)
@@ -3545,6 +3551,7 @@ let _crfOvShowSelf = true;
 let _crfOvShowStranger = true;
 let _crfOvCondition = 'all';  // 'all' | 'Matching' | 'NonMatching'
 let _crfOvSplitCondition = false;  // 四条件模式: Self/Stranger × Matching/NonMatching
+let _crfOvDiffMode = false;       // Self−Stranger 差异模式: 显示 Δ = Self − Stranger
 
 function initCRFOverview() {
   const btnGroup = document.getElementById('crfOvLevelGroup');
@@ -3867,7 +3874,7 @@ function renderCRFOverview() {
   };
   const getOvX = (b, idx) => useBinIndexOv ? (idx + 1) : (useMsOv ? b.rtMean * 1000 : b.rtMean);
 
-  const yTitle = isDprimeOv ? "d' (辨别力指数)" : (isACC ? (useOverallACC ? 'ACC (overall)' : 'ACC (bin)') : 'P(Match Key)');
+  const yTitle = _crfOvDiffMode ? ('Δ ' + (isDprimeOv ? "d'" : (isACC ? (useOverallACC ? 'ACC' : 'ACC') : 'P(Match)'))) : (isDprimeOv ? "d' (辨别力指数)" : (isACC ? (useOverallACC ? 'ACC (overall)' : 'ACC (bin)') : 'P(Match Key)'));
   const xTitleOv = useBinIndexOv ? 'Bin Index' : (useMsOv ? 'RT bin mean (ms)' : (_crfRTLog ? 'ln(RT)' : 'RT bin mean (s)'));
 
   // Plot area background
@@ -3896,6 +3903,29 @@ function renderCRFOverview() {
     yMin = Math.floor((dMin - pad) * 2) / 2;
     yMax = Math.ceil((dMax + pad) * 2) / 2;
     yStep = Math.max(0.5, Math.round((yMax - yMin) / 6 * 2) / 2);
+  }
+  if (_crfOvDiffMode) {
+    // Diff mode: auto-compute Δ = Self - Stranger range
+    let dMin = Infinity, dMax = -Infinity;
+    for (let gid = 1; gid <= 8; gid++) {
+      if (!_crfOvVisible.has(gid)) continue;
+      const gd = _crfOvData.aggByGroup[gid];
+      if (!gd.selfCRF || !gd.strangerCRF) continue;
+      const minLen = Math.min(gd.selfCRF.length, gd.strangerCRF.length);
+      for (let i = 0; i < minLen; i++) {
+        const sv = getOvY(gd.selfCRF[i], gd.selfOverallACC || 0);
+        const tv = getOvY(gd.strangerCRF[i], gd.strangerOverallACC || 0);
+        const diff = sv - tv;
+        if (isFinite(diff)) { dMin = Math.min(dMin, diff); dMax = Math.max(dMax, diff); }
+      }
+    }
+    if (!isFinite(dMin)) { dMin = -0.3; dMax = 0.3; }
+    // Center around 0, symmetric range
+    const absMax = Math.max(Math.abs(dMin), Math.abs(dMax));
+    const pad = Math.max(0.03, absMax * 0.15);
+    yMax = absMax + pad;
+    yMin = -(absMax + pad);
+    yStep = Math.max(0.05, Math.round((yMax - yMin) / 8 * 20) / 20);
   }
   const yRange = yMax - yMin || 1;
   ctx.strokeStyle = gridC; ctx.lineWidth = 0.6;
@@ -4059,7 +4089,45 @@ function renderCRFOverview() {
       const selfOACC = gd.selfOverallACC || 0;
       const strangerOACC = gd.strangerOverallACC || 0;
 
-      if (_crfOvSplitCondition && _crfOvData.splitByGroup) {
+      if (_crfOvDiffMode) {
+        // Δ Self−Stranger 差异模式
+        if (!gd.selfCRF || !gd.strangerCRF) continue;
+        const minLen = Math.min(gd.selfCRF.length, gd.strangerCRF.length);
+        const diffPts = [];
+        for (let i = 0; i < minLen; i++) {
+          const x = getOvX(gd.selfCRF[i], i);
+          const y = getOvY(gd.selfCRF[i], selfOACC) - getOvY(gd.strangerCRF[i], strangerOACC);
+          if (isFinite(y)) diffPts.push({ x, y });
+        }
+        if (diffPts.length < 2) continue;
+        // Draw diff line
+        ctx.beginPath();
+        ctx.moveTo(xToPx(diffPts[0].x), yToPx(diffPts[0].y));
+        for (let i = 1; i < diffPts.length; i++) {
+          ctx.lineTo(xToPx(diffPts[i].x), yToPx(diffPts[i].y));
+        }
+        ctx.strokeStyle = color; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.setLineDash([]);
+        ctx.stroke(); ctx.globalAlpha = 1;
+        // Glow effect
+        ctx.beginPath();
+        ctx.moveTo(xToPx(diffPts[0].x), yToPx(diffPts[0].y));
+        for (let i = 1; i < diffPts.length; i++) {
+          ctx.lineTo(xToPx(diffPts[i].x), yToPx(diffPts[i].y));
+        }
+        ctx.strokeStyle = color; ctx.globalAlpha = 0.15; ctx.lineWidth = 5;
+        ctx.stroke(); ctx.globalAlpha = 1;
+        // Data points (diamonds)
+        diffPts.forEach(p => {
+          const px = xToPx(p.x), py = yToPx(p.y);
+          ctx.fillStyle = color; ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(px, py - 4.5); ctx.lineTo(px + 3.5, py);
+          ctx.lineTo(px, py + 4.5); ctx.lineTo(px - 3.5, py);
+          ctx.closePath(); ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+      } else if (_crfOvSplitCondition && _crfOvData.splitByGroup) {
         // 四条件模式: Self/Stranger × Matching/NonMatching
         const sp = _crfOvData.splitByGroup[gid];
         if (!sp) continue;
@@ -4097,6 +4165,24 @@ function renderCRFOverview() {
 
   ctx.restore();
 
+  // Zero baseline for diff mode
+  if (_crfOvDiffMode) {
+    const zeroY = margin.t + ph * (1 - (0 - yMin) / (yRange || 1));
+    if (zeroY > margin.t && zeroY < margin.t + ph) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(margin.l, zeroY);
+      ctx.lineTo(margin.l + pw, zeroY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Label "0"
+      ctx.fillStyle = txtC; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('0', margin.l - 6, zeroY + 3);
+    }
+  }
+
   // Bottom group toggle bar
   const segW = Math.min(44, (W - margin.l - margin.r) / 8);
   const barX = (W - segW * 8) / 2;
@@ -4114,7 +4200,7 @@ function renderCRFOverview() {
     ctx.fillRect(x + 2, barY, segW - 4, 14);
     ctx.fillStyle = visible ? '#fff' : '#999';
     ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('G' + gid, x + segW/2, barY + 11);
+    ctx.fillText(GROUP_LABELS[gid] || 'G'+gid, x + segW/2, barY + 11);
   }
 
   buildCrfOvLegend();
@@ -4131,7 +4217,7 @@ function buildCrfOvLegend() {
     const opacity = visible ? '1' : '0.4';
     html += `<div style="display:flex;align-items:center;gap:3px;cursor:pointer;opacity:${opacity};padding:1px 4px;border-radius:3px;border:1px solid transparent;" data-ov-g="${gid}">
       <span style="display:inline-block;width:10px;height:8px;border-radius:50%;background:${c};opacity:0.9;"></span>
-      <span style="font-size:0.9em;font-weight:600;">G${gid}</span></div>`;
+      <span style="font-size:0.9em;font-weight:600;">${GROUP_LABELS[gid]}</span></div>`;
   }
   html += '<div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>';
   html += '<label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:0.85em;white-space:nowrap;padding:2px 6px;border-radius:3px;border:1px solid var(--border);background:' + (_crfOvShowSelf ? 'rgba(255,152,0,0.12)' : 'transparent') + ';" id="crfOvToggleSelf">';
@@ -4155,7 +4241,10 @@ function buildCrfOvLegend() {
   html += '<label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:0.82em;white-space:nowrap;padding:2px 6px;border-radius:3px;border:1px solid var(--border);background:' + (_crfOvSplitCondition ? 'rgba(156,39,176,0.1)' : 'transparent') + ';" id="crfOvToggleSplit">';
   html += '<input type="checkbox" id="crfOvCheckSplit" ' + (_crfOvSplitCondition ? 'checked' : '') + ' style="accent-color:#9c27b0;">';
   html += '<span style="font-weight:500;color:#9c27b0;">⚡ 四条件 (2×2)</span></label>';
-  html += '<span style="font-size:0.78em;color:var(--text-secondary);margin-left:auto;">' + (_crfOvSplitCondition ? '粗=Match 细=Nonmatch' : '浅色填充 = Self−Stranger 差异区域') + '</span>';
+  html += '<label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:0.82em;white-space:nowrap;padding:2px 6px;border-radius:3px;border:1px solid var(--border);background:' + (_crfOvDiffMode ? 'rgba(233,30,99,0.1)' : 'transparent') + ';" id="crfOvToggleDiff">';
+  html += '<input type="checkbox" id="crfOvCheckDiff" ' + (_crfOvDiffMode ? 'checked' : '') + ' style="accent-color:#e91e63;">';
+  html += '<span style="font-weight:500;color:#e91e63;">Δ Self−Stranger</span></label>';
+  html += '<span style="font-size:0.78em;color:var(--text-secondary);margin-left:auto;">' + (_crfOvDiffMode ? 'Y轴 = 差异值 (Δ)' : (_crfOvSplitCondition ? '粗=Match 细=Nonmatch' : '浅色填充 = Self−Stranger 差异区域')) + '</span>';
   el.innerHTML = html;
 
   el.querySelectorAll('[data-ov-g]').forEach(div => {
@@ -4194,6 +4283,14 @@ function buildCrfOvLegend() {
   const splitCheck = document.getElementById('crfOvCheckSplit');
   if (splitCheck) splitCheck.addEventListener('change', () => {
     _crfOvSplitCondition = splitCheck.checked;
+    if (_crfOvSplitCondition) _crfOvDiffMode = false;  // diff mode mutually exclusive with split
+    renderCRFOverview();
+  });
+  // Self−Stranger diff toggle
+  const diffCheck = document.getElementById('crfOvCheckDiff');
+  if (diffCheck) diffCheck.addEventListener('change', () => {
+    _crfOvDiffMode = diffCheck.checked;
+    if (_crfOvDiffMode) _crfOvSplitCondition = false;  // split mode mutually exclusive with diff
     renderCRFOverview();
   });
 }
@@ -4385,7 +4482,7 @@ function renderCRFOverviewMultiMetric(canvas) {
     ctx.fillRect(x + 2, barY, segW - 4, 14);
     ctx.fillStyle = visible ? '#fff' : '#999';
     ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('G' + gid, x + segW/2, barY + 11);
+    ctx.fillText(GROUP_LABELS[gid] || 'G'+gid, x + segW/2, barY + 11);
   }
 
   ctx.restore();
@@ -4406,7 +4503,7 @@ function buildCrfCafLegend() {
     const opacity = visible ? '1' : '0.4';
     html += `<div style="display:flex;align-items:center;gap:3px;cursor:pointer;opacity:${opacity};padding:1px 4px;border-radius:3px;border:1px solid transparent;" data-ov-g="${gid}">
       <span style="display:inline-block;width:10px;height:8px;border-radius:50%;background:${c};opacity:0.9;"></span>
-      <span style="font-size:0.9em;font-weight:600;">G${gid}</span></div>`;
+      <span style="font-size:0.9em;font-weight:600;">${GROUP_LABELS[gid]}</span></div>`;
   }
   html += '<div style="width:1px;height:16px;background:var(--border);margin:0 6px;"></div>';
   html += '<span style="display:flex;align-items:center;gap:3px;font-size:0.85em;white-space:nowrap;">';
@@ -4445,14 +4542,14 @@ async function renderDesignTab(lp, rp) {
     <div style="font-size:0.82em;line-height:1.8;background:var(--bg-card);padding:12px;border-radius:6px;">
       <table style="width:100%;border-collapse:collapse;">
         <tr style="color:var(--accent);"><th>组别</th><th>P</th><th>T(s)</th><th>W(s)</th><th>质量</th></tr>
-        <tr><td>G1</td><td>0</td><td>0.03</td><td>0.3</td><td style="color:#f44336;">exclude</td></tr>
-        <tr><td>G2</td><td>0</td><td>0.03</td><td>0.6</td><td style="color:#f44336;">exclude</td></tr>
-        <tr><td>G3</td><td>120</td><td>0.03</td><td>0.6</td><td style="color:#ff9800;">caution</td></tr>
-        <tr><td>G4</td><td>120</td><td>0.08</td><td>0.6</td><td style="color:#4caf50;">good</td></tr>
-        <tr><td>G5</td><td>8</td><td>0.1</td><td>1.1</td><td style="color:#4caf50;">good</td></tr>
-        <tr><td>G6</td><td>120</td><td>0.5</td><td>1.5</td><td style="color:#4caf50;">good</td></tr>
-        <tr><td>G7</td><td>120</td><td>0.03</td><td>1.1</td><td style="color:#4caf50;">good</td></tr>
-        <tr><td>G8</td><td>120</td><td>0.08</td><td>0.8</td><td style="color:#4caf50;">good</td></tr>
+        <tr><td>D1</td><td>0</td><td>0.03</td><td>0.3</td><td style="color:#f44336;">exclude</td></tr>
+        <tr><td>D2</td><td>0</td><td>0.03</td><td>0.6</td><td style="color:#f44336;">exclude</td></tr>
+        <tr><td>D3a</td><td>120</td><td>0.03</td><td>0.6</td><td style="color:#ff9800;">caution</td></tr>
+        <tr><td>D4a</td><td>120</td><td>0.08</td><td>0.6</td><td style="color:#4caf50;">good</td></tr>
+        <tr><td>D5</td><td>8</td><td>0.1</td><td>1.1</td><td style="color:#4caf50;">good</td></tr>
+        <tr><td>D6</td><td>120</td><td>0.5</td><td>1.5</td><td style="color:#4caf50;">good</td></tr>
+        <tr><td>D3b</td><td>120</td><td>0.03</td><td>0.8</td><td style="color:#4caf50;">good</td></tr>
+        <tr><td>D4b</td><td>120</td><td>0.08</td><td>0.8</td><td style="color:#4caf50;">good</td></tr>
       </table>
     </div>
 
@@ -5305,7 +5402,7 @@ function renderSpeCorrTable(speMerged) {
         <div><b>SPE 均值:</b> ${(valid.reduce((s,v)=>s+v.speRTd,0)/valid.length).toFixed(3)}</div>
         <div><b>SPE 范围:</b> [${valid.reduce((a,v)=>Math.min(a,v.speRTd),Infinity).toFixed(3)}, ${valid.reduce((a,v)=>Math.max(a,v.speRTd),-Infinity).toFixed(3)}]</div>
         <div style="margin-top:2px;font-size:0.9em;color:var(--text-secondary);">*** p<.001 ** p<.01 * p<.05 ~ p<.1</div>
-        <div style="font-size:0.85em;color:var(--text-secondary);">good = 排除不可靠组 (G1,G2)</div>
+        <div style="font-size:0.85em;color:var(--text-secondary);">good = 排除不可靠组 (D1,D2)</div>
       </div>
     </div>
   `;
@@ -7262,6 +7359,185 @@ function pearsonR(xs, ys) {
   for (let i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxx+=xs[i]*xs[i];syy+=ys[i]*ys[i];sxy+=xs[i]*ys[i];}
   const denom = Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy));
   return denom===0 ? 0 : (n*sxy - sx*sy)/denom;
+}
+
+// ==================== TAB: 数据自查 ====================
+async function renderSelfCheckTab(lp, rp) {
+  lp.innerHTML = `
+    <div class="section-title">数据自查工具</div>
+    <div style="font-size:0.82em;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;">
+      <div style="font-weight:600;color:var(--accent);margin-bottom:4px;">▎检查原理</div>
+      <div>实验中 RT 从 <b>刺激开始呈现</b> 时刻计时，最大可能 RT = <b>T + W</b></div>
+      <div>• <b>T</b> = 刺激呈现时间 (秒)</div>
+      <div>• <b>W</b> = 反应窗口总时长 (秒，含200ms掩蔽)</div>
+      <div style="color:#ff9800;margin-top:4px;">任何 RT > T+W 的试次为 <b>异常数据</b></div>
+    </div>
+    <button id="btnRunSelfCheck" style="width:100%;padding:10px;font-size:0.95em;font-weight:600;">
+      运行数据自查
+    </button>
+    <div id="selfCheckStatus" style="margin-top:8px;font-size:0.78em;color:var(--text-secondary);"></div>
+    <div style="margin-top:12px;font-size:0.75em;">
+      <div style="font-weight:600;color:var(--accent);margin-bottom:4px;">▎图例</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px 12px;">
+        <span style="color:#4caf50;">●</span> T/W匹配, 无超限
+        <span style="color:#ff9800;">●</span> 微量超限(&lt;2%)
+        <span style="color:#f44336;">●</span> 严重超限/参数不符
+        <span style="color:#9e9e9e;">●</span> 无数据
+      </div>
+    </div>
+  `;
+  rp.innerHTML = `
+    <div class="chart-container" style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div style="text-align:center;color:var(--text-secondary);font-size:0.85em;">
+        <div style="font-size:1.2em;margin-bottom:8px;">点击左侧"运行数据自查"按钮</div>
+        <div>检查所有原始数据文件的 RT 是否在 T+W 理论范围内</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnRunSelfCheck').addEventListener('click', async () => {
+    const statusEl = document.getElementById('selfCheckStatus');
+    statusEl.innerHTML = '<span style="color:var(--accent);">正在检查所有数据文件...</span>';
+    try {
+      const resp = await fetch(API + '/api/data/self_check');
+      const report = await resp.json();
+      renderSelfCheckResults(rp, report);
+      statusEl.innerHTML = '<span style="color:#4caf50;">自查完成 ✓</span>';
+    } catch (e) {
+      statusEl.innerHTML = '<span style="color:#f44336;">检查失败: ' + e.message + '</span>';
+    }
+  });
+}
+
+function renderSelfCheckResults(rp, report) {
+  const groups = report.groups;
+  const summary = report.summary;
+  const design = report.design;
+
+  // Status indicator per group
+  function groupStatus(gid) {
+    const g = groups[String(gid)];
+    if (!g || g.nFiles === 0) return { cls: 'missing', label: '无数据', color: '#9e9e9e' };
+    if (!g.tWMatch && g.tWMatch !== null && g.tWMatch !== undefined) return { cls: 'critical', label: '参数不符', color: '#f44336' };
+    if (g.nOverMax > 0 && g.overMaxPct > 2) return { cls: 'critical', label: '严重超限', color: '#f44336' };
+    if (g.nOverMax > 0 && g.overMaxPct > 0.3) return { cls: 'warning', label: '微量超限', color: '#ff9800' };
+    if (g.nOverMax > 0) return { cls: 'minor', label: '极微超限', color: '#ffc107' };
+    return { cls: 'ok', label: '正常', color: '#4caf50' };
+  }
+
+  // Build design parameters table
+  let designRows = '';
+  for (let gid = 1; gid <= 8; gid++) {
+    const d = design[String(gid)];
+    if (!d) continue;
+    designRows += `<tr>
+      <td style="font-weight:600;">${GROUP_LABELS[gid] || d.label}</td>
+      <td>${d.T}s</td><td>${d.W}s</td>
+      <td style="font-weight:600;color:var(--accent);">${(d.T + d.W).toFixed(3)}s (${((d.T+d.W)*1000).toFixed(0)}ms)</td>
+      <td>${d.label.split('|')[1] || d.label}</td>
+    </tr>`;
+  }
+
+  // Build group check table
+  let groupRows = '';
+  for (let gid = 1; gid <= 8; gid++) {
+    const g = groups[String(gid)];
+    const st = groupStatus(gid);
+    let twCell, rtCell;
+    if (!g || g.nFiles === 0) {
+      twCell = '<td style="color:#9e9e9e;">—</td><td style="color:#9e9e9e;">—</td><td style="color:#9e9e9e;">—</td>';
+      rtCell = '<td style="color:#9e9e9e;">0</td><td style="color:#9e9e9e;">—</td><td style="color:#9e9e9e;">—</td>';
+    } else {
+      const twOk = g.tWMatch ? '✔' : '✘';
+      const twColor = g.tWMatch ? '#4caf50' : '#f44336';
+      twCell = `<td>${g.actualT}s</td><td>${g.actualW}s</td><td style="color:${twColor};font-weight:600;">${twOk} ${g.tWMatch ? '' : '(设计T='+g.designT+'s,W='+g.designW+'s)'}</td>`;
+      rtCell = `<td>${g.nFormalTrials}</td>
+        <td style="color:${g.nOverMax > 0 ? '#f44336' : '#4caf50'};font-weight:600;">${g.nOverMax} (${g.overMaxPct}%)</td>
+        <td>${g.maxRt > 0 ? g.maxRt.toFixed(3)+'s (+'+(g.maxOverBy*1000).toFixed(1)+'ms)' : '—'}</td>`;
+    }
+    groupRows += `<tr style="border-left:3px solid ${st.color};">
+      <td style="font-weight:600;">${GROUP_LABELS[gid] || 'G'+gid}</td>
+      ${twCell}
+      ${rtCell}
+      <td><span style="color:${st.color};font-weight:600;">${st.label}</span></td>
+    </tr>`;
+  }
+
+  // Build detailed issues
+  let detailsHtml = '';
+  for (let gid = 1; gid <= 8; gid++) {
+    const g = groups[String(gid)];
+    if (!g || g.nFiles === 0) continue;
+    if (g.overMaxDetails && g.overMaxDetails.length > 0) {
+      detailsHtml += `<div style="margin-top:8px;font-weight:600;color:#f44336;">${GROUP_LABELS[gid] || 'G'+gid} RT超限明细 (前 ${Math.min(g.overMaxDetails.length, 10)} 条，共 ${g.overMaxDetails.length} 条):</div>`;
+      detailsHtml += `<table style="width:100%;font-size:0.7em;border-collapse:collapse;margin-top:4px;">
+        <tr style="color:var(--text-secondary);"><th>文件</th><th>Trial</th><th>阶段</th><th>RT(s)</th><th>实际T+W(s)</th><th>超出(ms)</th></tr>`;
+      g.overMaxDetails.slice(0, 10).forEach(d => {
+        detailsHtml += `<tr>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.file}</td>
+          <td>${d.trialID}</td><td>${d.stage}</td>
+          <td style="color:#f44336;font-weight:600;">${d.RT.toFixed(3)}</td>
+          <td>${d.maxExpected.toFixed(3)}</td>
+          <td style="color:#f44336;">+${(d.overBy*1000).toFixed(1)}</td>
+        </tr>`;
+      });
+      detailsHtml += `</table>`;
+    }
+    if (g.issues && g.issues.length > 0) {
+      detailsHtml += `<div style="margin-top:4px;font-weight:600;color:#ff9800;">${GROUP_LABELS[gid] || 'G'+gid} 数据质量问题:</div>`;
+      g.issues.forEach(issue => {
+        detailsHtml += `<div style="font-size:0.72em;color:#ff9800;margin-left:8px;">⚠ ${issue}</div>`;
+      });
+    }
+  }
+
+  // Critical issues
+  let criticalHtml = '';
+  if (summary.criticalIssues && summary.criticalIssues.length > 0) {
+    criticalHtml = `<div class="section-title" style="color:#f44336;">严重问题</div>`;
+    summary.criticalIssues.forEach(issue => {
+      criticalHtml += `<div style="font-size:0.78em;color:#f44336;margin-bottom:4px;padding:6px;background:rgba(244,67,54,0.08);border-radius:4px;">🔴 ${issue}</div>`;
+    });
+  }
+
+  rp.innerHTML = `
+    <div class="chart-container" style="flex:1;overflow-y:auto;max-height:none;">
+      <div style="font-weight:600;color:var(--accent);margin-bottom:2px;">数据自查报告</div>
+      <div style="font-size:0.72em;color:var(--text-secondary);margin-bottom:12px;">
+        共扫描 <b>${summary.totalFiles}</b> 个文件, <b>${summary.totalFormalTrials}</b> 个Formal试次, 
+        <b style="color:${summary.totalOverMax > 0 ? '#f44336' : '#4caf50'};">${summary.totalOverMax}</b> 个试次RT超过T+W理论最大值
+      </div>
+
+      ${criticalHtml}
+
+      <div class="section-title">实验设计参数 (每组理论最大RT = T + W)</div>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;font-size:0.75em;border-collapse:collapse;">
+        <tr style="color:var(--text-secondary);border-bottom:2px solid var(--border);">
+          <th>组别</th><th>T (秒)</th><th>W (秒)</th><th>最大RT = T+W</th><th>条件标签</th>
+        </tr>
+        ${designRows}
+      </table>
+      </div>
+
+      <div class="section-title" style="margin-top:16px;">逐组检查结果</div>
+      <div style="font-size:0.72em;color:var(--text-secondary);margin-bottom:4px;">
+        <b>T/W匹配</b>: 数据中的T/W是否与实验设计一致 | 
+        <b>超限</b>: Formal试次中RT超过 T+W 的数量和比例
+      </div>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;font-size:0.75em;border-collapse:collapse;">
+        <tr style="color:var(--text-secondary);border-bottom:2px solid var(--border);">
+          <th>组</th><th>数据T</th><th>数据W</th><th>T/W匹配?</th>
+          <th>Formal试次</th><th>超限(比例)</th><th>最大超出</th><th>状态</th>
+        </tr>
+        ${groupRows}
+      </table>
+      </div>
+
+      ${detailsHtml}
+    </div>
+  `;
 }
 
 init();

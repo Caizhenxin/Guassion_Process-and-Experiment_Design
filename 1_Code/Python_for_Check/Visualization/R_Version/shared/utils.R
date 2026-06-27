@@ -30,21 +30,21 @@ R_VERSION_DIR <- file.path(PROJECT_ROOT, "1_Code", "Python_for_Check",
 # 2. 实验参数常量 (from app_server.py CONDITIONS)
 # ===========================================================================
 CONDITIONS <- list(
-  "1" = list(P = 0,   T = 0.03, W = 0.3,  label = "G1  | P0_T30_W300"),
-  "2" = list(P = 0,   T = 0.03, W = 0.6,  label = "G2  | P0_T30_W600"),
-  "3" = list(P = 120, T = 0.03, W = 0.6,  label = "G3  | P120_T30_W600"),
-  "4" = list(P = 120, T = 0.08, W = 0.6,  label = "G4  | P120_T80_W600"),
-  "5" = list(P = 8,   T = 0.10, W = 1.1,  label = "G5  | P8_T100_W1100"),
-  "6" = list(P = 120, T = 0.50, W = 1.5,  label = "G6  | P120_T500_W1500"),
-  "7" = list(P = 0,   T = 0.10, W = 1.1,  label = "G7  | P0_T100_W1100"),
-  "8" = list(P = 120, T = 0.03, W = 0.8,  label = "G8  | P120_T30_W800"),
-  "9" = list(P = 120, T = 0.08, W = 0.8,  label = "G9  | P120_T80_W800")
+  "1" = list(P = 0,   T = 0.03, W = 0.3,  label = "D1  | P0_T30_W300"),
+  "2" = list(P = 0,   T = 0.03, W = 0.6,  label = "D2  | P0_T30_W600"),
+  "3" = list(P = 120, T = 0.03, W = 0.6,  label = "D3a | P120_T30_W600"),
+  "4" = list(P = 120, T = 0.08, W = 0.6,  label = "D4a | P120_T80_W600"),
+  "5" = list(P = 8,   T = 0.10, W = 1.1,  label = "D5  | P8_T100_W1100"),
+  "6" = list(P = 120, T = 0.50, W = 1.5,  label = "D6  | P120_T500_W1500"),
+  "7" = list(P = 120, T = 0.03, W = 0.8,  label = "D3b | P120_T30_W800"),
+  "8" = list(P = 120, T = 0.08, W = 0.8,  label = "D4b | P120_T80_W800")
+  # "9" deprecated, merged into D4b
 )
 
 QUALITY_MAP <- c(
   "1" = "exclude", "2" = "exclude", "3" = "caution",
   "4" = "good",    "5" = "good",    "6" = "good",
-  "7" = "good",    "8" = "good",    "9" = "good"
+  "7" = "good",    "8" = "good"
 )
 
 # ===========================================================================
