@@ -204,6 +204,7 @@ button.danger { background: #d32f2f; border-color: #d32f2f; }
   <button class="tab-btn" data-tab="tab-visualization">交互式CRF可视化</button>
   <button class="tab-btn" data-tab="tab-design">设计空间分析</button>
   <button class="tab-btn" data-tab="tab-spe">SPE数据库</button>
+  <button class="tab-btn" data-tab="tab-ddm">DDM参数模式</button>
 </div>
 
 <div class="main-content">
@@ -354,6 +355,7 @@ function renderTabContent() {
     case 'tab-design': renderDesignTab(lp, rp); break;
     case 'tab-spe': renderSPETab(lp, rp); break;
     case 'tab-selfcheck': renderSelfCheckTab(lp, rp); break;
+    case 'tab-ddm': renderDDMTab(lp, rp); break;
   }
 }
 
@@ -7539,6 +7541,1302 @@ function renderSelfCheckResults(rp, report) {
     </div>
   `;
 }
+
+// ==================== DDM 参数模式标签页 ====================
+
+let ddmChartCRF = null;
+let ddmChartRTDist = null;
+let ddmChartSweep = null;
+let ddmLastResult = null;
+
+const DDM_SWEEP_VARS = {
+  v: { label: 'v (漂移率)', min: 0.1, max: 4.0, step: 0.1, default: 1.0 },
+  a: { label: 'a (决策边界)', min: 0.3, max: 3.0, step: 0.1, default: 1.2 },
+  z: { label: 'z (起点比例)', min: 0.05, max: 0.95, step: 0.02, default: 0.5 },
+  t0: { label: 't0 (非决策时间)', min: 0.05, max: 0.5, step: 0.01, default: 0.3 },
+};
+
+const DDM_SWEEP_COLORS = ['#64b5f6','#e74c3c','#2ecc71','#f39c12','#9b59b6','#1abc9c'];
+
+function renderDDMTab(lp, rp) {
+  lp.innerHTML = `
+    <details class="help-panel card" style="margin-bottom:12px;" open>
+      <summary style="font-weight:700;font-size:0.85em;color:var(--accent);">📖 Stim Coding DDM 仿真原理</summary>
+      <div style="font-size:0.75em;color:var(--text-secondary);line-height:1.7;margin-top:8px;">
+        <p><b>核心逻辑：</b>DDM参数 → Euler-Maruyama仿真 → Trial数据 → CRF可视化</p>
+        <p><b>Stim Coding 坐标转换：</b>每个试次生成 stimulus (1或0)，通过坐标变换统一到"匹配键"框架</p>
+        <table style="width:100%;font-size:0.9em;margin:6px 0;">
+          <tr><td>刺激A (stim=1)</td><td>params={a, v+dc, t, z}</td><td>choice = response</td></tr>
+          <tr><td>刺激B (stim=0)</td><td>params={a, v-dc, t, 1-z}</td><td>choice = 1-response</td></tr>
+        </table>
+        <p><b>Choice vs Response：</b><br>
+          <b>Response</b> = DDM原始边界穿越（1=上界, 0=下界）<br>
+          <b>Choice</b> = Stim Coding变换后（1=按匹配键, 0=按非匹配键）<br>
+          刺激B时 choice = 1-response（翻转），使"匹配键"成为统一分析框架</p>
+        <p><b>参数关联：</b></p>
+        <ul style="padding-left:16px;margin:4px 0;">
+          <li><b>v (漂移率)</b> → 决定证据累积速度，v↑→RT↓, 上界命中率↑。每个被试 v~N(v_mean, v_std)</li>
+          <li><b>a (决策边界)</b> → 决定谨慎程度，a↑→RT↑, 准确率↑。a~N(a_mean, a_std) 截断≥0.4</li>
+          <li><b>t0 (非决策时间)</b> → 编码+运动延迟，t0↑→CRF整条右移。t0~N(t_mean, t_std) 截断≥0.1</li>
+          <li><b>z (起点比例)</b> → 先验偏向，z>0.5→偏上界。z_subj = clip(z_val+N(0,0.02), 0.3, 0.7)</li>
+          <li><b>dc (漂移标准)</b> → stimulus对v的调制量，dc~N(dc_mean, dc_std)</li>
+        </ul>
+        <p><b>影响路径：</b>z↑→CRF整体上移；v↑→CRF整体上移+RT缩短；a↑→CRF变平缓+RT延长；t0↑→CRF水平右移</p>
+      </div>
+    </details>
+
+    <div class="section-title">DDM 参数设置 (群体均值 ± 个体变异)</div>
+    <div style="font-size:0.7em;color:var(--text-secondary);margin-bottom:8px;">Stim Coding 仿真 · 复刻 plot_CRF_zbias_Wiener.ipynb</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">a (边界) mean</label>
+        <input type="number" id="ddm-a-mean" value="1.2" step="0.1" min="0.3" style="width:100%;"></div>
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">a std</label>
+        <input type="number" id="ddm-a-std" value="0.2" step="0.01" min="0" style="width:100%;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">v (漂移率) mean</label>
+        <input type="number" id="ddm-v-mean" value="1.0" step="0.1" min="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">v std</label>
+        <input type="number" id="ddm-v-std" value="0.3" step="0.01" min="0" style="width:100%;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">t0 (非决策) mean</label>
+        <input type="number" id="ddm-t-mean" value="0.30" step="0.01" min="0.05" style="width:100%;"></div>
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">t0 std</label>
+        <input type="number" id="ddm-t-std" value="0.05" step="0.01" min="0" style="width:100%;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">dc (漂移标准) mean</label>
+        <input type="number" id="ddm-dc-mean" value="0.0" step="0.01" style="width:100%;"></div>
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">dc std</label>
+        <input type="number" id="ddm-dc-std" value="0.05" step="0.01" min="0" style="width:100%;"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:12px;">仿真参数</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">被试数</label>
+        <input type="number" id="ddm-n-subjects" value="30" min="5" max="60" style="width:100%;"></div>
+      <div><label style="font-size:0.75em;color:var(--text-secondary);">条件试次</label>
+        <input type="number" id="ddm-n-trials" value="150" min="20" max="300" style="width:100%;"></div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <label style="font-size:0.75em;color:var(--text-secondary);">z-bias 水平 (点击预设 / 自定义输入)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;" id="ddm-z-presets">
+        <span class="crf-mode-btn active" data-z="0.50" style="cursor:pointer;">Neutral 0.50</span>
+        <span class="crf-mode-btn active" data-z="0.55" style="cursor:pointer;">Small 0.55</span>
+        <span class="crf-mode-btn active" data-z="0.60" style="cursor:pointer;">Medium 0.60</span>
+        <span class="crf-mode-btn active" data-z="0.65" style="cursor:pointer;">Large 0.65</span>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <input type="text" id="ddm-z-custom" placeholder="自定义, 如 0.70,0.75" style="flex:1;font-size:0.75em;">
+        <button id="btn-z-add" class="crf-mode-btn" style="white-space:nowrap;">＋添加</button>
+      </div>
+      <div id="ddm-z-active" style="font-size:0.65em;color:var(--accent);margin-top:2px;">当前: 0.50, 0.55, 0.60, 0.65</div>
+    </div>
+
+    <button id="btn-ddm-generate" style="width:100%;margin-top:12px;padding:10px;font-weight:600;background:#9c27b0;border-color:#9c27b0;color:#fff;">
+      ▶ 生成 Stim Coding 仿真数据
+    </button>
+    <div style="font-size:0.68em;color:var(--text-secondary);margin-top:4px;">约5-8秒，生成N被试×M条件×K试次</div>
+
+    <div id="ddm-summary" style="margin-top:10px;font-size:0.78em;color:var(--text-secondary);"></div>
+
+    <!-- ===== Self/Stranger 对比参数区 ===== -->
+    <div class="section-title" style="margin-top:16px;color:#ff9800;">Self/Stranger DDM 参数对比</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div><label style="font-size:0.72em;color:#ff9800;">Self v</label>
+        <input type="number" id="ddm-spe-v-self" value="1.5" step="0.1" min="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#2196f3;">Stranger v</label>
+        <input type="number" id="ddm-spe-v-stranger" value="0.8" step="0.1" min="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#ff9800;">Self a</label>
+        <input type="number" id="ddm-spe-a-self" value="1.5" step="0.1" min="0.3" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#2196f3;">Stranger a</label>
+        <input type="number" id="ddm-spe-a-stranger" value="1.5" step="0.1" min="0.3" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#ff9800;">Self t0</label>
+        <input type="number" id="ddm-spe-t0-self" value="0.25" step="0.01" min="0.05" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#2196f3;">Stranger t0</label>
+        <input type="number" id="ddm-spe-t0-stranger" value="0.25" step="0.01" min="0.05" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#ff9800;">Self z</label>
+        <input type="number" id="ddm-spe-z-self" value="0.75" step="0.05" min="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:#2196f3;">Stranger z</label>
+        <input type="number" id="ddm-spe-z-stranger" value="0.75" step="0.05" min="0.1" style="width:100%;"></div>
+    </div>
+    <div style="margin-top:4px;"><label style="font-size:0.72em;color:var(--text-secondary);">生成试次 (每条件)</label>
+      <input type="number" id="ddm-spe-n-trials" value="400" min="50" max="3000" style="width:100%;"></div>
+    <button id="btn-ddm-pair-generate" style="width:100%;margin-top:8px;padding:10px;font-weight:600;background:#ff9800;border-color:#ff9800;color:#fff;">
+      ▶ 生成 Self/Stranger 对比数据
+    </button>
+    <div id="ddm-spe-summary" style="margin-top:6px;font-size:0.78em;color:var(--text-secondary);"></div>
+
+    <!-- ===== 参数扫描区 ===== -->
+    <div class="section-title" style="margin-top:16px;color:#2ecc71;">参数扫描曲线</div>
+    <div><label style="font-size:0.75em;color:var(--text-secondary);">扫描维度 (X轴)</label>
+      <select id="ddm-sweep-var" style="width:100%;">
+        <option value="v">v (漂移率)</option>
+        <option value="a">a (决策边界)</option>
+        <option value="z">z (起点)</option>
+        <option value="t0">t0 (非决策时间)</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;">
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">Min</label>
+        <input type="number" id="ddm-sweep-min" value="0.5" step="0.05" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">Max</label>
+        <input type="number" id="ddm-sweep-max" value="3.0" step="0.05" style="width:100%;"></div>
+    </div>
+    <div style="margin-top:4px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">固定 v</label>
+        <input type="number" id="ddm-sweep-fix-v" value="1.0" step="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">固定 a</label>
+        <input type="number" id="ddm-sweep-fix-a" value="1.2" step="0.1" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">固定 z</label>
+        <input type="number" id="ddm-sweep-fix-z" value="0.5" step="0.05" style="width:100%;"></div>
+      <div><label style="font-size:0.72em;color:var(--text-secondary);">固定 t0</label>
+        <input type="number" id="ddm-sweep-fix-t0" value="0.3" step="0.01" style="width:100%;"></div>
+    </div>
+    <button id="btn-ddm-sweep" style="width:100%;margin-top:8px;padding:10px;font-weight:600;background:#2ecc71;border-color:#2ecc71;color:#fff;">
+      🔍 生成参数曲线
+    </button>
+  `;
+
+  rp.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <span style="font-size:0.78em;color:var(--text-secondary);">CRF 查看模式:</span>
+      <button class="crf-mode-btn active" id="btn-crf-mode-single" style="font-size:0.75em;">📊 单次查看</button>
+      <button class="crf-mode-btn" id="btn-crf-mode-compare" style="font-size:0.75em;">🔬 比较模式</button>
+      <span style="font-size:0.7em;color:var(--text-muted);margin-left:auto;" id="crf-compare-count">已保存: 0</span>
+      <button class="crf-mode-btn" id="btn-crf-clear-compare" style="font-size:0.7em;display:none;">清空</button>
+    </div>
+
+    <div class="chart-container">
+      <div class="section-title" style="color:#9c27b0;">z-bias CRF 曲线 — Stim Coding Simulation</div>
+      <div style="height:360px;position:relative;"><canvas id="chart-zbias-crf"></canvas></div>
+      <div style="font-size:0.72em;color:var(--text-secondary);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap;" id="zbias-crf-legend">
+        <span><span class="legend-dot" style="background:#757575;"></span>Neutral (z=0.50)</span>
+        <span><span class="legend-dot" style="background:#ff9800;"></span>Small Bias (z=0.55)</span>
+        <span><span class="legend-dot" style="background:#e91e63;"></span>Medium Bias (z=0.60)</span>
+        <span><span class="legend-dot" style="background:#9c27b0;"></span>Large Bias (z=0.65)</span>
+        <span style="margin-left:auto;">--- P=0.5</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+      <div class="chart-container">
+        <div class="section-title">RT 分布 × z-bias</div>
+        <div style="height:260px;position:relative;"><canvas id="chart-zbias-rtdist"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="section-title">z-bias Effect (ΔP vs Neutral)</div>
+        <div style="height:260px;position:relative;"><canvas id="chart-zbias-spe"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 数据预览子板块 -->
+    <details class="chart-container" style="margin-top:12px;" id="ddm-data-preview-section">
+      <summary style="font-weight:600;font-size:0.85em;color:var(--accent);cursor:pointer;margin-bottom:8px;">📋 生成数据预览 (点击展开)</summary>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;" id="ddm-data-stats"></div>
+      <div style="overflow-x:auto;max-height:340px;overflow-y:auto;font-size:0.72em;" id="ddm-data-table"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:0.72em;">
+        <span style="color:var(--text-secondary);" id="ddm-data-page-info">第 1 页, 共 0 行</span>
+        <div style="display:flex;gap:4px;">
+          <button class="crf-mode-btn" id="btn-data-prev" disabled>◀ 上一页</button>
+          <button class="crf-mode-btn" id="btn-data-next" disabled>下一页 ▶</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- ===== Self/Stranger SPE CRF 对比区 ===== -->
+    <div class="section-title" style="margin-top:16px;color:#ff9800;" id="ddm-spe-section-title">SPE CRF 曲线 (Self vs Stranger) — 点击「生成 Self/Stranger 对比数据」</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="ddm-spe-charts">
+      <div class="chart-container">
+        <div class="section-title">SPE CRF (匹配键比例)</div>
+        <div style="height:300px;position:relative;"><canvas id="chart-ddm-spe-crf"></canvas></div>
+        <div style="font-size:0.72em;color:var(--text-secondary);margin-top:4px;display:flex;gap:12px;">
+          <span><span class="legend-dot" style="background:#ff9800;"></span>Self</span>
+          <span><span class="legend-dot" style="background:#2196f3;"></span>Stranger</span>
+          <span style="margin-left:auto;">--- P=0.5</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="section-title">SPE RT 分布</div>
+        <div style="height:300px;position:relative;"><canvas id="chart-ddm-spe-rtdist"></canvas></div>
+        <div style="font-size:0.72em;color:var(--text-secondary);margin-top:4px;" id="ddm-spe-rtdist-stats">点击「生成 Self/Stranger 对比数据」开始</div>
+      </div>
+    </div>
+
+    <!-- ===== 参数扫描图 ===== -->
+    <div class="chart-container" style="margin-top:12px;">
+      <div class="section-title" style="color:#2ecc71;">参数扫描曲线 — <span id="ddm-sweep-title">选择扫描维度后点击「生成参数曲线」</span></div>
+      <div style="height:320px;position:relative;"><canvas id="chart-ddm-sweep"></canvas></div>
+      <div style="font-size:0.72em;color:var(--text-secondary);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap;" id="ddm-sweep-legend">
+        <span><span style="display:inline-block;width:12px;height:3px;background:#e74c3c;vertical-align:middle;margin-right:3px;"></span>Mean RT (s)</span>
+        <span><span style="display:inline-block;width:12px;height:3px;background:#2ecc71;vertical-align:middle;margin-right:3px;"></span>ACC</span>
+        <span style="margin-left:auto;">Q10 ··· Q90</span>
+      </div>
+    </div>
+  `;
+
+  // 事件绑定
+  document.getElementById('btn-ddm-generate').addEventListener('click', runDDMGenerate);
+
+  // z 预设芯片事件
+  var zPresets = document.querySelectorAll('#ddm-z-presets .crf-mode-btn');
+  zPresets.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      this.classList.toggle('active');
+      updateZActiveDisplay();
+    });
+  });
+  document.getElementById('btn-z-add').addEventListener('click', function() {
+    var customVal = document.getElementById('ddm-z-custom').value.trim();
+    if (customVal) {
+      var vals = customVal.split(',').map(function(s) { return parseFloat(s.trim()); }).filter(function(v) { return !isNaN(v) && v > 0 && v < 1; });
+      vals.forEach(function(v) {
+        var existing = document.querySelector('#ddm-z-presets .crf-mode-btn[data-z="' + v.toFixed(2) + '"]');
+        if (!existing) {
+          var chip = document.createElement('span');
+          chip.className = 'crf-mode-btn active';
+          chip.setAttribute('data-z', v.toFixed(2));
+          chip.textContent = 'z=' + v.toFixed(2);
+          chip.style.cursor = 'pointer';
+          chip.addEventListener('click', function() { this.classList.toggle('active'); updateZActiveDisplay(); });
+          document.getElementById('ddm-z-presets').appendChild(chip);
+        }
+      });
+      document.getElementById('ddm-z-custom').value = '';
+      updateZActiveDisplay();
+    }
+  });
+
+  // CRF 模式切换
+  document.getElementById('btn-crf-mode-single').addEventListener('click', function() {
+    ddmCrfViewMode = 'single';
+    this.classList.add('active');
+    document.getElementById('btn-crf-mode-compare').classList.remove('active');
+    renderCrfCompareOverlay();
+  });
+  document.getElementById('btn-crf-mode-compare').addEventListener('click', function() {
+    ddmCrfViewMode = 'compare';
+    this.classList.add('active');
+    document.getElementById('btn-crf-mode-single').classList.remove('active');
+    renderCrfCompareOverlay();
+  });
+  document.getElementById('btn-crf-clear-compare').addEventListener('click', function() {
+    ddmCrfCompareStore = [];
+    updateCrfCompareUI();
+    renderCrfCompareOverlay();
+  });
+
+  // 数据预览分页
+  document.getElementById('btn-data-prev').addEventListener('click', function() { ddmDataPage--; renderDataPreview(); });
+  document.getElementById('btn-data-next').addEventListener('click', function() { ddmDataPage++; renderDataPreview(); });
+
+  // ==== 新增: Self/Stranger 对比 + 参数扫描 事件绑定 ====
+  document.getElementById('btn-ddm-pair-generate').addEventListener('click', runDDMPairGenerate);
+  document.getElementById('btn-ddm-sweep').addEventListener('click', runDDMSweep);
+
+  document.getElementById('ddm-sweep-var').addEventListener('change', function() {
+    var varInfo = DDM_SWEEP_VARS[this.value];
+    if (varInfo) {
+      document.getElementById('ddm-sweep-min').value = varInfo.min;
+      document.getElementById('ddm-sweep-max').value = varInfo.max;
+    }
+  });
+
+  // 初始化 z 显示
+  updateZActiveDisplay();
+  updateCrfCompareUI();
+
+  // 初始占位图表
+  setTimeout(function() {
+    renderZbiasEmptyCharts();
+    renderDDMSPE_EmptyCharts();
+    renderDDMSweepEmptyChart();
+  }, 100);
+}
+
+// ==================== 新增全局状态 ====================
+var ddmCrfViewMode = 'single';
+var ddmCrfCompareStore = [];
+var ddmLastFullData = null;
+var ddmDataPage = 1;
+var ddmDataPageSize = 25;
+
+const ZBIAS_PRESET_COLORS = {
+  '0.50': '#757575', '0.55': '#ff9800', '0.60': '#e91e63', '0.65': '#9c27b0',
+};
+const COMPARE_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#2980b9'];
+
+function getActiveZLevels() {
+  var chips = document.querySelectorAll('#ddm-z-presets .crf-mode-btn.active');
+  var zs = [];
+  chips.forEach(function(c) { zs.push(parseFloat(c.getAttribute('data-z'))); });
+  zs.sort(function(a,b) { return a - b; });
+  if (zs.length < 2) zs = [0.50, 0.55, 0.60, 0.65];
+  return zs;
+}
+
+function updateZActiveDisplay() {
+  var zs = getActiveZLevels();
+  document.getElementById('ddm-z-active').textContent = '当前: ' + zs.map(function(z) { return z.toFixed(2); }).join(', ');
+}
+
+function updateCrfCompareUI() {
+  document.getElementById('crf-compare-count').textContent = '已保存: ' + ddmCrfCompareStore.length;
+  var btn = document.getElementById('btn-crf-clear-compare');
+  btn.style.display = ddmCrfCompareStore.length > 0 ? 'inline-block' : 'none';
+}
+
+function renderCrfCompareOverlay() {
+  if (!ddmLastFullData) return;
+  if (ddmCrfViewMode === 'single') {
+    renderZbiasCRFChart(ddmLastFullData.crf_data, ddmLastFullData.summary);
+  } else {
+    renderZbiasCompareChart();
+  }
+}
+
+function renderZbiasCompareChart() {
+  var ctx = document.getElementById('chart-zbias-crf').getContext('2d');
+  if (zbiasChartCRF) zbiasChartCRF.destroy();
+
+  var datasets = [];
+  // 当前数据
+  if (ddmLastFullData) {
+    datasets = buildCrfDatasets(ddmLastFullData.crf_data, '当前', 0);
+  }
+  // 已保存数据
+  ddmCrfCompareStore.forEach(function(item, i) {
+    var ds = buildCrfDatasets(item.crf_data, item.label, i + 1);
+    datasets = datasets.concat(ds);
+  });
+
+  zbiasChartCRF = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        title: { display: true, text: 'Multi-CRF Comparison (' + (ddmCrfCompareStore.length + 1) + ' configs)', font: { size: 14, weight: 'bold' } },
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, font: { size: 9 } } },
+        tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': RT=' + ctx.parsed.x.toFixed(0) + 'ms, P=' + ctx.parsed.y.toFixed(3); } } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'RT (ms)' } },
+        y: { title: { display: true, text: 'P(Matching)' }, min: 0.3, max: 1.05 },
+      },
+    },
+    plugins: [{
+      id: 'zbiasCompBaseline',
+      afterDraw: function(chart) {
+        try {
+          var xA = chart.scales.x, yA = chart.scales.y;
+          if (!xA || !yA) return;
+          var c = chart.ctx;
+          c.save(); c.setLineDash([6,4]); c.strokeStyle='rgba(128,128,128,0.4)'; c.lineWidth=1;
+          c.beginPath(); c.moveTo(xA.left, yA.getPixelForValue(0.5)); c.lineTo(xA.right, yA.getPixelForValue(0.5)); c.stroke();
+          c.restore();
+        } catch(e) {}
+      }
+    }],
+  });
+}
+
+function buildCrfDatasets(crfData, labelPrefix, colorIdx) {
+  // 动态获取条件
+  var conditions = [];
+  crfData.forEach(function(r) { if (conditions.indexOf(r.condition) === -1) conditions.push(r.condition); });
+  var baseColor = COMPARE_COLORS[colorIdx % COMPARE_COLORS.length];
+
+  return conditions.map(function(cond, ci) {
+    var rows = crfData.filter(function(r) { return r.condition === cond; });
+    var alpha = 0.5 + 0.5 * (1 - ci / Math.max(conditions.length, 1));
+    return {
+      label: labelPrefix + ' [' + cond + ']',
+      data: rows.map(function(r) { return { x: r.rt_mean_ms, y: r.p_matching }; }),
+      borderColor: baseColor,
+      backgroundColor: baseColor + '20',
+      pointRadius: 3 + ci, pointBackgroundColor: baseColor,
+      borderWidth: 1.5 + ci * 0.5, showLine: true, tension: 0.1,
+      borderDash: ci === 0 ? [] : ci === 1 ? [6,3] : ci === 2 ? [10,4,2,4] : [3,3],
+    };
+  });
+}
+
+async function runDDMGenerate() {
+  var btn = document.getElementById('btn-ddm-generate');
+  var statusEl = document.getElementById('ddm-summary');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ 仿真中 (约5-8秒)...';
+  if (statusEl) statusEl.textContent = '正在生成 Stim Coding 仿真数据...';
+
+  var zLevels = getActiveZLevels();
+
+  var params = {
+    n_subjects: parseInt(document.getElementById('ddm-n-subjects').value) || 30,
+    trials_per_condition: parseInt(document.getElementById('ddm-n-trials').value) || 150,
+    a_mean: parseFloat(document.getElementById('ddm-a-mean').value) || 1.2,
+    a_std: parseFloat(document.getElementById('ddm-a-std').value) || 0.2,
+    v_mean: parseFloat(document.getElementById('ddm-v-mean').value) || 1.0,
+    v_std: parseFloat(document.getElementById('ddm-v-std').value) || 0.3,
+    t_mean: parseFloat(document.getElementById('ddm-t-mean').value) || 0.30,
+    t_std: parseFloat(document.getElementById('ddm-t-std').value) || 0.05,
+    dc_mean: parseFloat(document.getElementById('ddm-dc-mean').value) || 0.0,
+    dc_std: parseFloat(document.getElementById('ddm-dc-std').value) || 0.05,
+    z_levels: zLevels,
+  };
+
+  try {
+    var res = await fetch(API + '/api/ddm/generate_zbias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      var errText = await res.text();
+      throw new Error('HTTP ' + res.status + ': ' + errText);
+    }
+    var data = await res.json();
+    if (data.error) { showToast('错误: ' + data.error, 'error'); btn.disabled = false; btn.textContent = '▶ 生成 Stim Coding 仿真数据'; return; }
+
+    ddmLastFullData = data;
+    ddmDataPage = 1;
+
+    // 更新 z legend
+    updateZLegend(zLevels);
+
+    // 渲染图表
+    if (ddmCrfViewMode === 'single') {
+      renderZbiasCRFChart(data.crf_data, data.summary);
+    } else {
+      renderZbiasCompareChart();
+    }
+    renderZbiasRTDistChart(data.trials);
+    renderZbiasSPEChart(data.crf_data);
+
+    // 数据预览
+    renderDataPreview();
+
+    var sum = data.summary || {};
+    var p = data.params || {};
+    if (statusEl) {
+      statusEl.innerHTML = '✅ 完成 | ' + (p.n_subjects || '?') + '被试×' + (p.trials_per_condition || '?') + '试次<br>' +
+        'Neutral RT=' + ((sum.neutral && sum.neutral.rt_mean_ms) || '—') + 'ms, ' +
+        'P(match) range: ' + (getPMatchRange(data.crf_data));
+    }
+    showToast('✅ Stim Coding 仿真完成！', 'success');
+  } catch (err) {
+    showToast('错误: ' + err.message, 'error');
+    if (statusEl) statusEl.textContent = '❌ 失败: ' + err.message;
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '▶ 生成 Stim Coding 仿真数据';
+}
+
+function getPMatchRange(crfData) {
+  var ps = crfData.map(function(r) { return r.p_matching; });
+  return Math.min.apply(null, ps).toFixed(3) + '~' + Math.max.apply(null, ps).toFixed(3);
+}
+
+function updateZLegend(zLevels) {
+  var legendEl = document.getElementById('zbias-crf-legend');
+  if (!legendEl) return;
+  var html = '';
+  zLevels.forEach(function(z) {
+    var color = ZBIAS_PRESET_COLORS[z.toFixed(2)] || '#888';
+    var label = 'z=' + z.toFixed(2);
+    if (z === 0.50) label = 'Neutral (z=0.50)';
+    else if (z === 0.55) label = 'Small Bias (z=0.55)';
+    else if (z === 0.60) label = 'Medium Bias (z=0.60)';
+    else if (z === 0.65) label = 'Large Bias (z=0.65)';
+    html += '<span><span class="legend-dot" style="background:' + color + ';"></span>' + label + '</span>';
+  });
+  html += '<span style="margin-left:auto;">--- P=0.5</span>';
+  legendEl.innerHTML = html;
+}
+
+// ==================== 数据预览 ====================
+
+function renderDataPreview() {
+  if (!ddmLastFullData) return;
+  var trials = ddmLastFullData.trials || [];
+  var validTrials = trials.filter(function(t) { return !t.omission && t.rt != null; });
+
+  // 统计
+  var statsHtml = '<b>总试次:</b> ' + trials.length + ' | <b>有效:</b> ' + validTrials.length;
+  var conds = {};
+  validTrials.forEach(function(t) {
+    if (!conds[t.condition]) conds[t.condition] = { n: 0, rts: [], choices: [] };
+    conds[t.condition].n++;
+    conds[t.condition].rts.push(t.rt);
+    conds[t.condition].choices.push(t.choice);
+  });
+  for (var c in conds) {
+    var cd = conds[c];
+    var meanRT = (cd.rts.reduce(function(a,b){return a+b;},0) / cd.rts.length * 1000).toFixed(0);
+    var pMatch = (cd.choices.reduce(function(a,b){return a+b;},0) / cd.choices.length).toFixed(3);
+    statsHtml += ' | <b style="color:var(--accent);">' + c + ':</b> RT=' + meanRT + 'ms, P=' + pMatch;
+  }
+  document.getElementById('ddm-data-stats').innerHTML = statsHtml;
+
+  // 分页表格
+  var totalRows = validTrials.length;
+  var totalPages = Math.ceil(totalRows / ddmDataPageSize);
+  if (ddmDataPage < 1) ddmDataPage = 1;
+  if (ddmDataPage > totalPages) ddmDataPage = totalPages;
+
+  var start = (ddmDataPage - 1) * ddmDataPageSize;
+  var end = Math.min(start + ddmDataPageSize, totalRows);
+  var pageTrials = validTrials.slice(start, end);
+
+  var tableHtml = '<table style="width:100%;border-collapse:collapse;">';
+  tableHtml += '<tr style="color:var(--accent);border-bottom:2px solid var(--border);">';
+  tableHtml += '<th style="padding:4px 6px;position:sticky;top:0;background:var(--bg-secondary);">#</th>';
+  tableHtml += '<th style="padding:4px 6px;">被试</th><th style="padding:4px 6px;">条件</th>';
+  tableHtml += '<th style="padding:4px 6px;">刺激</th>';
+  tableHtml += '<th style="padding:4px 6px;background:rgba(255,152,0,0.08);">RT (ms)</th>';
+  tableHtml += '<th style="padding:4px 6px;background:rgba(156,39,176,0.08);" title="Stim Coding变换后: 1=按匹配键, 0=按非匹配键">Choice*</th>';
+  tableHtml += '<th style="padding:4px 6px;" title="DDM原始输出: 1=上界, 0=下界">Resp</th></tr>';
+  // 表头注释行
+  tableHtml += '<tr style="font-size:0.65em;color:var(--text-muted);border-bottom:2px solid var(--border);">';
+  tableHtml += '<td colspan="5"></td>';
+  tableHtml += '<td style="padding:2px 6px;">*Choice=Stim Coding变换后</td>';
+  tableHtml += '<td style="padding:2px 6px;">Resp=DDM原始边界</td></tr>';
+
+  pageTrials.forEach(function(t, i) {
+    var rtMs = t.rt != null ? (t.rt * 1000).toFixed(1) : '—';
+    var rtStyle = t.rt != null && t.rt * 1000 > 1000 ? 'color:#f44336;font-weight:700;' : '';
+    var chStyle = t.choice === 1 ? 'color:#4caf50;font-weight:700;' : 'color:#f44336;';
+    tableHtml += '<tr style="border-bottom:1px solid var(--border);">';
+    tableHtml += '<td style="padding:3px 6px;">' + (start + i + 1) + '</td>';
+    tableHtml += '<td style="padding:3px 6px;">' + t.subj_idx + '</td>';
+    tableHtml += '<td style="padding:3px 6px;">' + t.condition + '</td>';
+    tableHtml += '<td style="padding:3px 6px;">' + t.stimulus + '</td>';
+    tableHtml += '<td style="padding:3px 6px;' + rtStyle + '">' + rtMs + '</td>';
+    tableHtml += '<td style="padding:3px 6px;' + chStyle + '">' + (t.choice != null ? t.choice : '—') + '</td>';
+    tableHtml += '<td style="padding:3px 6px;">' + (t.response != null ? t.response : '—') + '</td>';
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</table>';
+
+  document.getElementById('ddm-data-table').innerHTML = tableHtml;
+  document.getElementById('ddm-data-page-info').textContent = '第 ' + ddmDataPage + '/' + totalPages + ' 页, 共 ' + totalRows + ' 行';
+  document.getElementById('btn-data-prev').disabled = ddmDataPage <= 1;
+  document.getElementById('btn-data-next').disabled = ddmDataPage >= totalPages;
+
+  // 展开预览区
+  var section = document.getElementById('ddm-data-preview-section');
+  if (section) section.open = true;
+}
+
+function renderZbiasEmptyCharts() {
+  var crfCtx = document.getElementById('chart-zbias-crf');
+  var rtCtx = document.getElementById('chart-zbias-rtdist');
+  var speCtx = document.getElementById('chart-zbias-spe');
+
+  if (crfCtx && !zbiasChartCRF) {
+    zbiasChartCRF = new Chart(crfCtx.getContext('2d'), {
+      type: 'scatter', data: { datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成 Stim Coding 仿真数据」查看 CRF 曲线', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: 'RT (ms)' } }, y: { title: { display: true, text: 'P(Matching)' }, min: 0, max: 1 } },
+      },
+    });
+  }
+  if (rtCtx && !zbiasChartRTDist) {
+    zbiasChartRTDist = new Chart(rtCtx.getContext('2d'), {
+      type: 'bar', data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成 Stim Coding 仿真数据」查看 RT 分布', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: 'RT (ms)' } }, y: { title: { display: true, text: '比例' } } },
+      },
+    });
+  }
+  if (speCtx && !zbiasChartSPE) {
+    zbiasChartSPE = new Chart(speCtx.getContext('2d'), {
+      type: 'bar', data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成 Stim Coding 仿真数据」查看 z-bias Effect', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: 'z-bias' } }, y: { title: { display: true, text: 'ΔP' } } },
+      },
+    });
+  }
+}
+
+// ==================== Self/Stranger SPE CRF 对比 ====================
+
+let ddmSpeCRFChart = null;
+let ddmSpeRTDistChart = null;
+let ddmSpeLastData = null;
+
+async function runDDMPairGenerate() {
+  var btn = document.getElementById('btn-ddm-pair-generate');
+  btn.disabled = true;
+  btn.textContent = '⏳ 仿真中...';
+
+  var nTrials = parseInt(document.getElementById('ddm-spe-n-trials').value) || 400;
+
+  var params = {
+    v_self: parseFloat(document.getElementById('ddm-spe-v-self').value) || 1.5,
+    a_self: parseFloat(document.getElementById('ddm-spe-a-self').value) || 1.5,
+    z_self: parseFloat(document.getElementById('ddm-spe-z-self').value) || 0.75,
+    t0_self: parseFloat(document.getElementById('ddm-spe-t0-self').value) || 0.25,
+    v_stranger: parseFloat(document.getElementById('ddm-spe-v-stranger').value) || 0.8,
+    a_stranger: parseFloat(document.getElementById('ddm-spe-a-stranger').value) || 1.5,
+    z_stranger: parseFloat(document.getElementById('ddm-spe-z-stranger').value) || 0.75,
+    t0_stranger: parseFloat(document.getElementById('ddm-spe-t0-stranger').value) || 0.25,
+    n_trials: nTrials,
+  };
+
+  try {
+    var res = await fetch(API + '/api/ddm/generate_pair', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    var data = await res.json();
+    if (data.error) { showToast('错误: ' + data.error, 'error'); btn.disabled = false; btn.textContent = '▶ 生成 Self/Stranger 对比数据'; return; }
+
+    ddmSpeLastData = data;
+    renderDDMSPE_CRFChart(data.trials);
+    renderDDMSPE_RTDistChart(data.trials);
+
+    // 更新摘要
+    var sSum = data.self_summary || {};
+    var stSum = data.stranger_summary || {};
+    var speRt = (sSum.mean_rt != null && stSum.mean_rt != null) ? ((sSum.mean_rt - stSum.mean_rt) * 1000).toFixed(1) : '—';
+    var summaryEl = document.getElementById('ddm-spe-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = '<b>Self</b> RT=' + (sSum.mean_rt?.toFixed(3) || '—') + 's, ACC=' + (sSum.acc != null ? (sSum.acc * 100).toFixed(1) + '%' : '—') +
+        '<br><b>Stranger</b> RT=' + (stSum.mean_rt?.toFixed(3) || '—') + 's, ACC=' + (stSum.acc != null ? (stSum.acc * 100).toFixed(1) + '%' : '—') +
+        '<br><b>SPE RT:</b> <span style="color:' + (parseFloat(speRt) < 0 ? '#4caf50' : '#f44336') + '">' + speRt + ' ms</span>';
+    }
+    document.getElementById('ddm-spe-section-title').textContent = 'SPE CRF 曲线 (Self vs Stranger) — SPE=' + speRt + 'ms';
+    showToast('✅ Self/Stranger 对比数据生成完成！', 'success');
+  } catch (err) {
+    showToast('无法连接后端服务器: ' + err.message, 'error');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '▶ 生成 Self/Stranger 对比数据';
+}
+
+function renderDDMSPE_CRFChart(trials) {
+  var ctx = document.getElementById('chart-ddm-spe-crf');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (ddmSpeCRFChart) ddmSpeCRFChart.destroy();
+
+  var nQ = 5;
+  var crf = computeDDMSPE_CRF(trials, nQ);
+
+  var datasets = [];
+  if (crf.self.length > 0) {
+    datasets.push({
+      label: 'Self', data: crf.self.map(function(b) { return { x: b.rtMean, y: b.upperProp }; }),
+      borderColor: '#ff9800', backgroundColor: 'rgba(255,152,0,0.08)',
+      pointRadius: 6, pointBackgroundColor: '#ff9800',
+      borderWidth: 2.5, showLine: true, tension: 0.15, order: 1,
+    });
+  }
+  if (crf.stranger.length > 0) {
+    datasets.push({
+      label: 'Stranger', data: crf.stranger.map(function(b) { return { x: b.rtMean, y: b.upperProp }; }),
+      borderColor: '#2196f3', backgroundColor: 'rgba(33,150,243,0.08)',
+      pointRadius: 6, pointBackgroundColor: '#2196f3',
+      borderWidth: 2.5, showLine: true, tension: 0.15, order: 1,
+    });
+  }
+
+  ddmSpeCRFChart = new Chart(ctx, {
+    type: 'scatter', data: { datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
+        tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': RT=' + c.parsed.x.toFixed(3) + 's, P(match)=' + c.parsed.y.toFixed(3); } } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'RT (秒)' } },
+        y: { title: { display: true, text: '匹配键比例' }, min: 0, max: 1 },
+      },
+    },
+    plugins: [{
+      id: 'speCrfBaseline',
+      afterDraw: function(chart) {
+        try {
+          var c = chart.ctx, xA = chart.scales.x, yA = chart.scales.y;
+          if (!xA || !yA) return;
+          c.save(); c.setLineDash([6,4]); c.strokeStyle = 'rgba(128,128,128,0.4)'; c.lineWidth = 1;
+          c.beginPath(); c.moveTo(xA.left, yA.getPixelForValue(0.5)); c.lineTo(xA.right, yA.getPixelForValue(0.5)); c.stroke();
+          c.restore();
+        } catch(e) {}
+      }
+    }],
+  });
+}
+
+function computeDDMSPE_CRF(trials, nQuantiles) {
+  nQuantiles = nQuantiles || 5;
+  var valid = trials.filter(function(t) { return !t.omission && t.RT != null; });
+  if (valid.length < nQuantiles) return { self: [], stranger: [] };
+
+  function computeBins(subset) {
+    if (subset.length < nQuantiles) return [];
+    var sorted = subset.slice().sort(function(a, b) { return a.RT - b.RT; });
+    var qSize = Math.floor(sorted.length / nQuantiles);
+    var bins = [];
+    for (var i = 0; i < nQuantiles; i++) {
+      var start = i * qSize;
+      var end = (i === nQuantiles - 1) ? sorted.length : start + qSize;
+      var bin = sorted.slice(start, end);
+      var rtMean = bin.reduce(function(s, t) { return s + t.RT; }, 0) / bin.length;
+      var upperProp = bin.filter(function(t) { return t.response === 1; }).length / bin.length;
+      bins.push({ rtMean: Math.round(rtMean * 10000) / 10000, upperProp: Math.round(upperProp * 10000) / 10000 });
+    }
+    return bins;
+  }
+
+  return {
+    self: computeBins(valid.filter(function(t) { return t.identity === 'self'; })),
+    stranger: computeBins(valid.filter(function(t) { return t.identity === 'stranger'; })),
+  };
+}
+
+function renderDDMSPE_RTDistChart(trials) {
+  var ctx = document.getElementById('chart-ddm-spe-rtdist');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (ddmSpeRTDistChart) ddmSpeRTDistChart.destroy();
+
+  var valid = trials.filter(function(t) { return !t.omission && t.RT != null; });
+  var selfRTs = valid.filter(function(t) { return t.identity === 'self'; }).map(function(t) { return t.RT; });
+  var strangerRTs = valid.filter(function(t) { return t.identity === 'stranger'; }).map(function(t) { return t.RT; });
+
+  var allRTs = selfRTs.concat(strangerRTs);
+  if (allRTs.length === 0) {
+    ddmSpeRTDistChart = new Chart(ctx, { type: 'bar', data: { labels: [], datasets: [] }, options: { plugins: { title: { display: true, text: '无数据' } } } });
+    return;
+  }
+
+  var minRT = Math.max(0, Math.floor(Math.min.apply(null, allRTs) * 100) / 100);
+  var maxRT = Math.ceil(Math.max.apply(null, allRTs) * 100) / 100;
+  var binWidth = (maxRT - minRT) / 18;
+  var binLabels = [];
+  for (var i = 0; i < 18; i++) {
+    binLabels.push((minRT + i * binWidth).toFixed(2) + '-' + (minRT + (i+1) * binWidth).toFixed(2));
+  }
+
+  function histogram(rtArray) {
+    var counts = new Array(18).fill(0);
+    rtArray.forEach(function(rt) {
+      var idx = Math.min(17, Math.floor((rt - minRT) / binWidth));
+      if (idx >= 0) counts[idx]++;
+    });
+    return counts;
+  }
+
+  var datasets = [];
+  if (selfRTs.length > 0) {
+    datasets.push({
+      label: 'Self', data: histogram(selfRTs),
+      backgroundColor: 'rgba(255,152,0,0.45)', borderColor: '#ff9800', borderWidth: 1, borderRadius: 3,
+    });
+  }
+  if (strangerRTs.length > 0) {
+    datasets.push({
+      label: 'Stranger', data: histogram(strangerRTs),
+      backgroundColor: 'rgba(33,150,243,0.45)', borderColor: '#2196f3', borderWidth: 1, borderRadius: 3,
+    });
+  }
+
+  ddmSpeRTDistChart = new Chart(ctx, {
+    type: 'bar', data: { labels: binLabels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true } } },
+      scales: { x: { title: { display: true, text: 'RT (秒)' }, ticks: { maxTicksLimit: 8 } }, y: { title: { display: true, text: '试次数' }, beginAtZero: true } },
+    },
+  });
+
+  var statsEl = document.getElementById('ddm-spe-rtdist-stats');
+  if (statsEl) {
+    var selfMean = selfRTs.length > 0 ? (selfRTs.reduce(function(a,b){return a+b;},0)/selfRTs.length).toFixed(3) : '—';
+    var strangerMean = strangerRTs.length > 0 ? (strangerRTs.reduce(function(a,b){return a+b;},0)/strangerRTs.length).toFixed(3) : '—';
+    statsEl.innerHTML = '<b>Self</b> 均值: ' + selfMean + 's | <b>Stranger</b> 均值: ' + strangerMean + 's';
+  }
+}
+
+function renderDDMSPE_EmptyCharts() {
+  var crfCtx = document.getElementById('chart-ddm-spe-crf');
+  var rtCtx = document.getElementById('chart-ddm-spe-rtdist');
+
+  if (crfCtx && !ddmSpeCRFChart) {
+    ddmSpeCRFChart = new Chart(crfCtx.getContext('2d'), {
+      type: 'scatter', data: { datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成 Self/Stranger 对比数据」查看 SPE CRF', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: 'RT (秒)' } }, y: { title: { display: true, text: '匹配键比例' }, min: 0, max: 1 } },
+      },
+    });
+  }
+  if (rtCtx && !ddmSpeRTDistChart) {
+    ddmSpeRTDistChart = new Chart(rtCtx.getContext('2d'), {
+      type: 'bar', data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成 Self/Stranger 对比数据」查看 RT 分布', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: 'RT (秒)' } }, y: { title: { display: true, text: '频次' } } },
+      },
+    });
+  }
+}
+
+// ==================== Chart 3: 参数扫描折线图 ====================
+
+async function runDDMSweep() {
+  var btn = document.getElementById('btn-ddm-sweep');
+  btn.disabled = true;
+  btn.textContent = '⏳ 扫描中...';
+
+  var sweepVar = document.getElementById('ddm-sweep-var').value;
+  var sweepMin = parseFloat(document.getElementById('ddm-sweep-min').value);
+  var sweepMax = parseFloat(document.getElementById('ddm-sweep-max').value);
+
+  var fixed = {
+    v: parseFloat(document.getElementById('ddm-sweep-fix-v').value) || 1.0,
+    a: parseFloat(document.getElementById('ddm-sweep-fix-a').value) || 1.2,
+    z: parseFloat(document.getElementById('ddm-sweep-fix-z').value) || 0.5,
+    t0: parseFloat(document.getElementById('ddm-sweep-fix-t0').value) || 0.3,
+  };
+
+  var params = {
+    sweep_var: sweepVar,
+    sweep_range: [sweepMin, sweepMax, 25],
+    fixed: fixed,
+    n_trials: 300,
+  };
+
+  try {
+    var res = await fetch(API + '/api/ddm/sweep', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    var data = await res.json();
+    if (data.error) { showToast('错误: ' + data.error, 'error'); btn.disabled = false; btn.textContent = '🔍 生成参数曲线'; return; }
+
+    renderDDMSweepChart(data);
+    document.getElementById('ddm-sweep-title').textContent =
+      (DDM_SWEEP_VARS[sweepVar]?.label || sweepVar) + ' 对 RT/ACC 的影响曲线';
+    showToast('✅ 参数曲线生成完成！', 'success');
+  } catch (err) {
+    showToast('无法连接后端服务器: ' + err.message, 'error');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔍 生成参数曲线';
+}
+
+function renderDDMSweepChart(data) {
+  var ctx = document.getElementById('chart-ddm-sweep');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (ddmChartSweep) ddmChartSweep.destroy();
+
+  var varLabel = DDM_SWEEP_VARS[data.sweep_var]?.label || data.sweep_var;
+  var curves = data.curves;
+  var datasets = [];
+
+  if (curves.mean_rt && curves.mean_rt.some(function(v) { return v != null; })) {
+    datasets.push({
+      label: 'Mean RT (秒)',
+      data: curves.mean_rt,
+      borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.06)',
+      borderWidth: 2.5, pointRadius: 2, tension: 0.2,
+      yAxisID: 'y-rt',
+    });
+  }
+  if (curves.acc && curves.acc.some(function(v) { return v != null; })) {
+    datasets.push({
+      label: 'ACC (上界比例)',
+      data: curves.acc,
+      borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.06)',
+      borderWidth: 2.5, pointRadius: 2, tension: 0.2,
+      yAxisID: 'y-acc',
+    });
+  }
+  if (curves.q10_rt && curves.q10_rt.some(function(v) { return v != null; })) {
+    datasets.push({
+      label: 'Q10 RT (秒)',
+      data: curves.q10_rt,
+      borderColor: '#f39c12', borderDash: [5, 3], borderWidth: 1.5, pointRadius: 1, tension: 0.2,
+      yAxisID: 'y-rt',
+    });
+  }
+  if (curves.q90_rt && curves.q90_rt.some(function(v) { return v != null; })) {
+    datasets.push({
+      label: 'Q90 RT (秒)',
+      data: curves.q90_rt,
+      borderColor: '#f39c12', borderDash: [2, 4], borderWidth: 1.5, pointRadius: 1, tension: 0.2,
+      yAxisID: 'y-rt',
+    });
+  }
+
+  ddmChartSweep = new Chart(ctx, {
+    type: 'line',
+    data: { labels: data.x_values, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        tooltip: { callbacks: { label: function(c) { var v = c.parsed.y; return c.dataset.label + ': ' + (v != null ? v.toFixed(4) : '—'); } } },
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 12, font: { size: 10 } } },
+      },
+      scales: {
+        x: { title: { display: true, text: varLabel }, grid: { color: appState.theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)' } },
+        'y-rt': {
+          type: 'linear', display: true, position: 'left',
+          title: { display: true, text: 'RT (秒)' },
+          grid: { color: appState.theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)' },
+        },
+        'y-acc': {
+          type: 'linear', display: true, position: 'right',
+          title: { display: true, text: 'ACC' }, min: 0, max: 1,
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+}
+
+function renderDDMSweepEmptyChart() {
+  var sweepCtx = document.getElementById('chart-ddm-sweep');
+  if (sweepCtx && !ddmChartSweep) {
+    ddmChartSweep = new Chart(sweepCtx.getContext('2d'), {
+      type: 'line', data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '点击「生成参数曲线」开始扫描', font: { size: 13 } } },
+        scales: { x: { title: { display: true, text: '参数值' } }, y: { title: { display: true, text: '值' } } },
+      },
+    });
+  }
+}
+
+// ==================== z-bias CRF 分析 (复刻 figure_01/02/03) ====================
+
+let zbiasChartCRF = null;
+let zbiasChartRTDist = null;
+let zbiasChartSPE = null;
+
+const ZBIAS_COLORS = {
+  'neutral':       '#757575',
+  'z_bias_small':  '#ff9800',
+  'z_bias_medium': '#e91e63',
+  'z_bias_large':  '#9c27b0',
+};
+
+const ZBIAS_LABELS = {
+  'neutral':       'Neutral (z=0.50)',
+  'z_bias_small':  'Small Bias (z=0.55)',
+  'z_bias_medium': 'Medium Bias (z=0.60)',
+  'z_bias_large':  'Large Bias (z=0.65)',
+};
+
+const ZBIAS_MARKERS = {
+  'neutral':       'circle',
+  'z_bias_small':  'rectRot',
+  'z_bias_medium': 'triangle',
+  'z_bias_large':  'rect',
+};
+
+const ZBIAS_DASH = {
+  'neutral':       [],
+  'z_bias_small':  [6, 3],
+  'z_bias_medium': [10, 4, 2, 4],
+  'z_bias_large':  [3, 3],
+};
+
+async function runDDMZbias() {
+  const btn = document.getElementById('btn-ddm-zbias');
+  const statusEl = document.getElementById('ddm-zbias-status');
+  if (!btn || !statusEl) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ 仿真中 (约5-8秒)...';
+  statusEl.textContent = '正在生成 Stim Coding 仿真数据...';
+
+  try {
+    const res = await fetch(API + '/api/ddm/generate_zbias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        n_subjects: 30,
+        trials_per_condition: 150,
+        a_mean: 1.2, v_mean: 1.0, t_mean: 0.30,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('HTTP ' + res.status + ': ' + errText);
+    }
+    const data = await res.json();
+    if (data.error) { showToast('错误: ' + data.error, 'error'); btn.disabled = false; btn.textContent = '🧬 生成 z-bias CRF 曲线'; return; }
+
+    // 显示 z-bias 区域
+    const section = document.getElementById('ddm-zbias-section');
+    if (section) section.style.display = 'block';
+
+    // 渲染三张图
+    renderZbiasCRFChart(data.crf_data, data.summary);
+    renderZbiasRTDistChart(data.trials);
+    renderZbiasSPEChart(data.crf_data);
+
+    // 状态更新
+    const sum = data.summary || {};
+    const p = data.params || {};
+    statusEl.innerHTML = '✅ 完成 | n=' + (p.n_subjects || '?') + '被试×' + (p.trials_per_condition || '?') + '试次<br>' +
+      'Neutral RT=' + ((sum.neutral && sum.neutral.rt_mean_ms) || '—') + 'ms, ' +
+      'Large Bias P(match)=' + ((sum.z_bias_large && sum.z_bias_large.p_matching != null) ? sum.z_bias_large.p_matching.toFixed(3) : '—');
+
+    showToast('✅ z-bias CRF 生成完成！', 'success');
+  } catch (err) {
+    showToast('无法连接后端服务器: ' + err.message, 'error');
+    statusEl.textContent = '❌ 连接失败: ' + err.message;
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🧬 生成 z-bias CRF 曲线';
+}
+
+function renderZbiasCRFChart(crfData, summary) {
+  var ctx = document.getElementById('chart-zbias-crf');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (zbiasChartCRF) zbiasChartCRF.destroy();
+
+  // 动态获取所有条件（支持自定义z值）
+  var conditions = [];
+  crfData.forEach(function(r) { if (conditions.indexOf(r.condition) === -1) conditions.push(r.condition); });
+
+  var datasets = [];
+  var allColors = ['#757575','#ff9800','#e91e63','#9c27b0','#2196f3','#4caf50','#f44336','#ff5722'];
+  var allDashes = [[], [6,3], [10,4,2,4], [3,3], [8,4], [4,4], [12,4,3,4], [2,2]];
+
+  conditions.forEach(function(cond, ci) {
+    var rows = crfData.filter(function(r) { return r.condition === cond; });
+    if (rows.length === 0) return;
+    var color = allColors[ci % allColors.length];
+    var zVal = rows[0].z_level;
+    var label = cond;
+    if (zVal != null) label = 'z=' + zVal.toFixed(2) + ' (' + cond + ')';
+    datasets.push({
+      label: label,
+      data: rows.map(function(r) { return { x: r.rt_mean_ms, y: r.p_matching }; }),
+      borderColor: color,
+      backgroundColor: color + '30',
+      pointRadius: 5, pointBackgroundColor: color, pointBorderColor: '#fff', pointBorderWidth: 1,
+      borderWidth: 2, showLine: true, tension: 0.1,
+      borderDash: allDashes[ci % allDashes.length],
+      errorBars: rows.map(function(r) { return { yMin: r.ci_lo, yMax: r.ci_hi }; }),
+    });
+  });
+
+  zbiasChartCRF = new Chart(ctx, {
+    type: 'scatter', data: { datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        title: { display: true, text: 'Conditional Response Function (CRF) — Stim Coding z-bias Simulation', font: { size: 14, weight: 'bold' } },
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 12, font: { size: 10 } } },
+        tooltip: { callbacks: { label: function(c) { return (c.dataset.label||'') + ': RT=' + c.parsed.x.toFixed(0) + 'ms, P(match)=' + c.parsed.y.toFixed(3); } } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Reaction Time (ms)' } },
+        y: { title: { display: true, text: 'P(Matching)' }, min: 0.35, max: 1.05 },
+      },
+    },
+    plugins: [{
+      id: 'zbiasBaseline',
+      afterDraw: function(chart) {
+        try {
+          var xA = chart.scales.x, yA = chart.scales.y;
+          if (!xA || !yA) return;
+          var c = chart.ctx;
+          c.save(); c.setLineDash([6,4]); c.strokeStyle='rgba(128,128,128,0.5)'; c.lineWidth=1;
+          c.beginPath(); c.moveTo(xA.left, yA.getPixelForValue(0.5)); c.lineTo(xA.right, yA.getPixelForValue(0.5)); c.stroke();
+          c.restore();
+        } catch(e) {}
+      },
+      afterDatasetsDraw: function(chart) {
+        try {
+          var yA = chart.scales.y; if (!yA) return;
+          var c = chart.ctx;
+          chart.data.datasets.forEach(function(ds, dsIdx) {
+            if (!ds.errorBars) return;
+            var meta = chart.getDatasetMeta(dsIdx);
+            if (!meta || !meta.data) return;
+            ds.errorBars.forEach(function(eb, i) {
+              var pt = meta.data[i]; if (!pt || pt.x == null) return;
+              var px = pt.x;
+              c.save(); c.strokeStyle = ds.borderColor || '#999'; c.lineWidth = 1.5;
+              c.beginPath(); c.moveTo(px, yA.getPixelForValue(eb.yMax)); c.lineTo(px, yA.getPixelForValue(eb.yMin)); c.stroke();
+              var cs = 4;
+              c.beginPath(); c.moveTo(px-cs, yA.getPixelForValue(eb.yMax)); c.lineTo(px+cs, yA.getPixelForValue(eb.yMax));
+              c.moveTo(px-cs, yA.getPixelForValue(eb.yMin)); c.lineTo(px+cs, yA.getPixelForValue(eb.yMin)); c.stroke();
+              c.restore();
+            });
+          });
+        } catch(e) {}
+      }
+    }],
+  });
+}
+
+function renderZbiasRTDistChart(trials) {
+  var ctx = document.getElementById('chart-zbias-rtdist');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (zbiasChartRTDist) zbiasChartRTDist.destroy();
+
+  var validTrials = trials.filter(function(t) { return !t.omission && t.rt != null; });
+  // 动态获取条件
+  var conditions = [];
+  validTrials.forEach(function(t) { if (conditions.indexOf(t.condition) === -1) conditions.push(t.condition); });
+
+  var allRTs = validTrials.map(function(t) { return t.rt * 1000; });
+  if (allRTs.length === 0) return;
+  var minRT = Math.floor(Math.min.apply(null, allRTs) / 20) * 20;
+  var maxRT = Math.ceil(Math.max.apply(null, allRTs) / 20) * 20;
+  var binWidth = (maxRT - minRT) / 35;
+  var nBins = 35;
+  var binLabels = [];
+  for (var i = 0; i < nBins; i++) {
+    var e0 = (minRT + i * binWidth).toFixed(0);
+    var e1 = (minRT + (i+1) * binWidth).toFixed(0);
+    binLabels.push(e0 + '-' + e1);
+  }
+
+  var distColors = ['#bdbdbd','#ffcc80','#f48fb1','#ce93d8','#90caf9','#a5d6a7','#ef9a9a','#ffab91'];
+  var datasets = [];
+  conditions.forEach(function(cond, ci) {
+    var rtArray = validTrials.filter(function(t) { return t.condition === cond; }).map(function(t) { return t.rt * 1000; });
+    if (rtArray.length === 0) return;
+    var counts = new Array(nBins).fill(0);
+    rtArray.forEach(function(rt) {
+      var idx = Math.min(nBins - 1, Math.floor((rt - minRT) / binWidth));
+      if (idx >= 0) counts[idx]++;
+    });
+    var total = counts.reduce(function(a,b) { return a+b; }, 0) || 1;
+    datasets.push({
+      label: cond,
+      data: counts.map(function(c) { return c / total; }),
+      backgroundColor: (distColors[ci] || '#999') + '66',
+      borderColor: distColors[ci] || '#999',
+      borderWidth: 1, borderRadius: 2,
+    });
+  });
+
+  zbiasChartRTDist = new Chart(ctx, {
+    type: 'bar', data: { labels: binLabels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'RT Distribution by z-bias Level', font: { size: 13, weight: 'bold' } },
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, font: { size: 9 } } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'RT (ms)' }, ticks: { maxTicksLimit: 10 } },
+        y: { title: { display: true, text: 'Proportion' }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function renderZbiasSPEChart(crfData) {
+  var ctx = document.getElementById('chart-zbias-spe');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (zbiasChartSPE) zbiasChartSPE.destroy();
+
+  // 动态获取条件 + 计算 z-bias Effect
+  var conditions = [];
+  crfData.forEach(function(r) { if (conditions.indexOf(r.condition) === -1) conditions.push(r.condition); });
+
+  var condMeans = {};
+  conditions.forEach(function(cond) {
+    var rows = crfData.filter(function(r) { return r.condition === cond; });
+    if (rows.length > 0) condMeans[cond] = rows.reduce(function(s,r) { return s + r.p_matching; }, 0) / rows.length;
+  });
+
+  // 找 neutral (z=0.50) 作为基线
+  var neutralCond = conditions.filter(function(c) { return c === 'neutral' || c.indexOf('neutral') !== -1; })[0] || conditions[0];
+  var neutralP = condMeans[neutralCond] || 0.5;
+  var biasConds = conditions.filter(function(c) { return c !== neutralCond; });
+
+  var labels = [];
+  var speValues = [];
+  var colors = ['#ff9800','#e91e63','#9c27b0','#2196f3','#4caf50','#f44336','#ff5722'];
+
+  biasConds.forEach(function(cond, ci) {
+    var zVal = null;
+    var rows = crfData.filter(function(r) { return r.condition === cond; });
+    if (rows.length > 0) zVal = rows[0].z_level;
+    labels.push(zVal != null ? 'z=' + zVal.toFixed(2) : cond);
+    speValues.push((condMeans[cond] || neutralP) - neutralP);
+  });
+
+  zbiasChartSPE = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'ΔP = P(Matching|z) - P(Matching|neutral)',
+        data: speValues,
+        backgroundColor: biasConds.map(function(c, i) { return (colors[i % colors.length] || '#888') + 'CC'; }),
+        borderColor: biasConds.map(function(c, i) { return colors[i % colors.length] || '#888'; }),
+        borderWidth: 1.5, borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'z-bias Effect: ΔP(Matching) vs Neutral', font: { size: 13, weight: 'bold' } },
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(c) { return 'ΔP: ' + c.parsed.y.toFixed(4); } } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'z-bias Level' } },
+        y: { title: { display: true, text: 'ΔP(Matching)' } },
+      },
+    },
+    plugins: [{
+      id: 'speZeroLine',
+      afterDraw: function(chart) {
+        try {
+          var xA = chart.scales.x, yA = chart.scales.y;
+          if (!xA || !yA) return;
+          var c = chart.ctx;
+          c.save(); c.strokeStyle='rgba(128,128,128,0.5)'; c.lineWidth=1;
+          c.beginPath(); c.moveTo(xA.left, yA.getPixelForValue(0)); c.lineTo(xA.right, yA.getPixelForValue(0)); c.stroke();
+          c.restore();
+        } catch(e) {}
+      }
+    }],
+  });
+}
+// ============================================================
 
 init();
 </script>

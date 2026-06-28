@@ -4,13 +4,15 @@ import csv
 import os
 import sys
 import math
+import numpy as np
 import statistics
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote
 
-RAW_DIR = Path(r"d:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\UnExtact\raw")
-SPE_DIR = Path(r"d:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\SPE_Database")
-SCRIPT_DIR = Path(__file__).parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent  # 导航到项目根目录
+RAW_DIR = PROJECT_ROOT / "2_Data" / "Real_Data" / "UnExtact" / "raw"
+SPE_DIR = PROJECT_ROOT / "2_Data" / "Real_Data" / "SPE_Database"
 HTML_FILE = SCRIPT_DIR / "visualization_app.html"
 
 CONDITIONS = {
@@ -1096,7 +1098,373 @@ def run_self_check():
     return report
 
 
+# ==================== DDM 仿真引擎 ====================
+
+def simulate_ddm_euler(v, a, z, t0, dt=0.001, max_time_s=10.0):
+    """使用 Euler-Maruyama 方法仿真 DDM 过程
+    
+    Args:
+        v: 漂移率 (drift rate)
+        a: 决策边界 (boundary separation)
+        z: 起点比例 (0~1, 相对 a 的位置, 0.5=无偏)
+        t0: 非决策时间 (non-decision time, seconds)
+        dt: 时间步长 (seconds)
+        max_time_s: 最大仿真时间 (seconds)
+    
+    Returns:
+        (RT, response): 反应时(秒)和反应(1=上界,0=下界)
+    """
+    x = z * a   # z 是比例 (0~1), 转换为绝对起点位置
+    time = 0.0
+    max_steps = int(max_time_s / dt)
+    
+    for _ in range(max_steps):
+        dx = v * dt + np.sqrt(dt) * np.random.randn()
+        x += dx
+        time += dt
+        
+        if x >= a:
+            return t0 + time, 1
+        if x <= 0:
+            return t0 + time, 0
+    
+    return np.nan, np.nan
+
+
+def ddm_generate_trials(v, a, z, t0, n_trials, dt=0.001, max_time_s=10.0):
+    """批量生成 DDM 仿真 trial 数据
+    
+    Args:
+        v: 漂移率
+        a: 决策边界
+        z: 起点
+        t0: 非决策时间
+        n_trials: 生成试次数
+        dt: 时间步长
+        max_time_s: 最大仿真时间
+    
+    Returns:
+        dict: trials 列表 + 汇总统计
+    """
+    trials = []
+    rts = []
+    responses = []
+    
+    for _ in range(n_trials):
+        rt, resp = simulate_ddm_euler(v, a, z, t0, dt, max_time_s)
+        is_omission = np.isnan(rt)
+        trials.append({
+            'RT': None if is_omission else round(float(rt), 5),
+            'response': None if is_omission else int(resp),
+            'omission': bool(is_omission)
+        })
+        if not is_omission:
+            rts.append(rt)
+            responses.append(resp)
+    
+    n_valid = len(rts)
+    summary = {
+        'n_trials': n_trials,
+        'n_valid': n_valid,
+        'n_omission': n_trials - n_valid,
+        'mean_rt': round(float(np.mean(rts)), 5) if rts else None,
+        'std_rt': round(float(np.std(rts)), 5) if rts else None,
+        'acc': round(float(np.mean(responses)), 5) if responses else None,
+        'params': {'v': v, 'a': a, 'z': z, 't0': t0}
+    }
+    
+    return {'trials': trials, 'summary': summary}
+
+
+def ddm_sweep_params(sweep_var, sweep_range, fixed_params, n_trials=200):
+    """沿一个 DDM 参数维度扫描，计算各点的统计量
+    
+    Args:
+        sweep_var: 扫描的变量名 ('v'|'a'|'z'|'t0')
+        sweep_range: [min, max, n_points]
+        fixed_params: 固定参数 dict {'v','a','z','t0'}
+        n_trials: 每个点的模拟试次数
+    
+    Returns:
+        dict: x_values + curves
+    """
+    v_min, v_max, n_pts = sweep_range
+    x_values = list(np.linspace(v_min, v_max, int(n_pts)))
+    x_values = [round(x, 5) for x in x_values]
+    
+    curves = {
+        'mean_rt': [],
+        'acc': [],
+        'q10_rt': [],
+        'q90_rt': [],
+    }
+    
+    for x_val in x_values:
+        params = dict(fixed_params)
+        params[sweep_var] = x_val
+        result = ddm_generate_trials(
+            params['v'], params['a'], params['z'], params['t0'],
+            n_trials=n_trials
+        )
+        s = result['summary']
+        curves['mean_rt'].append(s['mean_rt'])
+        curves['acc'].append(s['acc'])
+        
+        # 计算分位数
+        valid_trials = [t for t in result['trials'] if not t['omission']]
+        if valid_trials:
+            rts = [t['RT'] for t in valid_trials]
+            curves['q10_rt'].append(round(float(np.percentile(rts, 10)), 5))
+            curves['q90_rt'].append(round(float(np.percentile(rts, 90)), 5))
+        else:
+            curves['q10_rt'].append(None)
+            curves['q90_rt'].append(None)
+    
+    return {
+        'x_values': x_values,
+        'sweep_var': sweep_var,
+        'fixed': fixed_params,
+        'curves': curves
+    }
+
+
+def ddm_generate_zbias_trials(n_subjects=30, trials_per_condition=150,
+                               z_levels=None, a_mean=1.2, a_std=0.2,
+                               v_mean=1.0, v_std=0.3, t_mean=0.30, t_std=0.05,
+                               dc_mean=0.0, dc_std=0.05, seed_base=420):
+    """复刻 plot_CRF_zbias_Wiener.ipynb 的 Stim Coding 仿真
+    
+    使用 Wiener 扩散过程 (Euler-Maruyama) + Stim Coding 坐标转换:
+      刺激A (stimulus=1): params={a, v=v+dc, t, z},     choice=response
+      刺激B (stimulus=0): params={a, v=v-dc, t, z=1-z}, choice=1-response
+    
+    Returns:
+        dict: trials + crf_data + summary
+    """
+    import random
+    
+    if z_levels is None:
+        z_levels = [0.50, 0.55, 0.60, 0.65]
+    
+    # 生成条件标签映射
+    z_label_map = {}
+    default_labels = {0.50: 'neutral', 0.55: 'z_bias_small', 0.60: 'z_bias_medium', 0.65: 'z_bias_large'}
+    for zv in z_levels:
+        zv_rounded = round(zv, 2)
+        if zv_rounded in default_labels:
+            z_label_map[zv] = default_labels[zv_rounded]
+        else:
+            z_label_map[zv] = f'z_{zv_rounded:.2f}'.replace('.', '_')
+    
+    all_trials = []
+    
+    for subj_id in range(n_subjects):
+        subj_seed = seed_base + subj_id * 1000
+        np.random.seed(subj_seed)
+        random.seed(subj_seed)
+        
+        subj_a = max(0.4, float(np.random.normal(a_mean, a_std)))
+        subj_t = max(0.1, float(np.random.normal(t_mean, t_std)))
+        subj_v = float(np.random.normal(v_mean, v_std))
+        subj_dc = float(np.random.normal(dc_mean, dc_std))
+        
+        half = trials_per_condition // 2
+        
+        for z_val in z_levels:
+            cond_label = z_label_map[z_val]
+            z_subj = float(np.clip(z_val + np.random.normal(0, 0.02), 0.3, 0.7))
+            
+            for stimulus in [1, 0]:
+                for _ in range(half):
+                    if stimulus == 1:
+                        rt, resp = simulate_ddm_euler(
+                            subj_a, subj_v + subj_dc, z_subj, subj_t
+                        )
+                    else:
+                        rt, resp = simulate_ddm_euler(
+                            subj_a, subj_v - subj_dc, 1 - z_subj, subj_t
+                        )
+                    
+                    if stimulus == 1:
+                        choice = resp
+                    else:
+                        choice = 1 - resp if not np.isnan(resp) else np.nan
+                    
+                    all_trials.append({
+                        'subj_idx': subj_id,
+                        'condition': cond_label,
+                        'z_level': z_val,
+                        'stimulus': stimulus,
+                        'rt': None if np.isnan(rt) else round(float(rt), 5),
+                        'response': None if np.isnan(resp) else int(resp),
+                        'choice': None if np.isnan(choice) else int(choice),
+                        'omission': bool(np.isnan(rt)),
+                    })
+    
+    # 收集所有出现的条件
+    all_conditions = sorted(set(t['condition'] for t in all_trials))
+    if not all_conditions:
+        all_conditions = ['neutral', 'z_bias_small', 'z_bias_medium', 'z_bias_large']
+    
+    # 计算 CRF (5分位)
+    crf_rows = []
+    for cond in all_conditions:
+        cond_trials = [t for t in all_trials if t['condition'] == cond and not t['omission']]
+        if len(cond_trials) < 10:
+            continue
+        cond_trials.sort(key=lambda t: t['rt'])
+        n = len(cond_trials)
+        q_size = n // 5
+        for q in range(5):
+            start = q * q_size
+            end = n if q == 4 else start + q_size
+            bin_data = cond_trials[start:end]
+            rts = [t['rt'] for t in bin_data]
+            choices = [t['choice'] for t in bin_data]
+            rt_mean = float(np.mean(rts))
+            p_match = float(np.mean(choices))
+            n_bin = len(bin_data)
+            se = float(np.sqrt(p_match * (1 - p_match) / n_bin)) if n_bin > 1 else 0.0
+            crf_rows.append({
+                'condition': cond, 'bin': q + 1, 'n': n_bin,
+                'rt_mean_ms': round(rt_mean * 1000, 2),
+                'p_matching': round(p_match, 4),
+                'se': round(se, 4),
+                'ci_lo': round(max(0, p_match - 1.96 * se), 4),
+                'ci_hi': round(min(1, p_match + 1.96 * se), 4),
+            })
+    
+    # 汇总统计
+    summary = {}
+    for cond in all_conditions:
+        cond_trials = [t for t in all_trials if t['condition'] == cond and not t['omission']]
+        if cond_trials:
+            rts = [t['rt'] for t in cond_trials]
+            choices = [t['choice'] for t in cond_trials]
+            summary[cond] = {
+                'n': len(cond_trials),
+                'rt_mean_ms': round(float(np.mean(rts)) * 1000, 1),
+                'p_matching': round(float(np.mean(choices)), 4),
+            }
+    
+    return {
+        'trials': all_trials,
+        'crf_data': crf_rows,
+        'summary': summary,
+        'params': {
+            'n_subjects': n_subjects,
+            'trials_per_condition': trials_per_condition,
+            'z_levels': z_levels,
+            'a_mean': a_mean, 'v_mean': v_mean, 't_mean': t_mean,
+        }
+    }
+
+
+# ============================================================
+
 class AppHandler(http.server.BaseHTTPRequestHandler):
+
+    def do_POST(self):
+        """处理 POST 请求 —— DDM 仿真 API"""
+        parsed = urlparse(self.path)
+        path = parsed.path
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b'{}'
+            params = json.loads(body.decode('utf-8')) if body else {}
+        except (ValueError, json.JSONDecodeError):
+            self._error(400, "Invalid JSON body")
+            return
+        
+        try:
+            if path == '/api/ddm/generate':
+                v = float(params.get('v', 1.0))
+                a = float(params.get('a', 1.2))
+                z = float(params.get('z', 0.5))
+                t0 = float(params.get('t0', 0.3))
+                n_trials = int(params.get('n_trials', 500))
+                n_trials = max(10, min(5000, n_trials))
+                
+                result = ddm_generate_trials(v, a, z, t0, n_trials)
+                self._json(result)
+                
+            elif path == '/api/ddm/generate_pair':
+                # 同时生成 Self/Stranger 两套参数的数据
+                v_self = float(params.get('v_self', 1.0))
+                a_self = float(params.get('a_self', 1.2))
+                z_self = float(params.get('z_self', 0.5))
+                t0_self = float(params.get('t0_self', 0.3))
+                
+                v_stranger = float(params.get('v_stranger', 0.8))
+                a_stranger = float(params.get('a_stranger', 1.2))
+                z_stranger = float(params.get('z_stranger', 0.5))
+                t0_stranger = float(params.get('t0_stranger', 0.3))
+                
+                n_trials = int(params.get('n_trials', 500))
+                n_trials = max(10, min(5000, n_trials))
+                
+                self_result = ddm_generate_trials(v_self, a_self, z_self, t0_self, n_trials)
+                stranger_result = ddm_generate_trials(v_stranger, a_stranger, z_stranger, t0_stranger, n_trials)
+                
+                # 标记 identity
+                for t in self_result['trials']:
+                    t['identity'] = 'self'
+                for t in stranger_result['trials']:
+                    t['identity'] = 'stranger'
+                
+                all_trials = self_result['trials'] + stranger_result['trials']
+                
+                self._json({
+                    'trials': all_trials,
+                    'self_summary': self_result['summary'],
+                    'stranger_summary': stranger_result['summary'],
+                })
+                
+            elif path == '/api/ddm/sweep':
+                sweep_var = params.get('sweep_var', 'v')
+                sweep_range = params.get('sweep_range', [0.5, 3.0, 20])
+                fixed = params.get('fixed', {'a': 1.2, 'z': 0.5, 't0': 0.3})
+                n_trials = int(params.get('n_trials', 200))
+                n_trials = max(50, min(2000, n_trials))
+                
+                sweep_range[2] = max(5, min(50, int(sweep_range[2])))
+                
+                result = ddm_sweep_params(sweep_var, sweep_range, fixed, n_trials)
+                self._json(result)
+                
+            elif path == '/api/ddm/generate_zbias':
+                n_subjects = int(params.get('n_subjects', 30))
+                trials_per = int(params.get('trials_per_condition', 150))
+                a_mean = float(params.get('a_mean', 1.2))
+                v_mean = float(params.get('v_mean', 1.0))
+                t_mean = float(params.get('t_mean', 0.30))
+                a_std = float(params.get('a_std', 0.2))
+                v_std = float(params.get('v_std', 0.3))
+                t_std = float(params.get('t_std', 0.05))
+                dc_mean = float(params.get('dc_mean', 0.0))
+                dc_std = float(params.get('dc_std', 0.05))
+                z_levels = params.get('z_levels', [0.50, 0.55, 0.60, 0.65])
+                n_subjects = max(5, min(60, n_subjects))
+                trials_per = max(20, min(300, trials_per))
+                
+                result = ddm_generate_zbias_trials(
+                    n_subjects=n_subjects,
+                    trials_per_condition=trials_per,
+                    a_mean=a_mean, v_mean=v_mean, t_mean=t_mean,
+                    a_std=a_std, v_std=v_std, t_std=t_std,
+                    dc_mean=dc_mean, dc_std=dc_std,
+                    z_levels=z_levels,
+                )
+                self._json(result)
+                
+            else:
+                self._error(404, f"Unknown POST endpoint: {path}")
+                
+        except Exception as e:
+            print(f"[ERROR] POST {path}: {e}")
+            import traceback
+            traceback.print_exc()
+            self._error(500, str(e))
 
     def do_GET(self):
         parsed = urlparse(self.path)
