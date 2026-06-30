@@ -353,3 +353,33 @@ jupyter notebook 1_Code/Python_for_Check/Sigmoid_Optimized/v9_Sigmoid_Optimizati
 - Sigmoid 无法产生负 v 值是结构性局限，可能需要重新参数化（如引入偏移项）
 - 仅 6-8 个数据点校准 7-11 个参数，过参数化风险高
 - S5 的 alaph2 变号为正值，需从理论角度评估其合理性
+
+---
+
+## v0.8 — 网页版 PPT 展示系统制作
+
+**日期**: 2026-06-30  
+**责任人**: AI Assistant (Trae Agent)
+
+### 新增功能
+
+- **GP-SPE 项目网页 PPT** (`5_Reference/PPT/GP_SPE_Project_Web_PPT.html`)
+  - 基于 `SPE_Database_Web_PPT_v2.html` 模板风格制作
+  - 共 40 张幻灯片，六大章节：项目概述 → 理论基础 → 建模指导 → 代码演进 → 核心发现 → 研究工具
+  - 支持键盘翻页（← → Home End）、底部导航按钮、触摸滑动
+  - 右侧缩略图面板（悬停展开），支持拖拽滚动
+  - 顶部进度条显示当前进度
+  - 自适应缩放：1333×750px 固定画布，自动缩放至视口
+
+### 功能完善
+
+- PPT 大纲文档 (`PPT_outline_plan.md`) 共 47 张幻灯片详细设计
+- 网页 PPT 包含完整的项目数据表格、流程图、数字卡片、术语速查表等
+- 纯 CSS 装饰元素（SVG 图表），无需外部图片依赖
+
+### 文件变更
+
+| 操作 | 文件 |
+|:---|:---|
+| 新增 | `5_Reference/PPT/GP_SPE_Project_Web_PPT.html` |
+| 新增 | `.trae/documents/PPT_outline_plan.md` |

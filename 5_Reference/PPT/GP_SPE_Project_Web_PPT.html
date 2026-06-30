@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GP-SPE 实验设计优化项目 - 网页版展示</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #2a2a2a;
+    font-family: Calibri, '宋体', SimSun, '新宋体', NSimSun, sans-serif;
+  }
+
+  #presentation-wrapper {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+
+  #slide-container {
+    width: 1333px; height: 750px;
+    position: relative; overflow: hidden;
+    transform-origin: center center;
+  }
+
+  .slide {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #FFFFFF, #DCDCDC);
+    overflow: hidden; opacity: 0; pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ===== Progress Bar ===== */
+  #progress-bar {
+    position: fixed; top: 0; left: 0;
+    height: 3px; background: rgba(79,68,64,0.6);
+    transition: width 0.4s ease; z-index: 1002;
+  }
+
+  /* ===== Navigation Controls (bottom bar) ===== */
+  #nav-controls {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 1333px; max-width: 100vw; height: 40px;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    background: rgba(79,68,64,0.75); backdrop-filter: blur(4px);
+    user-select: none; z-index: 1001;
+  }
+  #nav-prev, #nav-next {
+    width: 32px; height: 32px; border: none; background: none;
+    color: #fff; font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; transition: background 0.2s;
+  }
+  #nav-prev:hover, #nav-next:hover { background: rgba(255,255,255,0.2); }
+  #slide-indicator { color: #fff; font-size: 14px; min-width: 60px; text-align: center; }
+
+  /* ===== Right-Side Thumbnail ===== */
+  #thumb-trigger {
+    position: fixed; top: 0; right: 0;
+    width: 60px; height: 100vh; z-index: 1003; cursor: pointer;
+  }
+  #thumb-trigger::after {
+    content: ''; position: absolute; top: 50%; right: 14px;
+    width: 6px; height: 40px; margin-top: -20px;
+    background: rgba(79,68,64,0.25); border-radius: 3px;
+    transition: background 0.2s, transform 0.2s;
+  }
+  #thumb-trigger:hover::after { background: rgba(79,68,64,0.55); transform: scaleY(1.15); }
+
+  #thumb-panel {
+    position: fixed; top: 0; right: 0;
+    width: 220px; height: 100vh;
+    background: rgba(42,42,42,0.92); backdrop-filter: blur(10px);
+    z-index: 1004; transform: translateX(100%);
+    transition: transform 0.35s ease;
+    padding: 16px 12px 16px 16px;
+    overflow-y: auto; overflow-x: hidden;
+    cursor: grab; user-select: none;
+  }
+  #thumb-trigger:hover ~ #thumb-panel,
+  #thumb-panel:hover { transform: translateX(0); }
+  #thumb-panel:active { cursor: grabbing; }
+  #thumb-panel::-webkit-scrollbar { width: 6px; }
+  #thumb-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+
+  .thumb-slide {
+    position: relative; width: 180px; height: 101px;
+    margin-bottom: 12px; border-radius: 4px; overflow: hidden;
+    border: 2px solid transparent; background: #f0f0f0;
+    cursor: pointer; transition: border-color 0.2s, transform 0.2s; flex-shrink: 0;
+  }
+  .thumb-slide:hover { border-color: #C9A86C; transform: scale(1.02); }
+  .thumb-slide.active { border-color: #C97B63; }
+  .thumb-slide-inner {
+    position: absolute; top: 0; left: 0;
+    width: 1333px; height: 750px;
+    transform: scale(0.135); transform-origin: top left;
+    filter: blur(0.6px); opacity: 0.85; pointer-events: none;
+  }
+  .thumb-num {
+    position: absolute; bottom: 4px; right: 6px;
+    font-size: 11px; color: #fff;
+    background: rgba(79,68,64,0.7); padding: 1px 5px;
+    border-radius: 3px; z-index: 2; pointer-events: none;
+  }
+
+  /* ===== Common Utilities ===== */
+  .heading-cn { font-family: '宋体', SimSun, serif; color: #4F4440; }
+  .heading-en { font-family: Calibri, sans-serif; color: #4F4440; }
+  .body-text {
+    font-family: Calibri, '宋体', SimSun, sans-serif;
+    color: #4F4440; line-height: 1.6;
+  }
+  .accent-line { background: #4B413B; }
+  .accent-gold { color: #C9A86C; }
+  .accent-rust { color: #C97B63; }
+  .accent-teal { color: #42575C; }
+
+  /* ===== Slide 1: Cover ===== */
+  .s1-bg {
+    position: absolute; left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  }
+  .s1-orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(60px); opacity: 0.3;
+  }
+  .s1-title {
+    position: absolute; left: 8%; top: 22%;
+    font-size: 38pt; white-space: nowrap;
+    font-family: '新宋体', NSimSun, serif; color: #E8D5B7;
+    letter-spacing: 4px;
+  }
+  .s1-subtitle {
+    position: absolute; left: 8%; top: 37%;
+    font-size: 18pt; white-space: nowrap;
+    font-family: Calibri, sans-serif; color: rgba(232,213,183,0.7);
+  }
+  .s1-line {
+    position: absolute; left: 8%; top: 44%;
+    width: 120px; height: 3px; background: #C9A86C;
+  }
+  .s1-info {
+    position: absolute; left: 8%; top: 50%;
+    font-size: 16pt; color: rgba(232,213,183,0.6);
+    font-family: Calibri, sans-serif; line-height: 2;
+  }
+  .s1-tags {
+    position: absolute; left: 8%; top: 72%;
+    display: flex; gap: 12px;
+  }
+  .s1-tag {
+    padding: 6px 18px; border: 1px solid rgba(201,168,108,0.5);
+    border-radius: 20px; font-size: 12pt;
+    color: #C9A86C; font-family: Calibri, sans-serif;
+  }
+
+  /* ===== TOC slide ===== */
+  .toc-section {
+    position: absolute; left: 55%; top: 22%; width: 38%;
+  }
+  .toc-item {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 16px; padding: 10px 14px;
+    border-left: 3px solid transparent; transition: border-color 0.3s;
+    cursor: default;
+  }
+  .toc-item:hover { border-left-color: #C9A86C; }
+  .toc-num {
+    font-size: 28pt; font-weight: 700; color: #C9A86C;
+    font-family: Calibri, sans-serif; min-width: 60px;
+  }
+  .toc-title { font-size: 20pt; color: #4F4440; font-family: '新宋体', NSimSun, serif; }
+  .toc-sub { font-size: 13pt; color: #888; }
+
+  /* ===== Section Divider ===== */
+  .sec-num {
+    position: absolute; left: 12%; top: 28%;
+    font-size: 140pt; color: #C9A86C; opacity: 0.18;
+    font-family: Calibri, sans-serif; font-weight: 700;
+  }
+  .sec-vline {
+    position: absolute; left: 39%; top: 30%;
+    width: 2px; height: 35%; background: #4F4440;
+  }
+  .sec-heading {
+    position: absolute; left: 45%; top: 33%;
+    font-size: 44pt; white-space: nowrap;
+  }
+  .sec-sub {
+    position: absolute; left: 46%; top: 48%;
+    font-size: 18pt; color: #888; font-family: Calibri, sans-serif;
+  }
+
+  /* ===== Content + Decorative Image ===== */
+  .content-block {
+    position: absolute; left: 10%; top: 16%; width: 45%;
+  }
+  .content-block h2 {
+    font-size: 28pt; color: #4F4440; font-family: '新宋体', NSimSun, serif;
+    margin-bottom: 20px;
+  }
+  .content-block p, .content-block li {
+    font-size: 16pt; color: #4F4440; line-height: 1.8;
+  }
+  .content-block ul { padding-left: 24px; }
+  .deco-right {
+    position: absolute; right: 5%; top: 16%;
+    width: 38%; height: 68%;
+    background: linear-gradient(135deg, rgba(201,168,108,0.08), rgba(79,68,64,0.06));
+    border-radius: 16px; border: 1px solid rgba(79,68,64,0.1);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .deco-right svg { width: 80%; height: 80%; opacity: 0.7; }
+
+  /* ===== Tables ===== */
+  .info-table {
+    position: absolute; border-collapse: collapse; font-size: 14pt;
+  }
+  .info-table th {
+    background: #4F4440; color: #fff; padding: 10px 14px; text-align: left;
+  }
+  .info-table td {
+    border-bottom: 1px solid #BFBFBF; padding: 10px 14px; color: #4F4440;
+  }
+  .info-table tr:nth-child(even) { background: rgba(79,68,64,0.05); }
+  .info-table .warn { color: #C97B63; font-weight: 700; }
+
+  /* ===== Number Cards ===== */
+  .num-card {
+    position: absolute; background: rgba(255,255,255,0.6);
+    border: 1px solid #C9C9C9; border-radius: 8px;
+    padding: 18px 14px; text-align: center; width: 20%;
+  }
+  .num-value {
+    font-size: 36pt; color: #C97B63; font-weight: 700;
+    font-family: Calibri, sans-serif;
+  }
+  .num-label { font-size: 14pt; color: #4F4440; margin-top: 6px; }
+
+  /* ===== Flow Steps ===== */
+  .flow-step {
+    position: absolute; text-align: center; width: 16%;
+  }
+  .flow-dot {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #C9A86C; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18pt; font-weight: 700; margin: 0 auto 10px;
+  }
+  .flow-title {
+    font-size: 16pt; color: #4F4440; font-weight: 700; margin-bottom: 6px;
+  }
+  .flow-text {
+    font-size: 12pt; color: #4F4440; line-height: 1.4;
+  }
+  .flow-arrow {
+    position: absolute; font-size: 24pt; color: #C9A86C;
+    top: 8px;
+  }
+
+  /* ===== Cards Grid ===== */
+  .card-grid {
+    position: absolute; left: 8%; top: 22%; width: 84%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  .info-card {
+    background: rgba(255,255,255,0.55);
+    border: 1px solid #C9C9C9; border-radius: 8px;
+    padding: 22px;
+  }
+  .info-card h3 {
+    font-size: 20pt; color: #4F4440; margin-bottom: 12px;
+    font-family: '新宋体', NSimSun, serif;
+  }
+  .info-card p, .info-card li {
+    font-size: 14pt; color: #4F4440; line-height: 1.7;
+  }
+
+  /* ===== Code Block ===== */
+  .code-block {
+    background: rgba(79,68,64,0.08); border: 1px solid rgba(79,68,64,0.15);
+    border-radius: 8px; padding: 16px 20px; font-family: Consolas, monospace;
+    font-size: 12pt; line-height: 1.6; color: #4F4440;
+    overflow: auto; white-space: pre;
+  }
+
+  /* ===== Highlight Box ===== */
+  .highlight-box {
+    background: rgba(201,168,108,0.08); border-left: 4px solid #C9A86C;
+    padding: 14px 18px; border-radius: 0 8px 8px 0;
+    font-size: 15pt; color: #4F4440; line-height: 1.7;
+  }
+
+  /* ===== Thank You ===== */
+  .ty-bg {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  }
+  .ty-title {
+    position: absolute; left: 50%; top: 35%; transform: translateX(-50%);
+    font-size: 56pt; white-space: nowrap;
+    font-family: '新宋体', NSimSun, serif; color: #E8D5B7;
+    letter-spacing: 6px;
+  }
+  .ty-sub {
+    position: absolute; left: 50%; top: 50%; transform: translateX(-50%);
+    font-size: 20pt; color: rgba(232,213,183,0.6);
+    font-family: Calibri, sans-serif;
+  }
+  .ty-line {
+    position: absolute; left: 50%; top: 46%; transform: translateX(-50%);
+    width: 80px; height: 2px; background: #C9A86C;
+  }
+
+  /* ===== Scrollable content ===== */
+  .scroll-y {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-y::-webkit-scrollbar { width: 5px; }
+  .scroll-y::-webkit-scrollbar-thumb { background: rgba(79,68,64,0.3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="presentation-wrapper">
+  <div id="progress-bar"></div>
+  <div id="slide-container">
+
+    <!-- ==================== 第一章：项目概述 ==================== -->
+
+    <!-- Slide 1: 封面 -->
+    <div class="slide active" id="slide-1">
+      <div class="s1-bg"></div>
+      <div class="s1-orb" style="left:-10%; top:-20%; width:500px; height:500px; background:#C9A86C;"></div>
+      <div class="s1-orb" style="right:-5%; bottom:-15%; width:400px; height:400px; background:#42575C;"></div>
+      <div class="s1-title">自我优势效应的实验设计空间优化</div>
+      <div class="s1-subtitle">基于高斯过程与漂移扩散模型的混合建模方法</div>
+      <div class="s1-line"></div>
+      <div class="s1-info">
+        GP-SPE 实验设计优化项目<br>
+        范式：Self-Matching Task (Sui et al., 2012)<br>
+        工具：DDM + Gaussian Process + HDDM
+      </div>
+      <div class="s1-tags">
+        <span class="s1-tag">DDM</span>
+        <span class="s1-tag">Gaussian Process</span>
+        <span class="s1-tag">SPE</span>
+        <span class="s1-tag">HDDM</span>
+      </div>
+    </div>
+
+    <!-- Slide 2: 核心问题 -->
+    <div class="slide" id="slide-2">
+      <div class="content-block" style="top:12%;">
+        <h2>核心研究问题</h2>
+        <p style="font-size:20pt; line-height:1.6; margin-top:20px;">
+          实验设计参数——<strong>练习次数 P</strong>、<strong>刺激呈现时间 T</strong>、<strong>反应窗口 W</strong>——如何系统性地调控<strong>自我优势效应（SPE）</strong>？
+        </p>
+        <p style="font-size:18pt; color:#42575C; margin-top:24px;">
+          能否用<strong>高斯过程（GP）</strong>在 DDM 框架下建模这一调控机制，从而优化实验设计？
+        </p>
+      </div>
+      <div class="deco-right" style="top:12%;">
+        <svg viewBox="0 0 300 300">
+          <rect x="30" y="20" width="240" height="40" rx="6" fill="#4F4440" opacity="0.8"/>
+          <text x="150" y="46" text-anchor="middle" fill="white" font-size="14">(P, T, W) 实验设计空间</text>
+          <line x1="150" y1="60" x2="150" y2="90" stroke="#C9A86C" stroke-width="3" marker-end="url(#arrow)"/>
+          <rect x="30" y="90" width="240" height="50" rx="6" fill="#C9A86C" opacity="0.6"/>
+          <text x="150" y="120" text-anchor="middle" fill="#4F4440" font-size="13">DDM 参数 (v, a, t0, z)</text>
+          <line x1="150" y1="140" x2="150" y2="170" stroke="#42575C" stroke-width="3"/>
+          <rect x="30" y="170" width="240" height="50" rx="6" fill="#42575C" opacity="0.5"/>
+          <text x="150" y="200" text-anchor="middle" fill="white" font-size="13">行为 (RT, ACC, Omission)</text>
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#C9A86C"/></marker></defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 3: 项目背景与动机 -->
+    <div class="slide" id="slide-3">
+      <div class="content-block" style="top:10%; width:50%;">
+        <h2>项目背景与动机</h2>
+        <ul style="margin-top:16px;">
+          <li><strong>背景 1：</strong>Self-Matching Task (Sui et al., 2012) 是测量自我优势效应的核心范式</li>
+          <li><strong>背景 2：</strong>现有研究多为"效应检验"模式，缺少对实验设计参数的系统优化</li>
+          <li><strong>背景 3：</strong>漂移扩散模型（DDM）可揭示 SPE 背后的认知过程</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:28px;">
+          核心动机：从"效应检验"走向<strong>"设计空间建模与优化"</strong>
+        </div>
+      </div>
+      <div class="deco-right" style="top:10%;">
+        <svg viewBox="0 0 280 280">
+          <circle cx="80" cy="100" r="50" fill="none" stroke="#C9A86C" stroke-width="2" stroke-dasharray="6,3"/>
+          <text x="80" y="105" text-anchor="middle" fill="#4F4440" font-size="12">传统范式</text>
+          <circle cx="200" cy="100" r="50" fill="#C9A86C" opacity="0.15"/>
+          <text x="200" y="105" text-anchor="middle" fill="#4F4440" font-size="12">设计空间优化</text>
+          <line x1="130" y1="100" x2="150" y2="100" stroke="#C9A86C" stroke-width="3"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 4: 核心目标 -->
+    <div class="slide" id="slide-4">
+      <div class="content-block" style="width:55%; top:8%;">
+        <h2>项目核心目标与预期成果</h2>
+        <ul style="margin-top:16px;">
+          <li><strong>目标 1：</strong>建立 Sigmoid（理论先验）+ GP（经验残差）混合生成模型</li>
+          <li><strong>目标 2：</strong>通过 HDDM 提取 8 组真实数据的 DDM 参数，校准模型</li>
+          <li><strong>目标 3：</strong>利用 GP 响应面预测 SPE，指导新实验设计</li>
+          <li><strong>目标 4：</strong>证明 GP+Sigmoid 模型在捕捉真实 SPE 上优于纯 Sigmoid 模型</li>
+        </ul>
+        <p style="margin-top:24px; color:#42575C; font-size:16pt;">
+          预期成果：可解释的生成模型 + 优化后的实验设计方案 + 论文产出
+        </p>
+      </div>
+      <div class="deco-right" style="top:8%;">
+        <svg viewBox="0 0 280 280">
+          <rect x="20" y="20" width="100" height="60" rx="8" fill="#4F4440" opacity="0.1"/>
+          <text x="70" y="55" text-anchor="middle" fill="#4F4440" font-size="11">Sigmoid 理论</text>
+          <text x="70" y="72" text-anchor="middle" fill="#4F4440" font-size="11">先验层</text>
+          <rect x="160" y="20" width="100" height="60" rx="8" fill="#C9A86C" opacity="0.2"/>
+          <text x="210" y="55" text-anchor="middle" fill="#4F4440" font-size="11">GP 经验</text>
+          <text x="210" y="72" text-anchor="middle" fill="#4F4440" font-size="11">残差层</text>
+          <rect x="90" y="120" width="100" height="60" rx="8" fill="#42575C" opacity="0.15"/>
+          <text x="140" y="148" text-anchor="middle" fill="#4F4440" font-size="11">DDM 仿真</text>
+          <text x="140" y="165" text-anchor="middle" fill="#4F4440" font-size="11">行为输出</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 5: 项目进度 -->
+    <div class="slide" id="slide-5">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:8%; font-size:28pt;">项目总体进度概览</h2>
+      <table class="info-table" style="left:8%; top:22%; width:84%;">
+        <tr><th>Phase</th><th>内容</th><th style="text-align:center;">状态</th></tr>
+        <tr><td>Phase 0</td><td>实验数据采集 + 基线 Sigmoid+DDM 模型</td><td style="text-align:center; color:#2a9d8f;">✅ 已完成</td></tr>
+        <tr><td>Phase 1</td><td>GP 角色定位与方法论确立</td><td style="text-align:center; color:#2a9d8f;">✅ 已完成</td></tr>
+        <tr><td>Phase 2</td><td>HDDM 参数提取 + Omission 敏感性分析</td><td style="text-align:center; color:#2a9d8f;">✅ 已完成</td></tr>
+        <tr><td>Phase 3</td><td>GP+Sigmoid 混合建模 + LOCV + 行为验证</td><td style="text-align:center; color:#e9c46a;">✅ 初步完成</td></tr>
+        <tr><td>Phase 4</td><td>候选实验点推荐 + 下一轮实验设计</td><td style="text-align:center; color:#e76f51;">📋 待执行</td></tr>
+        <tr><td>Phase 5</td><td>论文撰写与产出</td><td style="text-align:center; color:#e76f51;">📋 待执行</td></tr>
+      </table>
+      <div class="highlight-box" style="position:absolute; left:8%; top:70%; width:84%;">
+        当前最大瓶颈：仅有 8 个设计条件（实际可用 G3-G8 仅 6 个），不足以支持 GP 有效泛化
+      </div>
+    </div>
+
+    <!-- Slide 6: 文件夹结构 -->
+    <div class="slide" id="slide-6">
+      <div class="content-block" style="top:5%; width:40%;">
+        <h2>项目文件夹结构</h2>
+      </div>
+      <div class="code-block" style="position:absolute; left:8%; top:20%; width:42%; font-size:11pt; max-height:520px;">
+Guassion-Process-Experiment-Design/
+├── 1_Code/
+│   ├── Python_for_Generate/   # 数据生成
+│   │   └── Py/
+│   │       └── Generate_Data_v2.4_runner.py
+│   ├── Python_for_Check/      # 模型检验
+│   │   ├── Visualization/     # 可视化平台
+│   │   └── Omission/          # 遗漏分析
+│   └── Python_HDDM/           # Docker HDDM
+│       └── GP+Sigmoid/
+│           └── gp_sigmoid_hybrid_model.py
+├── 2_Data/
+│   ├── Generate_Data/         # 生成数据
+│   └── Real_Data/             # 真实数据
+│       ├── EXP_data_combined.csv
+│       └── HDDM_Traces/       # HDDM 拟合结果
+├── 3_Figures/                 # 图表输出
+└── 5_Reference/              # 参考文档
+      </div>
+      <div class="deco-right" style="top:20%; width:44%;">
+        <svg viewBox="0 0 280 280">
+          <rect x="40" y="40" width="200" height="40" rx="6" fill="#4F4440" opacity="0.1"/>
+          <text x="140" y="65" text-anchor="middle" fill="#4F4440" font-size="13">Python 生成 / 检验 / HDDM</text>
+          <rect x="40" y="100" width="200" height="40" rx="6" fill="#C9A86C" opacity="0.15"/>
+          <text x="140" y="125" text-anchor="middle" fill="#4F4440" font-size="13">生成数据 / 真实数据</text>
+          <rect x="40" y="160" width="200" height="40" rx="6" fill="#42575C" opacity="0.12"/>
+          <text x="140" y="185" text-anchor="middle" fill="#4F4440" font-size="13">RoadMap / Log / 可行性分析</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 7: 术语速查 -->
+    <div class="slide" id="slide-7">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:6%; font-size:28pt;">关键技术名词速查</h2>
+      <table class="info-table" style="left:8%; top:18%; width:84%; font-size:13pt;">
+        <tr><th>缩写</th><th>全称</th><th>含义</th></tr>
+        <tr><td>SPE</td><td>Self-Prioritization Effect</td><td>自我优势效应</td></tr>
+        <tr><td>SMT</td><td>Self-Matching Task</td><td>自我匹配任务 (Sui et al., 2012)</td></tr>
+        <tr><td>DDM</td><td>Drift-Diffusion Model</td><td>漂移扩散模型</td></tr>
+        <tr><td>GP</td><td>Gaussian Process</td><td>高斯过程</td></tr>
+        <tr><td>HDDM</td><td>Hierarchical DDM</td><td>层级贝叶斯漂移扩散模型</td></tr>
+        <tr><td>LOCV</td><td>Leave-One-Condition-Out</td><td>留一条件交叉验证</td></tr>
+        <tr><td>P/T/W</td><td>Practice / Time / Window</td><td>练习次数 / 刺激呈现时间 / 反应窗口</td></tr>
+        <tr><td>S2</td><td>Sigmoid-S2 Mechanism</td><td>项目核心 Sigmoid 理论函数</td></tr>
+      </table>
+    </div>
+
+    <!-- ==================== 第二章：理论基础 ==================== -->
+
+    <!-- Slide 8: 第二章分节 -->
+    <div class="slide" id="slide-8">
+      <div class="sec-num">02</div>
+      <div class="sec-vline"></div>
+      <div class="sec-heading heading-cn">理论基础</div>
+      <div class="sec-sub">SMT Paradigm &amp; DDM Framework</div>
+    </div>
+
+    <!-- Slide 9: SMT 范式 -->
+    <div class="slide" id="slide-9">
+      <div class="content-block" style="top:6%; width:52%;">
+        <h2>Self-Matching Task 实验范式</h2>
+        <p style="margin-top:12px;">Sui, He &amp; Humphreys (2012)</p>
+        <ul style="margin-top:16px;">
+          <li><strong>学习阶段：</strong>circle ↔ self, square ↔ stranger（或反向平衡）</li>
+          <li><strong>测试阶段：</strong>看到 stimulus+label 对，按 f 或 j 键判断是否匹配</li>
+        </ul>
+        <div style="margin-top:16px; background:rgba(201,168,108,0.1); padding:14px 18px; border-radius:8px;">
+          <p style="margin-bottom:8px;"><strong>Matching</strong> = (circle, self) 或 (square, stranger)</p>
+          <p><strong>NonMatching</strong> = (square, self) 或 (circle, stranger)</p>
+        </div>
+        <p style="margin-top:16px; color:#42575C;"><strong>SPE 定义：</strong>SPE = RT(self, Matching) - RT(stranger, Matching)</p>
+        <p style="color:#888; font-size:13pt;">本项目仅建模 Matching 条件</p>
+      </div>
+      <div class="deco-right" style="top:6%;">
+        <svg viewBox="0 0 260 260">
+          <circle cx="130" cy="60" r="25" fill="#C9A86C" opacity="0.3"/>
+          <text x="130" y="65" text-anchor="middle" fill="#4F4440" font-size="10">Self</text>
+          <circle cx="60" cy="180" r="25" fill="#42575C" opacity="0.3"/>
+          <text x="60" y="185" text-anchor="middle" fill="#4F4440" font-size="10">circle</text>
+          <circle cx="200" cy="180" r="25" fill="#42575C" opacity="0.3"/>
+          <text x="200" y="185" text-anchor="middle" fill="#4F4440" font-size="10">square</text>
+          <line x1="130" y1="85" x2="60" y2="155" stroke="#2a9d8f" stroke-width="2"/>
+          <text x="80" y="130" fill="#2a9d8f" font-size="10">Matching</text>
+          <line x1="130" y1="85" x2="200" y2="155" stroke="#e76f51" stroke-width="2" stroke-dasharray="4"/>
+          <text x="210" y="130" fill="#e76f51" font-size="10">NonMatching</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 10: 实验设计空间 -->
+    <div class="slide" id="slide-10">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:5%; font-size:26pt;">实验设计空间 Ω = (P, T, W)</h2>
+      <table class="info-table" style="left:8%; top:16%; width:84%; font-size:12pt;">
+        <tr><th>组别</th><th>P (练习)</th><th>T (ms)</th><th>W (ms)</th><th>M (ms)</th><th>被试数</th><th>遗漏率</th></tr>
+        <tr><td>G1</td><td>0</td><td>30</td><td>300</td><td>330</td><td>11</td><td class="warn">72.3%</td></tr>
+        <tr><td>G2</td><td>0</td><td>30</td><td>600</td><td>630</td><td>12</td><td class="warn">52.4%</td></tr>
+        <tr><td>G3</td><td>120</td><td>30</td><td>600</td><td>630</td><td>10</td><td>38.6%</td></tr>
+        <tr><td>G4</td><td>120</td><td>80</td><td>600</td><td>680</td><td>11</td><td>38.4%</td></tr>
+        <tr><td>G5</td><td>8</td><td>100</td><td>1100</td><td>1200</td><td>11</td><td style="color:#2a9d8f;">10.9%</td></tr>
+        <tr><td>G6</td><td>120</td><td>500</td><td>1500</td><td>2000</td><td>10</td><td style="color:#2a9d8f;">5.6%</td></tr>
+        <tr><td>G7</td><td>120</td><td>30</td><td>800</td><td>830</td><td>12</td><td style="color:#2a9d8f;">14.3%</td></tr>
+        <tr><td>G8</td><td>120</td><td>80</td><td>800</td><td>880</td><td>11</td><td style="color:#2a9d8f;">14.7%</td></tr>
+      </table>
+      <div class="highlight-box" style="position:absolute; left:8%; top:70%; width:84%; font-size:13pt;">
+        现有设计不足：P 仅 3 水平 (0, 8, 120)，T 的 30-500ms 中间存在大片空白
+      </div>
+    </div>
+
+    <!-- Slide 11: DDM 核心原理 -->
+    <div class="slide" id="slide-11">
+      <div class="content-block" style="top:6%; width:50%;">
+        <h2>漂移扩散模型（DDM）</h2>
+        <p style="margin-top:12px;">Ratcliff &amp; McKoon (2008)</p>
+        <ul style="margin-top:16px;">
+          <li><strong>v（漂移率）：</strong>信息累积速度，反映任务难度/被试能力</li>
+          <li><strong>a（边界分离）：</strong>决策谨慎度，a↑ → 慢但准确</li>
+          <li><strong>z（起始点）：</strong>先验偏向</li>
+          <li><strong>t0（非决策时间）：</strong>刺激编码 + 反应执行</li>
+        </ul>
+        <p style="margin-top:16px; color:#888; font-size:13pt;">本项目固定 s=0.1（HDDM 默认），z=a/2（无偏向假设）</p>
+      </div>
+      <div class="deco-right" style="top:6%;">
+        <svg viewBox="0 0 260 260">
+          <line x1="40" y1="40" x2="40" y2="220" stroke="#4F4440" stroke-width="2"/>
+          <line x1="220" y1="40" x2="220" y2="220" stroke="#4F4440" stroke-width="2"/>
+          <text x="25" y="130" fill="#4F4440" font-size="10">a</text>
+          <line x1="35" y1="135" x2="45" y2="135" stroke="#4F4440" stroke-width="2"/>
+          <line x1="35" y1="140" x2="45" y2="140" stroke="#4F4440" stroke-width="2"/>
+          <path d="M60 150 Q100 120 140 100 Q180 80 200 90" fill="none" stroke="#C97B63" stroke-width="3"/>
+          <circle cx="60" cy="150" r="4" fill="#C9A86C"/>
+          <text x="65" y="155" fill="#4F4440" font-size="10">z</text>
+          <text x="100" y="240" fill="#4F4440" font-size="12">t0 + 决策时间 = RT</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 12: DDM 参数与 SPE -->
+    <div class="slide" id="slide-12">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:5%; font-size:26pt;">DDM 参数与 SPE 的关系</h2>
+      <p style="position:absolute; left:8%; top:18%; font-size:15pt; color:#4F4440;">
+        SPE<sub>v</sub> = v<sub>self</sub> - v<sub>stranger</sub> &gt; 0 → 自我信息累积更快
+      </p>
+      <table class="info-table" style="left:8%; top:26%; width:84%; font-size:12pt;">
+        <tr><th>组别</th><th>v<sub>self</sub></th><th>v<sub>stranger</sub></th><th>SPE<sub>v</sub></th><th>a</th><th>t (s)</th><th>遗漏率</th></tr>
+        <tr><td>G1</td><td>-3.39</td><td>-3.36</td><td>-0.02</td><td>2.01</td><td>0.263</td><td class="warn">72.3%</td></tr>
+        <tr><td>G4</td><td>+0.64</td><td>-0.02</td><td style="color:#2a9d8f;">+0.66</td><td>1.42</td><td>0.353</td><td>38.4%</td></tr>
+        <tr><td>G5</td><td>+1.35</td><td>+0.64</td><td style="color:#2a9d8f;">+0.71</td><td>1.34</td><td>0.398</td><td style="color:#2a9d8f;">10.9%</td></tr>
+        <tr><td>G6</td><td>+1.81</td><td>+1.17</td><td style="color:#2a9d8f;">+0.65</td><td>1.48</td><td>0.663</td><td style="color:#2a9d8f;">5.6%</td></tr>
+        <tr><td>G8</td><td>+2.81</td><td>+2.55</td><td style="color:#2a9d8f;">+0.26</td><td>2.42</td><td>0.352</td><td style="color:#2a9d8f;">14.7%</td></tr>
+      </table>
+      <div class="highlight-box" style="position:absolute; left:8%; top:70%; width:84%; font-size:13pt;">
+        发现：G5 产生最大 SPE<sub>v</sub> (+0.71)；G6 参数最稳定（遗漏率仅 5.6%）；G1/G2 v 为负值（高遗漏率污染）
+      </div>
+    </div>
+
+    <!-- Slide 13: 研究假设 -->
+    <div class="slide" id="slide-13">
+      <div class="content-block" style="top:8%; width:55%;">
+        <h2>研究假设体系</h2>
+        <ul style="margin-top:20px;">
+          <li style="margin-bottom:14px;"><strong>H1：</strong>实验设计参数 (P, T, W) 通过调节 DDM 参数 (v, a) 系统性影响 SPE</li>
+          <li style="margin-bottom:14px;"><strong>H2：</strong>Sigmoid 函数可提供合理的理论先验，描述 (P,T,W) → (v,a) 的宏观趋势</li>
+          <li style="margin-bottom:14px;"><strong>H3：</strong>GP 能够捕捉 Sigmoid 无法解释的系统性残差，提升拟合精度</li>
+          <li><strong>H4：</strong>基于 GP 响应面的不确定性估计可以指导最优实验设计</li>
+        </ul>
+      </div>
+      <div class="deco-right" style="top:10%;">
+        <svg viewBox="0 0 260 260">
+          <rect x="30" y="30" width="200" height="50" rx="6" fill="#4F4440" opacity="0.08"/>
+          <text x="130" y="60" text-anchor="middle" fill="#4F4440" font-size="11">H1: P,T,W → v,a → SPE</text>
+          <rect x="30" y="95" width="200" height="50" rx="6" fill="#C9A86C" opacity="0.12"/>
+          <text x="130" y="125" text-anchor="middle" fill="#4F4440" font-size="11">H2: Sigmoid 理论先验</text>
+          <rect x="30" y="160" width="200" height="50" rx="6" fill="#42575C" opacity="0.1"/>
+          <text x="130" y="190" text-anchor="middle" fill="#4F4440" font-size="11">H3: GP 捕捉残差</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ==================== 第三章：建模指导 ==================== -->
+
+    <!-- Slide 14: 第三章分节 -->
+    <div class="slide" id="slide-14">
+      <div class="sec-num">03</div>
+      <div class="sec-vline"></div>
+      <div class="sec-heading heading-cn">建模指导</div>
+      <div class="sec-sub">GP + Sigmoid Hybrid Model</div>
+    </div>
+
+    <!-- Slide 15: 模型架构 -->
+    <div class="slide" id="slide-15">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:3%; font-size:24pt;">模型总体架构：GPSigmoidHybridModel</h2>
+      <div class="code-block" style="position:absolute; left:8%; top:14%; width:50%; font-size:11pt; max-height:520px;">
+(P, T, W) ──┬──→ Sigmoid 理论层
+            │     compute_v_s2 / compute_a_s2
+            │     ──→ v_s2, a_s2
+            │
+            └──→ 归一化 (Pn, Tn, Wn)
+                  ──→ GP 残差层
+                  ──→ Δv, Δa
+                  ──→ v_mix, a_mix
+                        │
+             + t0=0.2, z=a/2
+                        │
+             Euler DDM 仿真
+                        │
+             RT, response, omission
+      </div>
+      <div class="deco-right" style="top:14%; width:36%;">
+        <svg viewBox="0 0 240 240">
+          <rect x="30" y="20" width="180" height="30" rx="6" fill="#4F4440" opacity="0.1"/>
+          <text x="120" y="40" text-anchor="middle" fill="#4F4440" font-size="10">Sigmoid 先验 ↓ GP 修正</text>
+          <rect x="60" y="70" width="120" height="50" rx="6" fill="#C9A86C" opacity="0.2"/>
+          <text x="120" y="95" text-anchor="middle" fill="#4F4440" font-size="10">DDM 参数 (v,a,t0,z)</text>
+          <line x1="120" y1="120" x2="120" y2="140" stroke="#C97B63" stroke-width="2"/>
+          <rect x="60" y="140" width="120" height="50" rx="6" fill="#42575C" opacity="0.15"/>
+          <text x="120" y="165" text-anchor="middle" fill="#4F4440" font-size="10">行为 (RT, ACC, Omission)</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 16: Sigmoid 参数 -->
+    <div class="slide" id="slide-16">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:3%; font-size:22pt;">Sigmoid 理论层 — 参数设置原则</h2>
+      <div style="position:absolute; left:8%; top:14%; width:42%;">
+        <p style="font-size:14pt; font-weight:700;">compute_v_s2(T, P, cond)</p>
+        <table class="info-table" style="width:100%; font-size:11pt;">
+          <tr><th>参数</th><th>默认</th><th>含义</th></tr>
+          <tr><td>alaph1</td><td>1.5 → <span style="color:#C97B63;">0.199</span></td><td>self 条件 v 增强</td></tr>
+          <tr><td>alaph2</td><td>-0.4 → -0.404</td><td>stranger 条件 v 调制</td></tr>
+          <tr><td>gamma</td><td>0.2 → 0.640</td><td>练习效应陡峭度</td></tr>
+          <tr><td>T_0</td><td>100 → 63.7</td><td>v-T Sigmoid 中点</td></tr>
+          <tr><td>base_scale_v</td><td>3.0 → 1.326</td><td>v 幅度缩放</td></tr>
+        </table>
+      </div>
+      <div style="position:absolute; right:8%; top:14%; width:42%;">
+        <p style="font-size:14pt; font-weight:700;">compute_a_s2(M)</p>
+        <table class="info-table" style="width:100%; font-size:11pt;">
+          <tr><th>参数</th><th>默认</th><th>含义</th></tr>
+          <tr><td>beta1</td><td>0.2 → <span style="color:#C97B63;">-0.826</span></td><td>高 M 边界增强</td></tr>
+          <tr><td>beta2</td><td>0.0 → 1.000</td><td>低 M 边界调制</td></tr>
+          <tr><td>M_0</td><td>600 → 565.4</td><td>a-M Sigmoid 中点</td></tr>
+          <tr><td>base_scale_a</td><td>3.0 → 2.806</td><td>a 幅度缩放</td></tr>
+        </table>
+        <div class="highlight-box" style="margin-top:12px; font-size:12pt;">
+          推荐使用校准后的 Cleaned 版参数
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 17: 参数校准 -->
+    <div class="slide" id="slide-17">
+      <div class="content-block" style="top:6%; width:48%;">
+        <h2>参数校准方法</h2>
+        <p style="margin-top:12px;">差分进化算法 (Differential Evolution)</p>
+        <ul style="margin-top:16px;">
+          <li><strong>校准对象：</strong>7 个参数 (alaph1/2, beta1/2, gamma, base_scale_v/a)</li>
+          <li><strong>目标：</strong>最小化 Sigmoid 预测 vs HDDM 真实参数的 RMSE</li>
+          <li><strong>v9 扩展：</strong>11 参数 (含 T_0, k_T, M_0, k_a)</li>
+        </ul>
+        <p style="margin-top:20px; font-size:14pt; color:#42575C;">
+          关键代码：sigmoid_calibration.py + run_cleaned_validation_pipeline.py
+        </p>
+      </div>
+      <div class="deco-right" style="top:8%;">
+        <svg viewBox="0 0 260 260">
+          <rect x="30" y="30" width="200" height="35" rx="6" fill="#4F4440" opacity="0.08"/>
+          <text x="130" y="52" text-anchor="middle" fill="#4F4440" font-size="10">真实 HDDM 参数 (v, a)</text>
+          <line x1="130" y1="65" x2="130" y2="85" stroke="#C9A86C" stroke-width="2"/>
+          <rect x="30" y="85" width="200" height="35" rx="6" fill="#C9A86C" opacity="0.12"/>
+          <text x="130" y="107" text-anchor="middle" fill="#4F4440" font-size="10">Sigmoid 预测 = f(P,T,W; θ)</text>
+          <line x1="130" y1="120" x2="130" y2="140" stroke="#C9A86C" stroke-width="2"/>
+          <rect x="30" y="140" width="200" height="35" rx="6" fill="#42575C" opacity="0.1"/>
+          <text x="130" y="162" text-anchor="middle" fill="#4F4440" font-size="10">差分进化 → 最优 θ</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 18: GP 残差层 -->
+    <div class="slide" id="slide-18">
+      <div class="content-block" style="top:5%; width:50%;">
+        <h2>GP 残差层的构建与训练</h2>
+        <ul style="margin-top:14px;">
+          <li><strong>核函数：</strong>ConstantKernel × RBF + WhiteKernel</li>
+          <li><strong>输入 X：</strong>归一化的 (Pn, Tn, Wn)，8 条件 → [-1, 1]</li>
+          <li><strong>目标 Y_v：</strong>真实 v - Sigmoid 预测 v</li>
+          <li><strong>目标 Y_a：</strong>真实 a - Sigmoid 预测 a</li>
+        </ul>
+        <p style="margin-top:16px; font-size:14pt; color:#42575C;">
+          对 5 个 DDM 参数各训练一个独立 GP<br>
+          最终：DDM<sub>true</sub> ≈ Sigmoid<sub>pred</sub> + GP<sub>residual</sub>
+        </p>
+      </div>
+      <div class="deco-right" style="top:5%;">
+        <svg viewBox="0 0 260 260">
+          <rect x="20" y="50" width="220" height="40" rx="6" fill="#4F4440" opacity="0.08"/>
+          <text x="130" y="75" text-anchor="middle" fill="#4F4440" font-size="10">Sigmoid 预测 (理论先验)</text>
+          <text x="130" y="110" text-anchor="middle" fill="#C9A86C" font-size="20">+</text>
+          <rect x="20" y="130" width="220" height="40" rx="6" fill="#C9A86C" opacity="0.12"/>
+          <text x="130" y="155" text-anchor="middle" fill="#4F4440" font-size="10">GP 残差 (经验修正)</text>
+          <text x="130" y="195" text-anchor="middle" fill="#C97B63" font-size="20">=</text>
+          <rect x="20" y="210" width="220" height="40" rx="6" fill="#42575C" opacity="0.1"/>
+          <text x="130" y="235" text-anchor="middle" fill="#4F4440" font-size="10">混合 DDM 参数</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 19: 验证策略 -->
+    <div class="slide" id="slide-19">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">三层验证体系 + 行为验证结果</h2>
+      <div style="position:absolute; left:8%; top:16%; width:45%;">
+        <ul style="font-size:14pt; line-height:2;">
+          <li><strong>Layer 1：</strong>训练集拟合 (in-sample)</li>
+          <li><strong>Layer 2：</strong>LOCV 留一条件交叉验证</li>
+          <li><strong>Layer 3：</strong>行为层面 DDM 试次级模拟验证</li>
+        </ul>
+      </div>
+      <table class="info-table" style="position:absolute; right:5%; top:16%; width:44%; font-size:12pt;">
+        <tr><th>指标</th><th>r</th><th>RMSE</th><th>判断</th></tr>
+        <tr><td>Correct RT</td><td style="color:#2a9d8f;">0.981</td><td>66.8ms</td><td>✅ 优秀</td></tr>
+        <tr><td>Accuracy</td><td style="color:#2a9d8f;">0.968</td><td>0.153</td><td>✅ 优秀</td></tr>
+        <tr><td>Omission Rate</td><td style="color:#2a9d8f;">0.923</td><td>0.145</td><td>✅ 优秀</td></tr>
+        <tr><td>SPE RT</td><td style="color:#2a9d8f;">0.843</td><td>21.1ms</td><td>✅ 良好</td></tr>
+      </table>
+      <div class="highlight-box" style="position:absolute; left:8%; top:64%; width:84%;">
+        核心结论：Sigmoid 理论先验保证了行为层面稳健重建，即使 DDM 参数层面 GP 泛化受限于数据量
+      </div>
+    </div>
+
+    <!-- Slide 20: 常见问题 -->
+    <div class="slide" id="slide-20">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">常见建模问题与解决方案</h2>
+      <table class="info-table" style="left:8%; top:16%; width:84%; font-size:12pt;">
+        <tr><th>问题</th><th>根因</th><th>解决方案</th></tr>
+        <tr><td>GP 拟合完美 (r≈1.0)</td><td>训练点过少 + GP 灵活性高</td><td>增加训练条件，报告 LOCV</td></tr>
+        <tr><td>LOCV 结果负相关</td><td>3D 空间 8 点不足</td><td>新增 4-6 个条件</td></tr>
+        <tr><td>Sigmoid 无法产生负 v</td><td>输出 ∈ [0,1]</td><td>引入偏移项或重新参数化</td></tr>
+        <tr><td>Omission 污染 v 估计</td><td>高遗漏率</td><td>Censor 方案，排除 &gt;50% 条件</td></tr>
+        <tr><td>p_outlier 与 Censor 冲突</td><td>截尾数据被误判 outlier</td><td>Censor 方案使用 p_outlier=0</td></tr>
+        <tr><td>参数估计不稳定</td><td>MCMC 未充分收敛</td><td>增加 burn-in，R-hat &lt; 1.1</td></tr>
+      </table>
+    </div>
+
+    <!-- Slide 21: Omission 处理 -->
+    <div class="slide" id="slide-21">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">Omission 处理专项指南</h2>
+      <div style="position:absolute; left:8%; top:16%; width:45%;">
+        <p style="font-size:16pt; font-weight:700;">Censor vs Drop 方案对比</p>
+        <table class="info-table" style="width:100%; font-size:12pt; margin-top:12px;">
+          <tr><th>方案</th><th>处理方式</th><th>p_outlier</th></tr>
+          <tr><td>Censor</td><td>RT=deadline, resp=0</td><td>0.0</td></tr>
+          <tr><td>Drop</td><td>直接删除</td><td>0.05</td></tr>
+        </table>
+        <p style="margin-top:12px; font-size:13pt;">关键发现：遗漏率 &gt;35% 时两种方案 v 差异 &gt;1.5</p>
+      </div>
+      <div style="position:absolute; right:5%; top:16%; width:42%;">
+        <p style="font-size:16pt; font-weight:700;">推荐策略</p>
+        <div class="highlight-box" style="margin-top:8px; font-size:13pt;">
+          <p style="color:#e76f51;">&gt;50%：排除该条件 (G1, G2)</p>
+          <p style="color:#e9c46a;">15%-50%：标记"谨慎解释"</p>
+          <p style="color:#2a9d8f;">&lt;15%：Censor 方案可靠</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 第四章：代码演进 ==================== -->
+
+    <!-- Slide 22: 第四章分节 -->
+    <div class="slide" id="slide-22">
+      <div class="sec-num">04</div>
+      <div class="sec-vline"></div>
+      <div class="sec-heading heading-cn">代码演进</div>
+      <div class="sec-sub">v1 → v2.4.5 → v3 迭代历程</div>
+    </div>
+
+    <!-- Slide 23: 演进路线 -->
+    <div class="slide" id="slide-23">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:6%; font-size:24pt;">代码演进总览</h2>
+      <div style="position:absolute; left:5%; top:22%; width:90%;">
+        <div class="flow-step" style="left:0%;">
+          <div class="flow-dot">v1</div>
+          <div class="flow-title">基线 Sigmoid</div>
+          <div class="flow-text">纯理论模型<br>GP 作为代理</div>
+        </div>
+        <div class="flow-arrow" style="left:17%;">→</div>
+        <div class="flow-step" style="left:20%;">
+          <div class="flow-dot">v2</div>
+          <div class="flow-title">引入 GP</div>
+          <div class="flow-text">Hybrid 类<br>任意残差注入</div>
+        </div>
+        <div class="flow-arrow" style="left:37%;">→</div>
+        <div class="flow-step" style="left:40%;">
+          <div class="flow-dot">v2.4</div>
+          <div class="flow-title">稳定版本</div>
+          <div class="flow-text">S2+GP+DDM<br>参数恢复检验</div>
+        </div>
+        <div class="flow-arrow" style="left:57%;">→</div>
+        <div class="flow-step" style="left:60%;">
+          <div class="flow-dot">v2.4.5</div>
+          <div class="flow-title">当前版本</div>
+          <div class="flow-text">重采样 a<br>含 Omission</div>
+        </div>
+        <div class="flow-arrow" style="left:77%;">→</div>
+        <div class="flow-step" style="left:80%;">
+          <div class="flow-dot">v3</div>
+          <div class="flow-title">探索中</div>
+          <div class="flow-text">GP 残差捕捉<br>跳过 Sigmoid</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 24: v1 基线 -->
+    <div class="slide" id="slide-24">
+      <div class="content-block" style="top:6%; width:48%;">
+        <h2>v1 — 基线模型</h2>
+        <p style="font-size:13pt;">Generate_Data_v1.ipynb / S2 gen_data_jh.ipynb</p>
+        <ul style="margin-top:14px;">
+          <li>核心函数：compute_v_s2 + compute_a_s2</li>
+          <li>GP 角色：作为 Sigmoid 生成 anchor 数据的代理模型</li>
+          <li>输出：v_s2, a_s2 → Euler DDM → RT, response</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:16px; font-size:13pt;">
+          评价：框架清晰，GP 学习了 Sigmoid 生成逻辑（未用真实数据）
+        </div>
+      </div>
+      <div style="position:absolute; right:7%; top:10%; width:38%;">
+        <table class="info-table" style="width:100%; font-size:11pt;">
+          <tr><th>维度</th><th>v1 特点</th></tr>
+          <tr><td>GP 角色</td><td>代理模型</td></tr>
+          <tr><td>Omission</td><td>❌ 不支持</td></tr>
+          <tr><td>a 采样</td><td>硬截断</td></tr>
+          <tr><td>理论基础</td><td>⭐⭐⭐⭐⭐</td></tr>
+          <tr><td>状态</td><td>历史参考</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Slide 25: v1→v2 转折 -->
+    <div class="slide" id="slide-25">
+      <div class="content-block" style="top:8%; width:50%;">
+        <h2>v1 → v2：GP 角色的转变</h2>
+        <ul style="margin-top:16px;">
+          <li><strong>v1：</strong>GP 学习 Sigmoid 生成的 anchor 数据</li>
+          <li><strong>v2：</strong>引入 HybridDDMParameterGenerator 类</li>
+          <li>Sigmoid + GP 线性混合，权重 w</li>
+          <li>GP 训练数据变为人工合成 (sin/cos)</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:20px; font-size:14pt;">
+          核心认识：GP 的训练数据来源是决定模型质量的关键
+        </div>
+      </div>
+      <div class="deco-right" style="top:10%;">
+        <svg viewBox="0 0 240 240">
+          <text x="120" y="30" text-anchor="middle" fill="#e76f51" font-size="12">v1: GP 学习 Sigmoid</text>
+          <line x1="120" y1="45" x2="120" y2="70" stroke="#C97B63" stroke-width="2"/>
+          <text x="120" y="90" text-anchor="middle" fill="#e76f51" font-size="12">v2: GP 学习 sin/cos</text>
+          <text x="120" y="120" text-anchor="middle" fill="#4F4440" font-size="10">脱离了理论锚定</text>
+          <rect x="40" y="150" width="160" height="60" rx="8" fill="#2a9d8f" opacity="0.1"/>
+          <text x="120" y="175" text-anchor="middle" fill="#2a9d8f" font-size="11">训练数据必须</text>
+          <text x="120" y="195" text-anchor="middle" fill="#2a9d8f" font-size="11">与心理过程相关</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 26: v2.4 稳定版 -->
+    <div class="slide" id="slide-26">
+      <div class="content-block" style="top:5%; width:48%;">
+        <h2>v2.4 — 关键稳定版本</h2>
+        <p style="font-size:13pt;">Generate_Data_v2.4.ipynb / _runner.py</p>
+        <ul style="margin-top:12px;">
+          <li>S2 机制函数 + GP 修正 + DDM 仿真</li>
+          <li>保留 S2 的心理学设定</li>
+          <li>归一化 P,T,W 输入 GP</li>
+          <li>混合权重 w_gp = 0.5</li>
+          <li>含参数恢复检验：_recovery.py</li>
+        </ul>
+      </div>
+      <div style="position:absolute; right:6%; top:10%; width:40%; font-size:12pt;">
+        <p style="font-weight:700; margin-bottom:8px;">功能迭代：</p>
+        <table class="info-table" style="width:100%; font-size:11pt;">
+          <tr><th>版本</th><th>新增</th></tr>
+          <tr><td>v2.4.2</td><td>条件间参数配对可视化</td></tr>
+          <tr><td>v2.4.3</td><td>P/T/W 边际效应图</td></tr>
+          <tr><td>v2.4.4</td><td>Omission 机制（硬截断问题）</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Slide 27: v2.4.5 + v3 -->
+    <div class="slide" id="slide-27">
+      <div style="position:absolute; left:8%; top:7%; width:42%;">
+        <h2 class="heading-cn" style="font-size:22pt;">v2.4.5 — 当前推荐版</h2>
+        <ul style="font-size:13pt; line-height:1.8; margin-top:10px;">
+          <li>a 使用重采样代替硬截断</li>
+          <li>保留 omission 机制</li>
+          <li>函数：generate_dataset_s2_na_v245</li>
+          <li>输出完整中间参数和行为结果</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:16px; font-size:13pt;">
+          状态：<strong style="color:#2a9d8f;">主版本（推荐使用）</strong>
+        </div>
+      </div>
+      <div style="position:absolute; right:8%; top:7%; width:42%;">
+        <h2 class="heading-cn" style="font-size:22pt;">v3 — 探索中</h2>
+        <ul style="font-size:13pt; line-height:1.8; margin-top:10px;">
+          <li>更纯粹的"GP 捕捉残差"方案</li>
+          <li>GP 直接学习 (P,T,W) → 真实 HDDM 参数</li>
+          <li>跳过 Sigmoid 中间层</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:16px; font-size:13pt;">
+          状态：<strong style="color:#e9c46a;">探索中，尚未稳定</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 28: 关键发现与教训 -->
+    <div class="slide" id="slide-28">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">代码演进中的关键发现与教训</h2>
+      <table class="info-table" style="left:8%; top:15%; width:84%; font-size:12pt;">
+        <tr><th>发现/教训</th><th>阶段</th><th>影响</th></tr>
+        <tr><td>GP 训练数据必须与真实心理过程相关</td><td>v1→v2</td><td>决定了后续所有建模方向</td></tr>
+        <tr><td>Sigmoid 无法产生负 v 值（结构局限）</td><td>v9 校准</td><td>高遗漏率条件 v 预测永远为正</td></tr>
+        <tr><td>base_scale_a 触界 (10.0)</td><td>Phase 3</td><td>Sigmoid 对 a 的参数化需要重构</td></tr>
+        <tr><td>alaph1 校准后仅 0.199（默认 1.5）</td><td>Phase 3</td><td>self 实际优势远小于理论假设</td></tr>
+        <tr><td>beta1 符号反转（+0.2→-0.826）</td><td>Phase 3</td><td>高 M 条件下边界反降 — 反直觉但真实</td></tr>
+        <tr><td>8 个条件不足以支持 GP 泛化 (LOCV)</td><td>Phase 3.4</td><td>必须新增实验条件</td></tr>
+      </table>
+    </div>
+
+    <!-- ==================== 第五章：核心发现 ==================== -->
+
+    <!-- Slide 29: 第五章分节 -->
+    <div class="slide" id="slide-29">
+      <div class="sec-num">05</div>
+      <div class="sec-vline"></div>
+      <div class="sec-heading heading-cn">核心发现</div>
+      <div class="sec-sub">Key Findings &amp; Future Directions</div>
+    </div>
+
+    <!-- Slide 30: DDM 参数发现 -->
+    <div class="slide" id="slide-30">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">DDM 参数层面的核心发现</h2>
+      <div style="position:absolute; left:8%; top:16%; width:60%;">
+        <ul style="font-size:15pt; line-height:2.2;">
+          <li><strong>G5 产生最大 SPE_v (+0.71)</strong>：P=8, T=100, W=1100</li>
+          <li><strong>G6 参数最稳定</strong>（遗漏率 5.6%）：P=120, T=500, W=1500</li>
+          <li><strong>G1/G2 v 为负值</strong>——高遗漏率污染</li>
+          <li><strong>G7/G8 设计重复</strong>但被试独立，SPE_v 差异反映被试间变异</li>
+        </ul>
+      </div>
+      <div class="deco-right" style="top:14%; width:30%;">
+        <div class="num-card" style="position:relative; width:80%; left:10%; margin-bottom:16px;">
+          <div class="num-value">+0.71</div>
+          <div class="num-label">最大 SPE_v (G5)</div>
+        </div>
+        <div class="num-card" style="position:relative; width:80%; left:10%;">
+          <div class="num-value">5.6%</div>
+          <div class="num-label">最低遗漏率 (G6)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 31: Sigmoid 校准发现 -->
+    <div class="slide" id="slide-31">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">Sigmoid 参数校准的关键发现</h2>
+      <table class="info-table" style="left:8%; top:15%; width:40%; font-size:12pt;">
+        <tr><th>参数</th><th>默认 → 校准后</th></tr>
+        <tr><td>alaph1</td><td>1.5 → <span style="color:#C97B63;">0.199</span></td></tr>
+        <tr><td>beta1</td><td>+0.2 → <span style="color:#C97B63;">-0.826</span></td></tr>
+        <tr><td>base_scale_a</td><td>3.0 → <span style="color:#C97B63;">10.0 (触界)</span></td></tr>
+        <tr><td>gamma</td><td>0.2 → 0.640</td></tr>
+      </table>
+      <div style="position:absolute; right:5%; top:15%; width:46%;">
+        <p style="font-size:16pt; font-weight:700;">心理学解释</p>
+        <ul style="font-size:13pt; line-height:1.8; margin-top:8px;">
+          <li>self 的实际漂移率优势仅约 20%（远小于 150% 假设）</li>
+          <li>高 M 条件下边界反而降低（speed-accuracy tradeoff）</li>
+          <li>练习效应比预期更陡峭</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Slide 32: 行为验证 -->
+    <div class="slide" id="slide-32">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:5%; font-size:24pt;">行为层面验证：积极信号</h2>
+      <div style="position:absolute; left:8%; top:18%; width:50%;">
+        <div class="num-card" style="position:relative; display:inline-block; width:45%; margin-right:4%; margin-bottom:16px;">
+          <div class="num-value">0.981</div>
+          <div class="num-label">Correct RT 相关性</div>
+        </div>
+        <div class="num-card" style="position:relative; display:inline-block; width:45%; margin-bottom:16px;">
+          <div class="num-value">0.968</div>
+          <div class="num-label">Accuracy 相关性</div>
+        </div>
+        <div class="num-card" style="position:relative; display:inline-block; width:45%; margin-right:4%;">
+          <div class="num-value">0.923</div>
+          <div class="num-label">Omission Rate 相关性</div>
+        </div>
+        <div class="num-card" style="position:relative; display:inline-block; width:45%;">
+          <div class="num-value">0.843</div>
+          <div class="num-label">SPE RT 相关性</div>
+        </div>
+      </div>
+      <div class="highlight-box" style="position:absolute; right:5%; top:20%; width:38%; font-size:14pt;">
+        Sigmoid 理论先验保证了行为层面的稳健重建，即使 DDM 参数层面的 GP 泛化受限于数据量
+      </div>
+    </div>
+
+    <!-- Slide 33: 瓶颈与展望 -->
+    <div class="slide" id="slide-33">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:22pt;">当前瓶颈与后续方向</h2>
+      <table class="info-table" style="left:8%; top:14%; width:55%; font-size:12pt;">
+        <tr><th>瓶颈</th><th style="text-align:center;">严重度</th><th>方案</th></tr>
+        <tr><td>仅 8 个（可用 6 个）条件</td><td style="text-align:center; color:#e76f51;">🔴</td><td>新增 4-6 个条件</td></tr>
+        <tr><td>base_scale_a 触界</td><td style="text-align:center; color:#e76f51;">🔴</td><td>放宽边界或重构 a 的参数化</td></tr>
+        <tr><td>beta1 符号反转</td><td style="text-align:center; color:#e9c46a;">🟡</td><td>深入分析，考虑分段函数</td></tr>
+        <tr><td>NonMatching 待建模</td><td style="text-align:center; color:#2a9d8f;">🟢</td><td>作为独立扩展研究</td></tr>
+      </table>
+      <div style="position:absolute; right:5%; top:14%; width:38%;">
+        <p style="font-size:16pt; font-weight:700;">后续计划</p>
+        <ol style="font-size:13pt; line-height:2; margin-top:8px;">
+          <li>排除 G1/G2，用 G3-G8 重新训练</li>
+          <li>实施候选推荐实验，收集新数据</li>
+          <li>测试外部验证</li>
+          <li>考虑 NonMatching 的扩展建模</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ==================== 第六章：研究工具 ==================== -->
+
+    <!-- Slide 34: 第六章分节 -->
+    <div class="slide" id="slide-34">
+      <div class="sec-num">06</div>
+      <div class="sec-vline"></div>
+      <div class="sec-heading heading-cn">研究工具</div>
+      <div class="sec-sub">Visualization Platform &amp; Tools Chain</div>
+    </div>
+
+    <!-- Slide 35: 工具链总览 -->
+    <div class="slide" id="slide-35">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:5%; font-size:24pt;">全工具链总览</h2>
+      <div style="position:absolute; left:6%; top:18%; width:88%;">
+        <div class="flow-step" style="left:0%; width:13%;">
+          <div class="flow-dot">1</div>
+          <div class="flow-title">实验编程</div>
+          <div class="flow-text">MATLAB<br>exp_matlab/</div>
+        </div>
+        <div class="flow-arrow" style="left:14%;">→</div>
+        <div class="flow-step" style="left:17%; width:13%;">
+          <div class="flow-dot">2</div>
+          <div class="flow-title">数据预处理</div>
+          <div class="flow-text">Python<br>step1_prepare</div>
+        </div>
+        <div class="flow-arrow" style="left:31%;">→</div>
+        <div class="flow-step" style="left:34%; width:13%;">
+          <div class="flow-dot">3</div>
+          <div class="flow-title">DDM 拟合</div>
+          <div class="flow-text">Docker HDDM<br>hcp4715/hddm</div>
+        </div>
+        <div class="flow-arrow" style="left:48%;">→</div>
+        <div class="flow-step" style="left:51%; width:13%;">
+          <div class="flow-dot">4</div>
+          <div class="flow-title">参数提取</div>
+          <div class="flow-text">Python<br>step3_extract</div>
+        </div>
+        <div class="flow-arrow" style="left:65%;">→</div>
+        <div class="flow-step" style="left:68%; width:13%;">
+          <div class="flow-dot">5</div>
+          <div class="flow-title">GP 建模</div>
+          <div class="flow-text">sklearn<br>GP+Sigmoid/</div>
+        </div>
+        <div class="flow-arrow" style="left:82%;">→</div>
+        <div class="flow-step" style="left:85%; width:13%;">
+          <div class="flow-dot">6</div>
+          <div class="flow-title">可视化</div>
+          <div class="flow-text">WebApp<br>+ R + Jupyter</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 36: 可视化平台 -->
+    <div class="slide" id="slide-36">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">可视化平台 — 主应用</h2>
+      <div style="position:absolute; left:8%; top:16%; width:45%;">
+        <p style="font-size:14pt;"><strong>Experiment Data Visualization Server</strong></p>
+        <ul style="font-size:13pt; line-height:1.8; margin-top:8px;">
+          <li>位置：Visualization/visualization_app.html</li>
+          <li>技术栈：HTML/JS + Python HTTP + Chart.js</li>
+          <li>启动：python app_server.py</li>
+          <li>访问：http://localhost:8899</li>
+        </ul>
+      </div>
+      <table class="info-table" style="position:absolute; right:5%; top:16%; width:42%; font-size:11pt;">
+        <tr><th>标签页</th><th>功能</th></tr>
+        <tr><td>Tab1</td><td>按键逻辑模拟</td></tr>
+        <tr><td>Tab2</td><td>数据浏览与 RT 分布</td></tr>
+        <tr><td>Tab3</td><td>CRF 交互式可视化</td></tr>
+        <tr><td>Tab4</td><td>设计空间分析</td></tr>
+      </table>
+    </div>
+
+    <!-- Slide 37: CRF 功能 -->
+    <div class="slide" id="slide-37">
+      <div class="content-block" style="top:6%; width:50%;">
+        <h2>CRF 累积反应函数详解</h2>
+        <ul style="margin-top:12px;">
+          <li>按 RT 分位数分箱</li>
+          <li>计算每个分箱中 Matching 响应比例</li>
+          <li>Self（橙色）vs Stranger（蓝色）对比</li>
+          <li>SPE 差异图（Self - Stranger）</li>
+        </ul>
+        <p style="margin-top:14px; font-size:13pt; color:#42575C;">
+          支持：分位数调节 (3-10)、Matching/NonMatching 筛选、单被试与组聚合
+        </p>
+      </div>
+      <div class="deco-right" style="top:8%;">
+        <svg viewBox="0 0 240 240">
+          <path d="M30 200 Q80 160 120 120 Q160 80 210 70" fill="none" stroke="#C97B63" stroke-width="3"/>
+          <text x="200" y="62" fill="#C97B63" font-size="10">Self</text>
+          <path d="M30 190 Q80 170 120 150 Q160 130 210 120" fill="none" stroke="#42575C" stroke-width="3" stroke-dasharray="6"/>
+          <text x="200" y="112" fill="#42575C" font-size="10">Stranger</text>
+          <line x1="30" y1="140" x2="210" y2="140" stroke="#888" stroke-width="1" stroke-dasharray="4"/>
+          <text x="100" y="230" fill="#4F4440" font-size="10">RT →</text>
+          <text x="5" y="143" fill="#4F4440" font-size="10">P(up)</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 38: R 可视化 -->
+    <div class="slide" id="slide-38">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:5%; font-size:24pt;">R 版本可视化工具</h2>
+      <div style="position:absolute; left:8%; top:18%; width:55%;">
+        <p style="font-size:14pt; font-weight:700;">Visualization/R_Version/</p>
+        <div class="card-grid" style="position:relative; left:0; top:0; width:100%; margin-top:12px;">
+          <div class="info-card">
+            <h3>Data Browser</h3>
+            <p>数据浏览与筛选</p>
+          </div>
+          <div class="info-card">
+            <h3>Interactive CRF</h3>
+            <p>交互式 CRF + d' 分析</p>
+          </div>
+          <div class="info-card">
+            <h3>SPE Database</h3>
+            <p>总览 / CRF 分析 / P/T/W 整合 / 个体详情</p>
+          </div>
+          <div class="info-card">
+            <h3>Shared Utils</h3>
+            <p>共享工具函数库</p>
+          </div>
+        </div>
+      </div>
+      <div class="deco-right" style="top:14%; width:30%;">
+        <p style="font-size:13pt; font-weight:700; text-align:center;">输出示例</p>
+        <p style="font-size:11pt; margin-top:12px; line-height:1.8;">
+          SPE RT/ACC 直方图<br>
+          SPE RT vs ACC 散点图<br>
+          SPE crf by group<br>
+          SPE 个体详情
+        </p>
+      </div>
+    </div>
+
+    <!-- Slide 39: 其他工具 -->
+    <div class="slide" id="slide-39">
+      <h2 class="heading-cn" style="position:absolute; left:8%; top:4%; font-size:24pt;">Docker HDDM + 辅助工具汇总</h2>
+      <div style="position:absolute; left:8%; top:15%; width:50%;">
+        <p style="font-size:15pt; font-weight:700;">Docker HDDM 拟合工具</p>
+        <ul style="font-size:12pt; line-height:1.7; margin-top:8px;">
+          <li>镜像：hcp4715/hddm</li>
+          <li>MCMC: 3000 samples, 500 burn-in</li>
+          <li>v ~ identity 区分 Self/Stranger</li>
+          <li>Censor 方案: p_outlier=0</li>
+        </ul>
+        <p style="margin-top:14px; font-size:14pt; font-weight:700;">Sigmoid 优化工具箱</p>
+        <ul style="font-size:12pt; line-height:1.7; margin-top:4px;">
+          <li>sigmoid_calibration.py — 差分进化校准</li>
+          <li>v9 系统性优化 — 5 策略 16 参数</li>
+          <li>run_cleaned_validation_pipeline.py</li>
+        </ul>
+      </div>
+      <table class="info-table" style="position:absolute; right:5%; top:15%; width:40%; font-size:10pt;">
+        <tr><th>辅助工具</th><th>用途</th></tr>
+        <tr><td>SPE_Bayesian_Analysis</td><td>贝叶斯 ANOVA</td></tr>
+        <tr><td>SPE_BF_Analysis</td><td>贝叶斯因子检验</td></tr>
+        <tr><td>Omission_Sensitivity</td><td>Censor vs Drop</td></tr>
+        <tr><td>GP-SPE-Explore-2D</td><td>GP 2D 响应面</td></tr>
+        <tr><td>GP-SPE-Explore-3D</td><td>GP 3D 响应面</td></tr>
+        <tr><td>Parameter_Recovery</td><td>参数恢复检验</td></tr>
+      </table>
+    </div>
+
+    <!-- Slide 40: 感谢 -->
+    <div class="slide" id="slide-40">
+      <div class="ty-bg"></div>
+      <div class="s1-orb" style="left:-10%; top:-20%; width:500px; height:500px; background:#C9A86C;"></div>
+      <div class="s1-orb" style="right:-5%; bottom:-15%; width:400px; height:400px; background:#42575C;"></div>
+      <div class="ty-title">感谢聆听</div>
+      <div class="ty-line"></div>
+      <div class="ty-sub">Thank you for your attention</div>
+      <div style="position:absolute; left:50%; top:60%; transform:translateX(-50%); font-size:14pt; color:rgba(232,213,183,0.5); text-align:center;">
+        GP-SPE 实验设计优化项目<br>
+        Self-Matching Task × DDM × Gaussian Process
+      </div>
+    </div>
+
+  </div><!-- /slide-container -->
+
+  <!-- Navigation -->
+  <div id="nav-controls">
+    <button id="nav-prev" title="上一页">◀</button>
+    <span id="slide-indicator">1 / 40</span>
+    <button id="nav-next" title="下一页">▶</button>
+  </div>
+
+  <!-- Thumbnail Panel -->
+  <div id="thumb-trigger"></div>
+  <div id="thumb-panel"></div>
+</div><!-- /presentation-wrapper -->
+
+<script>
+(function() {
+  var TOTAL = 40;
+  var current = 1;
+  var container = document.getElementById('slide-container');
+  var progressBar = document.getElementById('progress-bar');
+  var thumbPanel = document.getElementById('thumb-panel');
+  var indicator = document.getElementById('slide-indicator');
+  var thumbs = [];
+
+  function scale() {
+    var ww = window.innerWidth;
+    var wh = window.innerHeight;
+    var scaleVal = Math.max(ww / 1333, wh / 750);
+    container.style.transform = 'scale(' + scaleVal + ')';
+    progressBar.style.width = (current / TOTAL * 100) + '%';
+  }
+  window.addEventListener('resize', scale);
+  scale();
+
+  function updateUI() {
+    indicator.textContent = current + ' / ' + TOTAL;
+    progressBar.style.width = (current / TOTAL * 100) + '%';
+    thumbs.forEach(function(t, i) {
+      t.classList.toggle('active', i + 1 === current);
+    });
+  }
+
+  function goTo(idx) {
+    if (idx < 1 || idx > TOTAL) return;
+    document.getElementById('slide-' + current).classList.remove('active');
+    current = idx;
+    document.getElementById('slide-' + current).classList.add('active');
+    updateUI();
+  }
+
+  document.getElementById('nav-prev').addEventListener('click', function() { goTo(current - 1); });
+  document.getElementById('nav-next').addEventListener('click', function() { goTo(current + 1); });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+    if (e.key === 'End') { e.preventDefault(); goTo(TOTAL); }
+  });
+
+  // Touch swipe
+  var touchStartX = 0;
+  document.getElementById('presentation-wrapper').addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  document.getElementById('presentation-wrapper').addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goTo(current + 1);
+      else goTo(current - 1);
+    }
+  }, { passive: true });
+
+  // Build thumbnails
+  function buildThumbs() {
+    var slides = document.querySelectorAll('.slide');
+    slides.forEach(function(slide, i) {
+      var thumb = document.createElement('div');
+      thumb.className = 'thumb-slide' + (i === 0 ? ' active' : '');
+      var inner = document.createElement('div');
+      inner.className = 'thumb-slide-inner';
+      inner.innerHTML = slide.innerHTML.replace(/\sid="[^"]*"/g, '');
+      var num = document.createElement('div');
+      num.className = 'thumb-num';
+      num.textContent = (i + 1) + ' / ' + TOTAL;
+      thumb.appendChild(inner);
+      thumb.appendChild(num);
+      thumb.addEventListener('click', function() { goTo(i + 1); });
+      thumbPanel.appendChild(thumb);
+      thumbs.push(thumb);
+    });
+  }
+  buildThumbs();
+
+  // Thumbnail drag scroll
+  var isDragging = false, dragStartY = 0, dragStartScroll = 0;
+  thumbPanel.addEventListener('mousedown', function(e) {
+    isDragging = true; dragStartY = e.clientY; dragStartScroll = thumbPanel.scrollTop;
+    thumbPanel.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    thumbPanel.scrollTop = dragStartScroll - (e.clientY - dragStartY);
+  });
+  window.addEventListener('mouseup', function() { isDragging = false; thumbPanel.style.cursor = ''; });
+  thumbPanel.addEventListener('touchstart', function(e) {
+    isDragging = true; dragStartY = e.touches[0].clientY; dragStartScroll = thumbPanel.scrollTop;
+  }, { passive: true });
+  thumbPanel.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    thumbPanel.scrollTop = dragStartScroll - (e.touches[0].clientY - dragStartY);
+  }, { passive: true });
+  thumbPanel.addEventListener('touchend', function() { isDragging = false; });
+})();
+</script>
+
+</body>
+</html>

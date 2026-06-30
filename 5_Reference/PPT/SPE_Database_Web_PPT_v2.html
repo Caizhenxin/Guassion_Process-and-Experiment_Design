@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPE Database - 灯塔主题网页版</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #2a2a2a;
+    font-family: Calibri, '宋体', SimSun, '新宋体', NSimSun, sans-serif;
+  }
+
+  /* ===== Scaling Container ===== */
+  #presentation-wrapper {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #slide-container {
+    width: 1333px;
+    height: 750px;
+    position: relative;
+    overflow: hidden;
+    transform-origin: center center;
+  }
+
+  /* ===== Slide Base ===== */
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #FFFFFF, #DCDCDC);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ===== Navigation Bar ===== */
+  #nav-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  #nav-bar > * { pointer-events: auto; }
+
+  #nav-controls {
+    width: 1333px; height: 40px;
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px;
+    background: rgba(79,68,64,0.75);
+    backdrop-filter: blur(4px);
+    user-select: none;
+    z-index: 1001;
+  }
+
+  #nav-prev, #nav-next {
+    width: 32px; height: 32px;
+    border: none; background: none;
+    color: #fff; font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  #nav-prev:hover, #nav-next:hover { background: rgba(255,255,255,0.2); }
+
+  #slide-indicator {
+    color: #fff; font-size: 14px;
+    font-family: Calibri, sans-serif;
+    min-width: 60px; text-align: center;
+  }
+
+  /* ===== Common Text Utilities ===== */
+  .heading-cn {
+    font-family: '宋体', SimSun, serif;
+    color: #4F4440;
+  }
+  .heading-en {
+    font-family: Calibri, sans-serif;
+    color: #4F4440;
+  }
+  .body-text {
+    font-family: Calibri, '宋体', SimSun, sans-serif;
+    color: #4F4440;
+    line-height: 1.6;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .body-text::-webkit-scrollbar { width: 6px; }
+  .body-text::-webkit-scrollbar-thumb { background: rgba(79,68,64,0.35); border-radius: 3px; }
+  pre {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  pre::-webkit-scrollbar { width: 6px; height: 6px; }
+  pre::-webkit-scrollbar-thumb { background: rgba(79,68,64,0.35); border-radius: 3px; }
+  .accent-line {
+    background: #4B413B;
+  }
+
+  /* ===== Slide 1: Cover ===== */
+  .s1-img {
+    position: absolute;
+    left: 0.04%; top: 31.69%;
+    width: 64.49%; height: 72.97%;
+    object-fit: cover;
+  }
+  .s1-title {
+    position: absolute;
+    left: 36.41%; top: 34.8%;
+    font-size: 52pt;
+    white-space: nowrap;
+  }
+  .s1-subtitle {
+    position: absolute;
+    left: 35.94%; top: 48.31%;
+    font-size: 20pt;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .s1-author {
+    position: absolute;
+    left: 41.31%; top: 57.24%;
+    font-size: 24pt;
+    white-space: nowrap;
+  }
+
+  /* ===== Slide 2: TOC ===== */
+  .s2-img {
+    position: absolute;
+    left: -9.07%; top: 40.65%;
+    width: 59.93%; height: 68.52%;
+    object-fit: cover;
+  }
+  .s2-heading {
+    position: absolute;
+    left: 42.73%; top: 7.62%;
+    font-size: 48pt;
+    white-space: nowrap;
+  }
+  .s2-subheading {
+    position: absolute;
+    left: 43.57%; top: 17.19%;
+    font-size: 24pt;
+    white-space: nowrap;
+  }
+  .toc-num { position: absolute; font-size: 20pt; color: #4F4440; white-space: nowrap; }
+  .toc-title { position: absolute; font-size: 24pt; color: #4F4440; font-family: '新宋体', NSimSun, serif; white-space: nowrap; }
+  .toc-sub { position: absolute; font-size: 16pt; color: #4F4440; font-family: Calibri, sans-serif; white-space: nowrap; }
+
+  /* ===== Slide 3: Section Divider / Content + Image ===== */
+  .s3-frame {
+    position: absolute;
+    left: 21.52%; top: 37.75%;
+    width: 13.1%; height: 23.31%;
+    background: #4F4440;
+  }
+  .s3-img {
+    position: absolute;
+    left: 21.47%; top: 37.71%;
+    width: 13.18%; height: 23.26%;
+    object-fit: cover;
+  }
+  .s3-vline {
+    position: absolute;
+    left: 39.64%; top: 37.75%;
+    width: 2px; height: 23.29%;
+    background: #4F4440;
+  }
+  .s3-heading {
+    position: absolute;
+    left: 45.32%; top: 36.86%;
+    font-size: 40pt;
+    white-space: nowrap;
+  }
+  .s3-subhead {
+    position: absolute;
+    left: 54.89%; top: 40.73%;
+    font-size: 16pt;
+    white-space: nowrap;
+  }
+  .s3-body {
+    position: absolute;
+    left: 45.72%; top: 46.1%;
+    width: 37.43%; height: 16.39%;
+    font-size: 16pt;
+    text-align: left;
+    overflow: hidden;
+  }
+
+  /* Section divider variant */
+  .sec-num {
+    position: absolute;
+    left: 21.47%; top: 36%;
+    font-size: 120pt;
+    color: #C9A86C;
+    opacity: 0.35;
+    font-family: Calibri, sans-serif;
+    font-weight: 700;
+  }
+  .sec-heading {
+    position: absolute;
+    left: 45.32%; top: 37%;
+    font-size: 48pt;
+    white-space: nowrap;
+  }
+  .sec-sub {
+    position: absolute;
+    left: 45.72%; top: 50%;
+    font-size: 20pt;
+    white-space: nowrap;
+  }
+
+  /* ===== Slide 4: Three-Column ===== */
+  .s4-img {
+    position: absolute;
+    left: -2.65%; top: 42.16%;
+    width: 59.93%; height: 68.52%;
+    object-fit: cover;
+  }
+  .s4-hline {
+    position: absolute;
+    left: 34.76%; top: 32.09%;
+    width: 65.91%; height: 2px;
+    background: #4B413B;
+  }
+  .s4-col-title {
+    position: absolute;
+    font-size: 24pt;
+    color: #4B413B;
+    font-family: Calibri, sans-serif;
+    white-space: nowrap;
+  }
+  .s4-col-body {
+    position: absolute;
+    font-size: 16pt;
+    text-align: left;
+    line-height: 1.5;
+    width: 20%;
+    overflow: hidden;
+  }
+  .s4-col-tri {
+    position: absolute;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 14px solid #4B413B;
+  }
+
+  /* ===== Slide 5: Avatars / Number Cards ===== */
+  .s5-deco {
+    position: absolute;
+    left: 43.56%; top: 75.31%;
+    width: 57.17%; height: 37.48%;
+    object-fit: cover;
+  }
+  .s5-avatar-frame {
+    position: absolute;
+    border-radius: 50%;
+    background: #4F4440;
+    aspect-ratio: 1;
+  }
+  .s5-avatar-img {
+    position: absolute;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .s5-col-body {
+    position: absolute;
+    font-size: 16pt;
+    text-align: center;
+    line-height: 1.5;
+    width: 18%;
+    overflow: hidden;
+  }
+  .s5-num {
+    position: absolute;
+    font-size: 48pt;
+    color: #C97B63;
+    font-family: Calibri, sans-serif;
+    font-weight: 700;
+  }
+
+  /* ===== Slide 6: Two-Section / Two-Column ===== */
+  .s6-deco {
+    position: absolute;
+    left: 43.56%; top: 75.31%;
+    width: 57.17%; height: 37.48%;
+    object-fit: cover;
+  }
+  .s6-text-upper {
+    position: absolute;
+    left: 23.1%; top: 29.49%;
+    width: 53.79%; height: 13%;
+    font-size: 16pt;
+    text-align: left;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+  .s6-hline {
+    position: absolute;
+    left: 20.87%; top: 46.03%;
+    width: 58.26%; height: 2px;
+    background: #4F4440;
+  }
+  .s6-text-lower {
+    position: absolute;
+    left: 23.1%; top: 49.94%;
+    width: 53.79%; height: 13%;
+    font-size: 16pt;
+    text-align: left;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* ===== Slide 7: Image + Text ===== */
+  .s7-deco {
+    position: absolute;
+    left: 43.56%; top: 75.31%;
+    width: 57.17%; height: 37.48%;
+    object-fit: cover;
+  }
+  .s7-img {
+    position: absolute;
+    left: 12.58%; top: 34.6%;
+    width: 25.92%; height: 30.8%;
+    object-fit: cover;
+  }
+  .s7-text {
+    position: absolute;
+    left: 43.56%; top: 34.39%;
+    width: 45.8%; height: 31.45%;
+    font-size: 16pt;
+    text-align: left;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* ===== Slide 8: Conclusion / Highlight ===== */
+  .s8-img {
+    position: absolute;
+    left: 21.86%; top: 3.84%;
+    width: 28.24%; height: 32.3%;
+    object-fit: cover;
+  }
+  .s8-hline {
+    position: absolute;
+    left: 34.4%; top: 27.79%;
+    width: 40.52%; height: 2px;
+    background: #4B413B;
+  }
+  .s8-heading {
+    position: absolute;
+    left: 62.45%; top: 18.38%;
+    font-size: 36pt;
+    color: #42575C;
+    font-family: '新宋体', NSimSun, serif;
+    white-space: nowrap;
+  }
+  .s8-body {
+    position: absolute;
+    left: 25.92%; top: 42.18%;
+    width: 51.62%; height: 39.03%;
+    font-size: 16pt;
+    text-align: left;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* ===== Slide 9: Thank You ===== */
+  .s9-img {
+    position: absolute;
+    left: 0.04%; top: 31.69%;
+    width: 64.49%; height: 72.97%;
+    object-fit: cover;
+  }
+  .s9-title {
+    position: absolute;
+    left: 36.65%; top: 37.06%;
+    font-size: 60pt;
+    white-space: nowrap;
+  }
+  .s9-subtitle {
+    position: absolute;
+    left: 39.39%; top: 50.55%;
+    font-size: 20pt;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  /* ===== Custom: Table Slide ===== */
+  .table-slide table {
+    position: absolute;
+    border-collapse: collapse;
+    font-size: 14pt;
+  }
+  .table-slide th {
+    background: #4F4440;
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  .table-slide td {
+    border-bottom: 1px solid #BFBFBF;
+    padding: 10px 14px;
+    color: #4F4440;
+  }
+  .table-slide tr:nth-child(even) { background: rgba(79,68,64,0.05); }
+
+  /* ===== Custom: Flow / Timeline ===== */
+  .flow-step {
+    position: absolute;
+    text-align: center;
+    width: 15%;
+  }
+  .flow-dot {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: #C9A86C;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18pt;
+    font-weight: 700;
+    margin: 0 auto 10px;
+  }
+  .flow-title {
+    font-size: 16pt;
+    color: #4F4440;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .flow-text {
+    font-size: 12pt;
+    color: #4F4440;
+    line-height: 1.4;
+  }
+  .flow-arrow {
+    position: absolute;
+    font-size: 24pt;
+    color: #C9A86C;
+  }
+
+  /* ===== Custom: Number Grid (4 numbers) ===== */
+  .num-grid-card {
+    position: absolute;
+    background: rgba(255,255,255,0.55);
+    border: 1px solid #C9C9C9;
+    border-radius: 6px;
+    padding: 20px 10px;
+    text-align: center;
+  }
+  .num-grid-value {
+    font-size: 42pt;
+    color: #C97B63;
+    font-weight: 700;
+    font-family: Calibri, sans-serif;
+  }
+  .num-grid-label {
+    font-size: 14pt;
+    color: #4F4440;
+    margin-top: 8px;
+  }
+
+  /* ===== Custom: Cards 2x2 ===== */
+  .card2x2 {
+    position: absolute;
+    background: rgba(255,255,255,0.55);
+    border: 1px solid #C9C9C9;
+    border-radius: 6px;
+    padding: 20px;
+  }
+  .card2x2-title {
+    font-size: 18pt;
+    color: #4F4440;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .card2x2-body {
+    font-size: 14pt;
+    color: #4F4440;
+    line-height: 1.5;
+  }
+
+  /* ===== Progress Bar ===== */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: rgba(79,68,64,0.6);
+    transition: width 0.4s ease;
+    z-index: 1002;
+  }
+
+  /* ===== Right-Side Thumbnail Preview ===== */
+  #thumb-trigger {
+    position: fixed;
+    top: 0; right: 0;
+    width: 60px; height: 100vh;
+    z-index: 1003;
+    cursor: pointer;
+  }
+  #thumb-trigger::after {
+    content: '';
+    position: absolute;
+    top: 50%; right: 14px;
+    width: 6px; height: 40px;
+    margin-top: -20px;
+    background: rgba(79,68,64,0.25);
+    border-radius: 3px;
+    transition: background 0.2s, transform 0.2s;
+  }
+  #thumb-trigger:hover::after { background: rgba(79,68,64,0.55); transform: scaleY(1.15); }
+
+  #thumb-panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 220px; height: 100vh;
+    background: rgba(42,42,42,0.92);
+    backdrop-filter: blur(10px);
+    z-index: 1004;
+    transform: translateX(100%);
+    transition: transform 0.35s ease;
+    padding: 16px 12px 16px 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    cursor: grab;
+    user-select: none;
+  }
+  #thumb-trigger:hover ~ #thumb-panel,
+  #thumb-panel:hover { transform: translateX(0); }
+  #thumb-panel:active { cursor: grabbing; }
+  #thumb-panel::-webkit-scrollbar { width: 6px; }
+  #thumb-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+
+  .thumb-slide {
+    position: relative;
+    width: 180px; height: 101px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: #f0f0f0;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+  .thumb-slide:hover { border-color: #C9A86C; transform: scale(1.02); }
+  .thumb-slide.active { border-color: #C97B63; }
+  .thumb-slide-inner {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1333px; height: 750px;
+    transform: scale(0.135);
+    transform-origin: top left;
+    filter: blur(0.6px);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .thumb-num {
+    position: absolute;
+    bottom: 4px; right: 6px;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(79,68,64,0.7);
+    padding: 1px 5px;
+    border-radius: 3px;
+    z-index: 2;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="presentation-wrapper">
+  <div id="progress-bar"></div>
+  <div id="slide-container">
+
+    <!-- ==================== Slide 1: Cover ==================== -->
+    <div class="slide active" id="slide-1">
+      <img class="s1-img" src="pptx_assets/slide1_图片_6.png" alt="">
+      <div class="s1-title heading-cn">SPE Database</div>
+      <div class="s1-subtitle heading-en">Self-Prioritization Effect Database</div>
+      <div class="s1-author heading-cn">自我优先效应数据库</div>
+    </div>
+
+    <!-- ==================== Slide 2: TOC ==================== -->
+    <div class="slide" id="slide-2">
+      <img class="s2-img" src="pptx_assets/slide2_图片_16.png" alt="">
+      <div class="s2-heading heading-cn">目录</div>
+      <div class="s2-subheading heading-en">Contents</div>
+
+      <div class="toc-num" style="left:18.71%; top:34%;">01、</div>
+      <div class="toc-title" style="left:24.05%; top:33.5%;">项目背景</div>
+      <div class="toc-sub" style="left:24.05%; top:39.5%;">Background</div>
+
+      <div class="toc-num" style="left:18.71%; top:51%;">02、</div>
+      <div class="toc-title" style="left:24.05%; top:50.5%;">数据库概览</div>
+      <div class="toc-sub" style="left:24.05%; top:56.5%;">Overview</div>
+
+      <div class="toc-num" style="left:52.43%; top:34%;">03、</div>
+      <div class="toc-title" style="left:57.68%; top:33.5%;">结构与标准化</div>
+      <div class="toc-sub" style="left:57.68%; top:39.5%;">Structure</div>
+
+      <div class="toc-num" style="left:52.43%; top:51%;">04、</div>
+      <div class="toc-title" style="left:57.68%; top:50.5%;">核心功能与价值</div>
+      <div class="toc-sub" style="left:57.68%; top:56.5%;">Features</div>
+    </div>
+
+    <!-- ==================== Slide 3: Section 01 ==================== -->
+    <div class="slide" id="slide-3">
+      <div class="sec-num">01</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">项目背景</div>
+      <div class="sec-sub heading-en">Project Background</div>
+    </div>
+
+    <!-- ==================== Slide 4: What is SPE ==================== -->
+    <div class="slide" id="slide-4">
+      <img class="s4-img" src="pptx_assets/slide4_图片_16.png" alt="">
+      <div class="s4-hline" style="top:22%;"></div>
+
+      <div class="s4-col-title" style="left:39.69%; top:12%;">核心范式</div>
+      <div class="s4-col-tri" style="left:42.35%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:27%;">
+        Self-Matching Task<br>(Sui, He, & Humphreys, 2012)
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:12%;">任务原理</div>
+      <div class="s4-col-tri" style="left:60.79%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:27%;">
+        学习形状-身份关联<br>判断形状-标签是否匹配
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:12%;">SPE 定义</div>
+      <div class="s4-col-tri" style="left:79.12%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:27%;">
+        自我相关刺激<br>反应更快、更准
+      </div>
+    </div>
+
+    <!-- ==================== Slide 5: Why database ==================== -->
+    <div class="slide" id="slide-5">
+      <img class="s5-deco" src="pptx_assets/slide5_图片_1.png" alt="">
+
+      <div class="s5-num" style="left:22%; top:20%;">01</div>
+      <div class="s5-col-body body-text" style="left:17.5%; top:38%;">
+        数据分散<br>缺乏统一标准
+      </div>
+
+      <div class="s5-num" style="left:46%; top:20%;">02</div>
+      <div class="s5-col-body body-text" style="left:41.72%; top:38%;">
+        变量命名<br>身份编码不一致
+      </div>
+
+      <div class="s5-num" style="left:70%; top:20%;">03</div>
+      <div class="s5-col-body body-text" style="left:66.03%; top:38%;">
+        缺乏试次级<br>开放数据
+      </div>
+    </div>
+
+    <!-- ==================== Slide 6: Goals ==================== -->
+    <div class="slide" id="slide-6">
+      <img class="s6-deco" src="pptx_assets/slide6_图片_1.png" alt="">
+      <div class="s6-text-upper body-text">
+        <strong>项目目标</strong><br><br>
+        构建包含试次级数据与元数据的综合性 SPE 数据库<br>
+        建立标准化的数据清洗与身份编码流程<br>
+        支持跨文化、跨研究的可重复分析与 Meta-Analysis
+      </div>
+      <div class="s6-hline"></div>
+      <div class="s6-text-lower body-text">
+        持续更新，鼓励全球研究者贡献数据<br><br>
+        <span style="color:#42575C;">关联项目：平行进行中的预注册 Meta-Analysis (OSF Registry)</span>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 7: Section 02 ==================== -->
+    <div class="slide" id="slide-7">
+      <div class="sec-num">02</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">数据库概览</div>
+      <div class="sec-sub heading-en">Database Overview</div>
+    </div>
+
+    <!-- ==================== Slide 8: Scale ==================== -->
+    <div class="slide" id="slide-8">
+      <img class="s7-deco" src="pptx_assets/slide7_图片_1.png" alt="">
+      <div class="num-grid-card" style="left:10%; top:28%; width:18%;">
+        <div class="num-grid-value">44</div>
+        <div class="num-grid-label">篇论文</div>
+      </div>
+      <div class="num-grid-card" style="left:30%; top:28%; width:18%;">
+        <div class="num-grid-value">70</div>
+        <div class="num-grid-label">个数据集</div>
+      </div>
+      <div class="num-grid-card" style="left:50%; top:28%; width:18%;">
+        <div class="num-grid-value">3,600+</div>
+        <div class="num-grid-label">名参与者</div>
+      </div>
+      <div class="num-grid-card" style="left:70%; top:28%; width:18%;">
+        <div class="num-grid-value">159万+</div>
+        <div class="num-grid-label">试次级数据</div>
+      </div>
+      <div class="s7-text body-text" style="top:62%; left:15%; width:70%; text-align:center;">
+        时间跨度 2014—2024，覆盖 23 种同行评审期刊，含未发表数据集
+      </div>
+    </div>
+
+    <!-- ==================== Slide 9: Diversity ==================== -->
+    <div class="slide" id="slide-9">
+      <img class="s7-img" src="pptx_assets/slide7_图片_2.jpg" alt="">
+      <div class="s7-text body-text">
+        <strong style="font-size:22pt;">文化与语言多样性</strong><br><br>
+        <strong>数据收集国家（9个）</strong><br>
+        中国、英国、德国、匈牙利、以色列、澳大利亚、意大利、荷兰、奥地利<br><br>
+        <strong>刺激语言（8种）</strong><br>
+        英语、中文、德语、匈牙利语、希伯来语、意大利语、日语、西班牙语
+      </div>
+    </div>
+
+    <!-- ==================== Slide 10: Stimuli ==================== -->
+    <div class="slide" id="slide-10">
+      <img class="s4-img" src="pptx_assets/slide4_图片_16.png" alt="">
+      <div class="s4-hline" style="top:22%;"></div>
+
+      <div class="s4-col-title" style="left:39.69%; top:12%;">刺激模态</div>
+      <div class="s4-col-tri" style="left:42.35%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:27%;">
+        几何形状、面孔、声音<br>随机点阵、灰度方块<br>视觉-触觉情感触摸
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:12%;">感知通道</div>
+      <div class="s4-col-tri" style="left:60.79%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:27%;">
+        视觉、听觉、触觉<br><br><br>
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:12%;">实验设计</div>
+      <div class="s4-col-tri" style="left:79.12%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:27%;">
+        从简单 2 因素<br>到复杂多因素<br>群体情境、情绪效价
+      </div>
+    </div>
+
+    <!-- ==================== Slide 11: Metrics ==================== -->
+    <div class="slide" id="slide-11">
+      <img class="s5-deco" src="pptx_assets/slide5_图片_1.png" alt="">
+
+      <div class="s5-num" style="left:18%; top:18%; font-size:36pt;">719ms</div>
+      <div class="s5-col-body body-text" style="left:13.5%; top:36%;">
+        整体 RT<br>Median = 701
+      </div>
+
+      <div class="s5-num" style="left:40%; top:18%; font-size:36pt;">696ms</div>
+      <div class="s5-col-body body-text" style="left:35.5%; top:36%;">
+        Matching RT<br>更快
+      </div>
+
+      <div class="s5-num" style="left:62%; top:18%; font-size:36pt;">741ms</div>
+      <div class="s5-col-body body-text" style="left:57.5%; top:36%;">
+        Nonmatching RT<br>更慢
+      </div>
+
+      <div class="s5-num" style="left:84%; top:18%; font-size:36pt;">45ms</div>
+      <div class="s5-col-body body-text" style="left:79.5%; top:36%;">
+        SPE 效应量<br>RT 差异
+      </div>
+    </div>
+
+    <!-- ==================== Slide 12: Section 03 ==================== -->
+    <div class="slide" id="slide-12">
+      <div class="sec-num">03</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">数据库结构</div>
+      <div class="sec-sub heading-en">Database Structure</div>
+    </div>
+
+    <!-- ==================== Slide 13: Folder Structure ==================== -->
+    <div class="slide" id="slide-13">
+      <img class="s8-img" src="pptx_assets/slide8_图片_16.png" alt="">
+      <div class="s8-hline"></div>
+      <div class="s8-heading heading-cn">文件夹结构</div>
+      <div class="s8-body body-text">
+        <pre style="font-family:Consolas,monospace; font-size:13pt; line-height:1.5;">root
+├── 1_Data/&lt;Author&gt;_&lt;Year&gt;_&lt;Journal&gt;/
+│   ├── *_Clean.csv
+│   ├── *_raw.csv
+│   ├── Codebook_*.xlsx
+│   ├── &lt;Paper&gt;.json
+│   └── &lt;Exp&gt;.json
+├── 2_Code/
+│   └── Clean_Data.Rmd / .Rproj
+└── 3_Reports/
+    ├── 1_Identity_Analysis/
+    ├── 2_Mismatch_Analysis/
+    └── 3_Exploratory_Analysis/</pre>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 14: Identity Standardization ==================== -->
+    <div class="slide" id="slide-14">
+      <img class="s7-deco" src="pptx_assets/slide7_图片_1.png" alt="">
+      <div class="s7-text body-text" style="top:25%;">
+        <strong style="font-size:22pt;">标准化身份编码体系</strong><br><br>
+        <strong>三级映射</strong><br>
+        Origin_Identity → English_Identity → Standardized_Identity<br><br>
+        <strong>标准化 6 类</strong><br>
+        Self、Close、Acquaintance、Celebrity、Stranger、NonPerson<br><br>
+        <strong>示例</strong><br>
+        中文“自我” → Self → Self<br>
+        德文“Sie” → They → Stranger<br>
+        英文“Friend” → Friend → Close
+      </div>
+    </div>
+
+    <!-- ==================== Slide 15: Variables ==================== -->
+    <div class="slide table-slide" id="slide-15">
+      <div class="slide-title heading-cn" style="position:absolute; left:8%; top:8%; font-size:32pt;">Clean 数据变量清单</div>
+      <table style="left:8%; top:22%; width:84%;">
+        <tr><th>变量类别</th><th>变量名</th><th>说明</th></tr>
+        <tr><td>核心行为</td><td>Subject, Matching, Shape, Label, RT_ms, RT_sec, ACC, Response</td><td>必含</td></tr>
+        <tr><td>Shape 身份</td><td>Shape_Origin/English/Standardized_Identity</td><td>三级映射</td></tr>
+        <tr><td>Label 身份</td><td>Label_Origin/English/Standardized_Identity</td><td>三级映射</td></tr>
+        <tr><td>实验结构</td><td>Block, Trial, Trial_Type, Session</td><td>可选</td></tr>
+        <tr><td>人口学</td><td>Age, Sex, Handedness</td><td>可选</td></tr>
+      </table>
+    </div>
+
+    <!-- ==================== Slide 16: JSON Metadata ==================== -->
+    <div class="slide" id="slide-16">
+      <img class="s4-img" src="pptx_assets/slide4_图片_16.png" alt="">
+      <div class="s4-hline" style="top:22%;"></div>
+
+      <div class="s4-col-title" style="left:39.69%; top:12%;">出版信息</div>
+      <div class="s4-col-tri" style="left:42.35%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:27%;">
+        作者、年份<br>期刊、DOI<br>许可协议
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:12%;">实验设计</div>
+      <div class="s4-col-tri" style="left:60.79%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:27%;">
+        因素设计<br>刺激类型<br>刺激模态
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:12%;">样本与试次</div>
+      <div class="s4-col-tri" style="left:79.12%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:27%;">
+        样本量、性别、年龄<br>国家、语言<br>练习/正式试次
+      </div>
+    </div>
+
+    <!-- ==================== Slide 17: Section 04 ==================== -->
+    <div class="slide" id="slide-17">
+      <div class="sec-num">04</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">核心功能</div>
+      <div class="sec-sub heading-en">Core Features</div>
+    </div>
+
+    <!-- ==================== Slide 18: Auto Clean Pipeline ==================== -->
+    <div class="slide" id="slide-18">
+      <img class="s6-deco" src="pptx_assets/slide6_图片_1.png" alt="">
+      <div class="slide-title heading-cn" style="position:absolute; left:8%; top:10%; font-size:32pt;">自动化数据清理流水线</div>
+
+      <div class="flow-step" style="left:8%; top:38%;">
+        <div class="flow-dot">1</div>
+        <div class="flow-title">读取</div>
+        <div class="flow-text">*_raw.csv</div>
+      </div>
+      <div class="flow-arrow" style="left:24%; top:40%;">→</div>
+      <div class="flow-step" style="left:26%; top:38%;">
+        <div class="flow-dot">2</div>
+        <div class="flow-title">检测</div>
+        <div class="flow-text">自动变量识别</div>
+      </div>
+      <div class="flow-arrow" style="left:42%; top:40%;">→</div>
+      <div class="flow-step" style="left:44%; top:38%;">
+        <div class="flow-dot">3</div>
+        <div class="flow-title">标准化</div>
+        <div class="flow-text">Matching / ACC</div>
+      </div>
+      <div class="flow-arrow" style="left:60%; top:40%;">→</div>
+      <div class="flow-step" style="left:62%; top:38%;">
+        <div class="flow-dot">4</div>
+        <div class="flow-title">转换</div>
+        <div class="flow-text">RT 单位统一</div>
+      </div>
+      <div class="flow-arrow" style="left:78%; top:40%;">→</div>
+      <div class="flow-step" style="left:80%; top:38%;">
+        <div class="flow-dot">5</div>
+        <div class="flow-title">映射</div>
+        <div class="flow-text">三级 Identity</div>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 19: Shiny Tool ==================== -->
+    <div class="slide" id="slide-19">
+      <img class="s7-img" src="pptx_assets/slide7_图片_2.jpg" alt="">
+      <div class="s7-text body-text">
+        <strong style="font-size:22pt;">Shiny 交互式数据清理工具</strong><br><br>
+        <strong>双处理模式</strong><br>
+        单文件处理 + 批量处理，批量结果打包 ZIP 下载<br><br>
+        <strong>智能变量检测</strong><br>
+        自动识别 Subject、Shape、Label、Matching、ACC、RT 等关键变量<br><br>
+        <strong>Identity 映射</strong><br>
+        自动检测 + 手动映射，三级标准化：Origin → English → Standardized
+      </div>
+    </div>
+
+    <!-- ==================== Slide 20: Reproducible Analysis ==================== -->
+    <div class="slide" id="slide-20">
+      <img class="s5-deco" src="pptx_assets/slide5_图片_1.png" alt="">
+
+      <div class="card2x2" style="left:8%; top:22%; width:40%; height:32%;">
+        <div class="card2x2-title">Identity-level SPE 分析</div>
+        <div class="card2x2-body">混合效应模型 + Bootstrap 估计，输出各 Identity 条件下 SPE 的点估计与置信区间</div>
+      </div>
+      <div class="card2x2" style="left:52%; top:22%; width:40%; height:32%;">
+        <div class="card2x2-title">Mismatch 条件 Bootstrap</div>
+        <div class="card2x2-body">估计非匹配条件下 SPE 的稳健性</div>
+      </div>
+      <div class="card2x2" style="left:8%; top:58%; width:40%; height:32%;">
+        <div class="card2x2-title">探索性调节变量分析</div>
+        <div class="card2x2-body">Spearman Bootstrap 调节分析，识别影响 SPE 大小的实验设计参数</div>
+      </div>
+      <div class="card2x2" style="left:52%; top:58%; width:40%; height:32%;">
+        <div class="card2x2-title">输出成果</div>
+        <div class="card2x2-body">HTML 报告、分析图表、汇总表格，全部可追溯、可复现</div>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 21: License ==================== -->
+    <div class="slide" id="slide-21">
+      <img class="s4-img" src="pptx_assets/slide4_图片_16.png" alt="">
+      <div class="s4-hline" style="top:22%;"></div>
+
+      <div class="s4-col-title" style="left:39.69%; top:12%;">存储位置</div>
+      <div class="s4-col-tri" style="left:42.35%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:27%;">
+        GitHub 仓库<br>OSF 镜像<br>长期可访问
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:12%;">许可协议</div>
+      <div class="s4-col-tri" style="left:60.79%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:27%;">
+        保留原作者许可<br>CC BY 4.0 (17)<br>CC BY-NC-ND (5)
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:12%;">引用规范</div>
+      <div class="s4-col-tri" style="left:79.12%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:27%;">
+        引用 SPE Database<br>引用原始数据来源<br>鼓励预注册
+      </div>
+    </div>
+
+    <!-- ==================== Slide 22: Section 05 ==================== -->
+    <div class="slide" id="slide-22">
+      <div class="sec-num">05</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">使用指南</div>
+      <div class="sec-sub heading-en">User Guide</div>
+    </div>
+
+    <!-- ==================== Slide 23: How to Access ==================== -->
+    <div class="slide" id="slide-23">
+      <img class="s6-deco" src="pptx_assets/slide6_图片_1.png" alt="">
+      <div class="slide-title heading-cn" style="position:absolute; left:8%; top:10%; font-size:32pt;">如何获取数据</div>
+
+      <div class="flow-step" style="left:5%; top:36%;">
+        <div class="flow-dot">1</div>
+        <div class="flow-title">访问仓库</div>
+        <div class="flow-text">GitHub / OSF</div>
+      </div>
+      <div class="flow-arrow" style="left:22%; top:38%;">→</div>
+      <div class="flow-step" style="left:24%; top:36%;">
+        <div class="flow-dot">2</div>
+        <div class="flow-title">浏览索引</div>
+        <div class="flow-text">Dataset_inf.xlsx</div>
+      </div>
+      <div class="flow-arrow" style="left:41%; top:38%;">→</div>
+      <div class="flow-step" style="left:43%; top:36%;">
+        <div class="flow-dot">3</div>
+        <div class="flow-title">下载数据</div>
+        <div class="flow-text">1_Data/ Clean</div>
+      </div>
+      <div class="flow-arrow" style="left:60%; top:38%;">→</div>
+      <div class="flow-step" style="left:62%; top:36%;">
+        <div class="flow-dot">4</div>
+        <div class="flow-title">查阅元数据</div>
+        <div class="flow-text">JSON 文件</div>
+      </div>
+      <div class="flow-arrow" style="left:79%; top:38%;">→</div>
+      <div class="flow-step" style="left:81%; top:36%;">
+        <div class="flow-dot">5</div>
+        <div class="flow-title">运行分析</div>
+        <div class="flow-text">R Markdown</div>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 24: Preprocessing ==================== -->
+    <div class="slide" id="slide-24">
+      <img class="s7-img" src="pptx_assets/slide7_图片_2.jpg" alt="">
+      <div class="s7-text body-text">
+        <strong style="font-size:22pt;">数据预处理建议</strong><br><br>
+        Clean 数据已过滤变量，但仍需根据分析目标自行预处理<br><br>
+        排除 RT < 100 ms 的抢按键反应与 RT > 3000 ms 的注意涣散试次<br><br>
+        剔除整体 ACC 过低的被试<br><br>
+        按研究问题选择 Matching / Nonmatching 或特定 Identity 试次<br><br>
+        查看 Codebook 了解各变量编码细节
+      </div>
+    </div>
+
+    <!-- ==================== Slide 25: Contribute ==================== -->
+    <div class="slide" id="slide-25">
+      <img class="s8-img" src="pptx_assets/slide8_图片_16.png" alt="">
+      <div class="s8-hline"></div>
+      <div class="s8-heading heading-cn">贡献数据</div>
+      <div class="s8-body body-text">
+        欢迎研究者分享使用 SMT 任务收集的数据集<br><br>
+        所需材料：试次级原始数据（RT、ACC、条件变量）+ 人口学信息 + 实验设计说明<br><br>
+        联系方式：<br>
+        hcp4715@hotmail.com<br>
+        czx@nnu.edu.cn
+      </div>
+    </div>
+
+    <!-- ==================== Slide 26: Section 06 ==================== -->
+    <div class="slide" id="slide-26">
+      <div class="sec-num">06</div>
+      <div class="s3-vline" style="left:39.64%; top:30%; height:40%;"></div>
+      <div class="sec-heading heading-cn">应用场景与价值</div>
+      <div class="sec-sub heading-en">Applications & Value</div>
+    </div>
+
+    <!-- ==================== Slide 27: Use Cases ==================== -->
+    <div class="slide" id="slide-27">
+      <img class="s4-img" src="pptx_assets/slide4_图片_16.png" alt="">
+      <div class="s4-hline" style="top:22%;"></div>
+
+      <div class="s4-col-title" style="left:39.69%; top:12%;">Meta-Analysis</div>
+      <div class="s4-col-tri" style="left:44%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:27%;">
+        标准化试次数据<br>支持 SPE 元分析
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:12%;">跨文化比较</div>
+      <div class="s4-col-tri" style="left:61.5%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:27%;">
+        对比不同国家/语言<br>SPE 的稳健性
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:12%;">方法学研究</div>
+      <div class="s4-col-tri" style="left:80%; top:21.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:27%;">
+        探究刺激类型<br>试次数等调节作用
+      </div>
+
+      <div class="s4-col-title" style="left:39.69%; top:54%;">个体差异</div>
+      <div class="s4-col-tri" style="left:43%; top:63.5%;"></div>
+      <div class="s4-col-body body-text" style="left:35.31%; top:69%;">
+        结合人口学变量<br>探索 SPE 个体差异
+      </div>
+
+      <div class="s4-col-title" style="left:58.13%; top:54%;">教学演示</div>
+      <div class="s4-col-tri" style="left:61.5%; top:63.5%;"></div>
+      <div class="s4-col-body body-text" style="left:53.74%; top:69%;">
+        心理学方法课程<br>可重复性教学
+      </div>
+
+      <div class="s4-col-title" style="left:76.46%; top:54%;">临床参考</div>
+      <div class="s4-col-tri" style="left:80%; top:63.5%;"></div>
+      <div class="s4-col-body body-text" style="left:72.08%; top:69%;">
+        为 ASD 等临床人群<br>提供对照基准
+      </div>
+    </div>
+
+    <!-- ==================== Slide 28: Core Value ==================== -->
+    <div class="slide" id="slide-28">
+      <img class="s5-deco" src="pptx_assets/slide5_图片_1.png" alt="">
+
+      <div class="s5-num" style="left:18%; top:18%; font-size:28pt;">标准化</div>
+      <div class="s5-col-body body-text" style="left:13.5%; top:34%;">
+        三级身份编码体系<br>统一跨研究变量
+      </div>
+
+      <div class="s5-num" style="left:40%; top:18%; font-size:28pt;">试次级</div>
+      <div class="s5-col-body body-text" style="left:35.5%; top:34%;">
+        Trial-level 数据<br>支持灵活二次分析
+      </div>
+
+      <div class="s5-num" style="left:62%; top:18%; font-size:28pt;">多样性</div>
+      <div class="s5-col-body body-text" style="left:57.5%; top:34%;">
+        9 国 8 语多模态<br>支持泛化性检验
+      </div>
+
+      <div class="s5-num" style="left:84%; top:18%; font-size:28pt;">开放性</div>
+      <div class="s5-col-body body-text" style="left:79.5%; top:34%;">
+        GitHub + OSF<br>CC 协议
+      </div>
+
+      <div class="s5-num" style="left:30%; top:58%; font-size:28pt;">可重复</div>
+      <div class="s5-col-body body-text" style="left:25.5%; top:74%;">
+        自动化清洗<br>R Markdown 报告
+      </div>
+
+      <div class="s5-num" style="left:60%; top:58%; font-size:28pt;">可扩展</div>
+      <div class="s5-col-body body-text" style="left:55.5%; top:74%;">
+        持续更新<br>社区贡献
+      </div>
+    </div>
+
+    <!-- ==================== Slide 29: Comparison ==================== -->
+    <div class="slide table-slide" id="slide-29">
+      <div class="slide-title heading-cn" style="position:absolute; left:8%; top:8%; font-size:32pt;">与 Confidence Database 对比</div>
+      <table style="left:8%; top:22%; width:84%;">
+        <tr><th>维度</th><th>Confidence Database</th><th>SPE Database</th></tr>
+        <tr><td>领域</td><td>元认知信心判断</td><td>自我优先效应</td></tr>
+        <tr><td>任务</td><td>多种认知任务</td><td>统一 SMT 范式</td></tr>
+        <tr><td>数据粒度</td><td>汇总统计量</td><td>试次级数据</td></tr>
+        <tr><td>标准化</td><td>有限</td><td>三级身份编码</td></tr>
+      </table>
+      <div class="body-text" style="position:absolute; left:8%; top:62%; font-size:14pt; color:#42575C;">
+        SPE Database 在数据粒度与标准化程度上具有显著优势
+      </div>
+    </div>
+
+    <!-- ==================== Slide 30: FAQ ==================== -->
+    <div class="slide" id="slide-30">
+      <img class="s7-deco" src="pptx_assets/slide7_图片_1.png" alt="">
+      <div class="s7-text body-text" style="top:22%;">
+        <strong style="font-size:22pt;">常见问题 FAQ</strong><br><br>
+        <strong>Clean 数据是否可直接用于分析？</strong><br>
+        建议先根据分析目标自行预处理，排除无效 RT/ACC。<br><br>
+        <strong>不同实验变量名不一致怎么办？</strong><br>
+        Clean 数据中已统一标准化，变量名一致。<br><br>
+        <strong>如何找到适合我的数据集？</strong><br>
+        使用 Dataset_inf.xlsx 按国家、刺激类型、样本等筛选。<br><br>
+        <strong>能否在自己的论文中使用？</strong><br>
+        可以，需引用 SPE Database 论文 + 原始数据来源论文。
+      </div>
+    </div>
+
+    <!-- ==================== Slide 31: Team ==================== -->
+    <div class="slide" id="slide-31">
+      <img class="s5-deco" src="pptx_assets/slide5_图片_1.png" alt="">
+
+      <div class="s5-avatar-frame" style="left:18%; top:22%; width:7%; height:7%;"></div>
+      <div class="s5-col-body body-text" style="left:13.5%; top:36%;">
+        <strong>Hu Chuan-Peng</strong><br>通讯作者<br>NNU
+      </div>
+
+      <div class="s5-avatar-frame" style="left:34%; top:22%; width:7%; height:7%;"></div>
+      <div class="s5-col-body body-text" style="left:29.5%; top:36%;">
+        <strong>Zhenxin Cai</strong><br>核心成员<br>NNU
+      </div>
+
+      <div class="s5-avatar-frame" style="left:50%; top:22%; width:7%; height:7%;"></div>
+      <div class="s5-col-body body-text" style="left:45.5%; top:36%;">
+        <strong>Wang Qihui</strong><br>核心成员<br>NNU
+      </div>
+
+      <div class="s5-avatar-frame" style="left:66%; top:22%; width:7%; height:7%;"></div>
+      <div class="s5-col-body body-text" style="left:61.5%; top:36%;">
+        <strong>Xinru Sun</strong><br>核心成员<br>NNU
+      </div>
+
+      <div class="s5-avatar-frame" style="left:82%; top:22%; width:7%; height:7%;"></div>
+      <div class="s5-col-body body-text" style="left:77.5%; top:36%;">
+        <strong>Zheng Liu</strong><br>合作者<br>CUHK-SZ
+      </div>
+    </div>
+
+    <!-- ==================== Slide 32: Summary ==================== -->
+    <div class="slide" id="slide-32">
+      <img class="s8-img" src="pptx_assets/slide8_图片_16.png" alt="">
+      <div class="s8-hline"></div>
+      <div class="s8-heading heading-cn">项目总结</div>
+      <div class="s8-body body-text">
+        <p style="font-size:20pt; font-weight:700; margin-bottom:20px;">SPE Database 是首个面向自我优先效应的试次级开放数据库</p>
+        <p>覆盖 44 篇论文、3,600+ 参与者、150 万+ 试次</p>
+        <p style="margin-top:20px;">
+          • 标准化数据清洗流水线<br>
+          • 统一身份编码体系<br>
+          • 可重复分析框架
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 33: Future ==================== -->
+    <div class="slide" id="slide-33">
+      <img class="s6-deco" src="pptx_assets/slide6_图片_1.png" alt="">
+      <div class="s6-text-upper body-text">
+        <strong>未来展望</strong><br><br>
+        持续扩充：吸纳更多已发表和未发表的数据集<br>
+        功能增强：完善 JSON 元数据、开发更多分析工具<br>
+        社区建设：建立 SPE 研究社区，推动数据共享文化
+      </div>
+      <div class="s6-hline"></div>
+      <div class="s6-text-lower body-text">
+        预注册 Meta：完成预注册的 SPE Meta-Analysis (OSF)<br><br>
+        <span style="color:#42575C;">欢迎访问 github.com/hcp4715/SPE_Database</span>
+      </div>
+    </div>
+
+    <!-- ==================== Slide 34: Thank You ==================== -->
+    <div class="slide" id="slide-34">
+      <img class="s9-img" src="pptx_assets/slide9_图片_6.png" alt="">
+      <div class="s9-title heading-cn">感谢聆听</div>
+      <div class="s9-subtitle heading-en">Thank you for listening</div>
+    </div>
+
+  </div><!-- /slide-container -->
+
+  <!-- Right-side thumbnail preview -->
+  <div id="thumb-trigger"></div>
+  <div id="thumb-panel"></div>
+</div><!-- /presentation-wrapper -->
+
+<script>
+(function() {
+  var TOTAL = 34;
+  var current = 1;
+  var container = document.getElementById('slide-container');
+  var wrapper   = document.getElementById('presentation-wrapper');
+  var progressBar = document.getElementById('progress-bar');
+  var thumbPanel = document.getElementById('thumb-panel');
+  var thumbTrigger = document.getElementById('thumb-trigger');
+  var thumbs = [];
+
+  function scale() {
+    var ww = window.innerWidth;
+    var wh = window.innerHeight;
+    var sw = 1333, sh = 750;
+    var scaleVal = Math.max(ww / sw, wh / sh);
+    container.style.transform = 'scale(' + scaleVal + ')';
+    progressBar.style.width = (current / TOTAL * 100) + '%';
+  }
+  window.addEventListener('resize', scale);
+  scale();
+
+  function updateThumbs() {
+    thumbs.forEach(function(t, i) {
+      t.classList.toggle('active', i + 1 === current);
+    });
+  }
+
+  function goTo(idx) {
+    if (idx < 1 || idx > TOTAL) return;
+    document.getElementById('slide-' + current).classList.remove('active');
+    current = idx;
+    document.getElementById('slide-' + current).classList.add('active');
+    progressBar.style.width = (current / TOTAL * 100) + '%';
+    updateThumbs();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+    if (e.key === 'End')  { e.preventDefault(); goTo(TOTAL); }
+  });
+
+  var touchStartX = 0;
+  wrapper.addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  wrapper.addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goTo(current + 1);
+      else goTo(current - 1);
+    }
+  }, { passive: true });
+
+  // Build right-side thumbnail panel
+  function buildThumbs() {
+    var slides = document.querySelectorAll('.slide');
+    slides.forEach(function(slide, i) {
+      var thumb = document.createElement('div');
+      thumb.className = 'thumb-slide' + (i === 0 ? ' active' : '');
+
+      var inner = document.createElement('div');
+      inner.className = 'thumb-slide-inner';
+      // Clone content and strip IDs to avoid duplicates
+      inner.innerHTML = slide.innerHTML.replace(/\sid="[^"]*"/g, '');
+
+      var num = document.createElement('div');
+      num.className = 'thumb-num';
+      num.textContent = (i + 1) + ' / ' + TOTAL;
+
+      thumb.appendChild(inner);
+      thumb.appendChild(num);
+      thumb.addEventListener('click', function() { goTo(i + 1); });
+      thumbPanel.appendChild(thumb);
+      thumbs.push(thumb);
+    });
+  }
+  buildThumbs();
+
+  // Drag scrolling for thumbnail panel
+  var isDragging = false, dragStartY = 0, dragStartScroll = 0;
+  thumbPanel.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    dragStartY = e.clientY;
+    dragStartScroll = thumbPanel.scrollTop;
+    thumbPanel.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    thumbPanel.scrollTop = dragStartScroll - (e.clientY - dragStartY);
+  });
+  window.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    thumbPanel.style.cursor = '';
+  });
+  thumbPanel.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    dragStartY = e.touches[0].clientY;
+    dragStartScroll = thumbPanel.scrollTop;
+  }, { passive: true });
+  thumbPanel.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    thumbPanel.scrollTop = dragStartScroll - (e.touches[0].clientY - dragStartY);
+  }, { passive: true });
+  thumbPanel.addEventListener('touchend', function() { isDragging = false; });
+})();
+</script>
+
+</body>
+</html>
