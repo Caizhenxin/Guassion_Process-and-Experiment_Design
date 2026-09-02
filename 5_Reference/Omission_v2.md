@@ -107,6 +107,7 @@ $$
 $$
 
 **解释**：
+
 - 第一项：所有观测试次的 log-likelihood 之和（LAN 提供）
 - 第二项：$|O|$ 个 omission 试次的 log-probability（OPN 提供，乘以 omission 试次数）
 
@@ -127,13 +128,13 @@ $$
 
 ### 1.5 论文核心数值发现汇总
 
-| 模型 | LAN-only 偏倚 | LAN+OPN 结果 | 临界 omission 率 |
-|:---|:---|:---|:---|
-| 恒定边界 DDM | a 被**低估**，v 被**高估** | a, v 正确恢复 | 10%-30% 时偏倚显著 |
-| ANGLE (线性塌缩) | a 和 θ 被**高估**（更激进塌缩） | a, θ 正确恢复 | **>5% 即有显著偏倚** |
-| WEIBULL (非线性塌缩) | a↓, α↑, β↓（所有参数被扭曲） | 三个参数偏倚大幅减小 | 10%-20% |
-| 跨条件 Δθ (ANGLE) | Δθ **严重低估**（真值 0.2 → 恢复值 << 0.2） | Δθ 正确恢复 (≈0.2) | 合成双条件设计 |
-| Lapse ($p_{lapse} = 0.01, 0.05$) | SSM 参数偏倚 + $p_{lapse}$ **显著低估** | SSM 参数 + $p_{lapse}$ 均正确恢复 | 0.01-0.05 |
+| 模型                               | LAN-only 偏倚                                       | LAN+OPN 结果                       | 临界 omission 率           |
+| :--------------------------------- | :-------------------------------------------------- | :--------------------------------- | :------------------------- |
+| 恒定边界 DDM                       | a 被**低估**，v 被**高估**              | a, v 正确恢复                      | 10%-30% 时偏倚显著         |
+| ANGLE (线性塌缩)                   | a 和 θ 被**高估**（更激进塌缩）              | a, θ 正确恢复                     | **>5% 即有显著偏倚** |
+| WEIBULL (非线性塌缩)               | a↓, α↑, β↓（所有参数被扭曲）                   | 三个参数偏倚大幅减小               | 10%-20%                    |
+| 跨条件 Δθ (ANGLE)                | Δθ**严重低估**（真值 0.2 → 恢复值 << 0.2） | Δθ 正确恢复 (≈0.2)              | 合成双条件设计             |
+| Lapse ($p_{lapse} = 0.01, 0.05$) | SSM 参数偏倚 +$p_{lapse}$ **显著低估**      | SSM 参数 +$p_{lapse}$ 均正确恢复 | 0.01-0.05                  |
 
 > **本章要点**: (1) LAN+OPN 是"预训练神经网络替代解析似然 + 遗漏概率"框架；(2) 联合似然函数通过 OPN 项惩罚不合理的 omission 数量；(3) 即使 <5% omission 率也会显著偏倚塌缩边界参数；(4) 三种边界类型（恒定/线性/非线性）均受益于 LAN+OPN。
 
@@ -196,12 +197,12 @@ def log_likelihood_LAN_OPN(data_observed, n_omissions, theta, deadline):
 
 本项目完成的 Censor vs Drop 敏感性分析（[Omission建模可行性分析.md](Omission建模可行性分析.md) §2.4）与论文的理论预测完全一致：
 
-| 参数 | 论文预测 | 本项实验发现 | 一致性 |
-|:---|:---|:---|:---:|
-| v (漂移率) | Drop 方案高估 v | G1-G8 全部: Drop v > Censor v（Δ 0.8~6.8） | ✅ |
-| a (边界) | Drop 方案低估 a | G1-G4: Censor > Drop（Δ −0.14~−0.59） | ✅ |
-| z (起始点) | 论文未直接报告 | Censor > Drop（Δ −0.04~−0.24） | 新发现 |
-| SPE_v | 论文跨条件 Δθ 被低估 | SPE_v 方向一致但量值被压缩（Censor SPE < Drop SPE） | ✅ 平行发现 |
+| 参数       | 论文预测               | 本项实验发现                                        |   一致性   |
+| :--------- | :--------------------- | :-------------------------------------------------- | :---------: |
+| v (漂移率) | Drop 方案高估 v        | G1-G8 全部: Drop v > Censor v（Δ 0.8~6.8）         |     ✅     |
+| a (边界)   | Drop 方案低估 a        | G1-G4: Censor > Drop（Δ −0.14~−0.59）            |     ✅     |
+| z (起始点) | 论文未直接报告         | Censor > Drop（Δ −0.04~−0.24）                   |   新发现   |
+| SPE_v      | 论文跨条件 Δθ 被低估 | SPE_v 方向一致但量值被压缩（Censor SPE < Drop SPE） | ✅ 平行发现 |
 
 > **关键确认**：G1 (72.3% omission) 的 v_self 出现**符号反转**（Censor: −4.86 → Drop: +1.95），证明在极端 omission 率下，LAN-only 风格的偏倚可以达到灾难性水平。
 
@@ -229,16 +230,17 @@ def log_likelihood_LAN_OPN(data_observed, n_omissions, theta, deadline):
 
 本项目敏感性分析显示：Censor（类似 LAN-only）与 Drop 方案下的 SPE_v：
 
-| Group | Censor SPE_v | Drop SPE_v | Δ | Cohen's d |
-|:---:|:---:|:---:|:---:|:---:|
-| G2 | +0.707 | +1.706 | +0.999 | 1.30 |
-| G3-G8 | +0.2~1.0 | +0.8~1.3 | 0.1~0.6 | 0.2~1.8 |
+| Group | Censor SPE_v | Drop SPE_v |   Δ   | Cohen's d |
+| :---: | :----------: | :--------: | :-----: | :-------: |
+|  G2  |    +0.707    |   +1.706   | +0.999 |   1.30   |
+| G3-G8 |   +0.2~1.0   |  +0.8~1.3  | 0.1~0.6 |  0.2~1.8  |
 
 **发现**：两种方案下 SPE_v 的**方向**一致（均为正 → 自我优势存在），但**量值**在 Drop 方案下系统性地更大。这与论文 Figure 4 的 $\Delta\theta$ 发现平行——LAN-only 低估了条件间的参数差异。
 
 #### 3.2.2 机制解释
 
 偏倚在跨条件下可能不是均等的。如果两个条件的 omission 率不同（如 G2 的 omission 率 52% vs G6 的 6.7%），那么：
+
 - 高遗漏率条件的偏倚更大
 - 导致条件间差异被压缩（或放大，取决于偏倚方向）
 
@@ -258,19 +260,19 @@ def log_likelihood_LAN_OPN(data_observed, n_omissions, theta, deadline):
 
 ### 4.1 逐维度对照表
 
-| 维度 | Leng et al. (2025) 设置 | 本项目现状 | 适配度 | 说明 |
-|:---|:---|:---|:---:|:---|
-| **数据来源** | 合成数据（已知 ground truth） | 真实被试数据（88 人，8 组） | ⚠️ | 无法做绝对恢复评估；只能做相对比较 |
-| **样本量/组** | 100-500 合成试次/组 | 2600-3120 真实试次/组 | ✅ | 试次数充足 |
-| **被试数/组** | 未层次化 | 10-12 被试/组 | ✅ | 支持层级贝叶斯 |
-| **DDM 类型** | DDM/ANGLE/WEIBULL 三种 | 仅恒定边界 DDM | ⚠️ | ANGLE/WEIBULL 的结论不完全适用 |
-| **参数估计方法** | LAN-based MCMC (HSSM) | HDDM MCMC (解析似然) | ⚠️ | 方法不同，但同为层级贝叶斯 |
-| **层次结构** | 支持 (HSSM) | 已使用 (HDDM) | ✅ | 方法论兼容 |
-| **Omission 率范围** | 5-30%（主要集中在 <20%） | 6.7-72.3%（跨度极大） | ⚠️ | 高端超出论文考察范围 |
-| **Deadline 设置** | 固定 1.25s | 各组不同 (330-2000ms) | ✅ | 论文支持变 deadline |
-| **Lapse 建模** | 支持联合估计 $p_{lapse}$ | 未显式建模 | 🟡 | 可扩展（见 §5 路线 C） |
-| **软件工具** | HSSM (Python) | HDDM (Python) | ⚠️ | 不同包，但 HSSM 兼容 HDDM 数据格式 |
-| **参数可识别性** | 多个条件约束 + 大样本 | 8 组，其中 G1/G2 建议排除 | 🔴 | 核心瓶颈 |
+| 维度                      | Leng et al. (2025) 设置       | 本项目现状                  | 适配度 | 说明                               |
+| :------------------------ | :---------------------------- | :-------------------------- | :----: | :--------------------------------- |
+| **数据来源**        | 合成数据（已知 ground truth） | 真实被试数据（88 人，8 组） |  ⚠️  | 无法做绝对恢复评估；只能做相对比较 |
+| **样本量/组**       | 100-500 合成试次/组           | 2600-3120 真实试次/组       |   ✅   | 试次数充足                         |
+| **被试数/组**       | 未层次化                      | 10-12 被试/组               |   ✅   | 支持层级贝叶斯                     |
+| **DDM 类型**        | DDM/ANGLE/WEIBULL 三种        | 仅恒定边界 DDM              |  ⚠️  | ANGLE/WEIBULL 的结论不完全适用     |
+| **参数估计方法**    | LAN-based MCMC (HSSM)         | HDDM MCMC (解析似然)        |  ⚠️  | 方法不同，但同为层级贝叶斯         |
+| **层次结构**        | 支持 (HSSM)                   | 已使用 (HDDM)               |   ✅   | 方法论兼容                         |
+| **Omission 率范围** | 5-30%（主要集中在 <20%）      | 6.7-72.3%（跨度极大）       |  ⚠️  | 高端超出论文考察范围               |
+| **Deadline 设置**   | 固定 1.25s                    | 各组不同 (330-2000ms)       |   ✅   | 论文支持变 deadline                |
+| **Lapse 建模**      | 支持联合估计$p_{lapse}$     | 未显式建模                  |   🟡   | 可扩展（见 §5 路线 C）            |
+| **软件工具**        | HSSM (Python)                 | HDDM (Python)               |  ⚠️  | 不同包，但 HSSM 兼容 HDDM 数据格式 |
+| **参数可识别性**    | 多个条件约束 + 大样本         | 8 组，其中 G1/G2 建议排除   |   🔴   | 核心瓶颈                           |
 
 ### 4.2 核心适配障碍
 
@@ -296,12 +298,12 @@ def log_likelihood_LAN_OPN(data_observed, n_omissions, theta, deadline):
 
 ### 4.3 整体适配性判断
 
-| 方面 | 判断 |
-|:---|:---|
-| **论文核心主张的适用性** | ✅ 适用——恒定边界 DDM 的偏倚模式与论文一致 |
-| **LAN+OPN 方法的可行性** | 🟡 中期可行——需等待 HSSM 成熟 + 更多数据 |
-| **当前 Censor 方案的充分性** | ✅ 已实证验证——遗漏率 <15% 时与 Drop 方案 95% CI 重叠 |
-| **最优先行动** | 排除 G1/G2、更新 GP 模型使用 G3-G8、在论文中引用 Leng et al. |
+| 方面                               | 判断                                                         |
+| :--------------------------------- | :----------------------------------------------------------- |
+| **论文核心主张的适用性**     | ✅ 适用——恒定边界 DDM 的偏倚模式与论文一致                 |
+| **LAN+OPN 方法的可行性**     | 🟡 中期可行——需等待 HSSM 成熟 + 更多数据                   |
+| **当前 Censor 方案的充分性** | ✅ 已实证验证——遗漏率 <15% 时与 Drop 方案 95% CI 重叠      |
+| **最优先行动**               | 排除 G1/G2、更新 GP 模型使用 G3-G8、在论文中引用 Leng et al. |
 
 > **本章要点**: (1) 论文核心主张适用于本项目的恒定边界 DDM；(2) 真实数据 + 8 组条件限制了绝对恢复评估；(3) HSSM LAN+OPN 是中期方向而非短期可执行方案；(4) 已完成敏感性分析为当前 Censor 方案提供了实证支持。
 
@@ -354,12 +356,12 @@ model.sample(3000, burn=500)
 
 #### 5.2.1 先决条件检查
 
-| 条件 | 当前状态 | 预计可满足时间 |
-|:---|:---|:---|
-| HSSM 正式发布 LAN+OPN 功能 | "in prep" | 未知（追踪论文作者） |
-| OPN 预训练数据 | 需要大量合成数据 | 可自行生成（见下文） |
-| 恒定边界 DDM 的 OPN | 论文已验证 | 需确认 HSSM 是否默认提供 |
-| 至少 20+ 实验条件 | 当前 8 组 | Phase 4 新增后 |
+| 条件                       | 当前状态         | 预计可满足时间           |
+| :------------------------- | :--------------- | :----------------------- |
+| HSSM 正式发布 LAN+OPN 功能 | "in prep"        | 未知（追踪论文作者）     |
+| OPN 预训练数据             | 需要大量合成数据 | 可自行生成（见下文）     |
+| 恒定边界 DDM 的 OPN        | 论文已验证       | 需确认 HSSM 是否默认提供 |
+| 至少 20+ 实验条件          | 当前 8 组        | Phase 4 新增后           |
 
 #### 5.2.2 实施步骤（6 步）
 
@@ -442,13 +444,13 @@ def generate_opn_training_data(n_samples=100000, n_sim_per_sample=5000):
         t = np.random.uniform(0.2, 0.7)
         z = 0.5
         d = np.random.uniform(0.3, 2.5)  # deadline 范围
-        
+    
         # 运行 DDM 模拟（需要已有 simulator）
         n_omissions = simulator(v, a, z, t, d, n_sim_per_sample)
-        
+    
         X.append([v, a, t, z, d])
         y.append(n_omissions / n_sim_per_sample)
-    
+  
     return np.array(X), np.array(y)
 
 # 训练简单 MLP
@@ -473,13 +475,13 @@ comparison = pd.DataFrame({
 
 ##### Step B6: 本项目的 Blockers 汇总
 
-| Blocker | 说明 | 缓解措施 |
-|:---|:---|:---|
-| HSSM 未正式发布 | LAN+OPN 功能在"in prep"状态 | 追踪论文作者的 GitHub，使用开发分支 |
-| OPN 需要大量模拟数据 | 至少 10 万次模拟用于训练 | 使用 GPU 加速 SSM 模拟（如 JAX-based） |
-| 恒定边界 DDM 的 OPN 预置 | 论文主要测试 ANGLE/WEIBULL | 确认 HSSM 是否默认提供 DDM-OPN |
-| 8→6 组条件的设计空间 | GP 泛化能力受限 | 新增 4-6 个实验条件后再评估 |
-| LAN 近似误差 | LAN 是解析似然的近似 | 论文已证明 LAN 在 DDM 上的近似精度很高 |
+| Blocker                  | 说明                        | 缓解措施                               |
+| :----------------------- | :-------------------------- | :------------------------------------- |
+| HSSM 未正式发布          | LAN+OPN 功能在"in prep"状态 | 追踪论文作者的 GitHub，使用开发分支    |
+| OPN 需要大量模拟数据     | 至少 10 万次模拟用于训练    | 使用 GPU 加速 SSM 模拟（如 JAX-based） |
+| 恒定边界 DDM 的 OPN 预置 | 论文主要测试 ANGLE/WEIBULL  | 确认 HSSM 是否默认提供 DDM-OPN         |
+| 8→6 组条件的设计空间    | GP 泛化能力受限             | 新增 4-6 个实验条件后再评估            |
+| LAN 近似误差             | LAN 是解析似然的近似        | 论文已证明 LAN 在 DDM 上的近似精度很高 |
 
 > **路线 B 总体评估**: 🟡 **中期可行但非短期优先**。建议等待两个信号：(1) HSSM 正式发布 LAN+OPN；(2) Phase 4 新增实验条件后将条件数提升至 12+。
 
@@ -510,6 +512,7 @@ model = hddm.HDDM(
 ```
 
 **评估**：
+
 - ✅ 代码改动最小（仅需改动 HDDM 配置）
 - ⚠️ p_outlier ≠ 论文的 lapse 模型——p_outlier 表示均匀分布的概率，而 omission 来自 deadline 超时
 - ⚠️ 需要去掉 omission 试次后再拟合（即 Drop 方案的数据），然后用 p_outlier 捕捉剩余噪声
@@ -526,27 +529,27 @@ from scipy.special import expit as sigmoid
 def sigmoid_omission_rate(P, T_ms, W_ms, params):
     """
     预测给定 (P, T, W) 下的 omission 率
-    
+  
     理论依据:
       - T 越小 → 可用的 evidence 越少 → omission 越高
       - W 越小 → deadline 越短 → omission 越高
       - P 越大 → 练习效应 → v 提高 → omission 降低
       - M = T + W 综合表征时间压力
-    
+  
     params: [alpha_0, k_P, P_0, k_T, T_0, k_W, W_0]
     """
     M_ms = T_ms + W_ms
     alpha_0, k_P, P_0, k_T, T_0, k_W, W_0 = params
-    
+  
     # P 的练习效应（练习越多 → omission 越低）
     f_P = sigmoid(-k_P * (P - P_0))  # 递减函数
-    
+  
     # T 的刺激质量效应（T 越短 → omission 越高）
     f_T = 1 - sigmoid(k_T * (T_ms - T_0))  # 递减函数
-    
+  
     # W 的时间压力效应（W 越短 → omission 越高）
     f_W = 1 - sigmoid(k_W * (W_ms - W_0))  # 递减函数
-    
+  
     # 组合（乘法交互）
     omission_rate = alpha_0 * f_P * f_T * f_W
     return np.clip(omission_rate, 0.001, 0.999)
@@ -571,6 +574,7 @@ result = differential_evolution(
 ```
 
 **评估**：
+
 - ✅ 基于现有 Sigmoid 框架，参数形式与 `compute_v_s2()`、`compute_a_s2()` 一致
 - ✅ 可用已有 G3-G8 的 6 个数据点校准
 - ⚠️ 6 个数据点校准 7 个参数 → 信息不足，需使用强先验
@@ -590,20 +594,20 @@ class GPSigmoidHybridModel:
         self.gp_a = GaussianProcessRegressor(...)
         self.gp_t = GaussianProcessRegressor(...)
         self.gp_z = GaussianProcessRegressor(...)
-        
+    
         # 新增：第 6 个 GP 预测 omission 率
         self.gp_omission = GaussianProcessRegressor(
             kernel=ConstantKernel() * RBF() + WhiteKernel()
         )
-    
+  
     def fit(self, X, y_dict):
         """X: (P,T,W) 归一化; y_dict: 各参数的训练目标"""
         self.gp_v_self.fit(X, y_dict['v_self'])
         # ... 其他 GP ...
-        
+    
         # 训练 omission GP
         self.gp_omission.fit(X, y_dict['omission_rate'])
-    
+  
     def predict_omission(self, X_new):
         """预测新设计点的 omission 率"""
         mean, std = self.gp_omission.predict(X_new, return_std=True)
@@ -611,17 +615,18 @@ class GPSigmoidHybridModel:
 ```
 
 **评估**：
+
 - ✅ 与当前 GP 架构完全一致，扩展简单
 - ✅ 已有 Step 5 行为验证的基础（omission_rate r=0.923）
 - ⚠️ 6 组训练点不足以支持 3D GP 的可靠泛化（与 v/a/t/z GP 面临的同样的瓶颈）
 
 #### 路线 C 各方案对比
 
-| 方案 | 实现难度 | 与论文接近度 | 对当前分析的影响 | 建议优先级 |
-|:---|:---:|:---:|:---|:---:|
-| C1: p_outlier 代理 | 低 | 低 | 可增强 DDM 拟合的诊断 | 🟡 |
-| C2: Sigmoid omission | 中 | 中 | 仅改进生成模型的行为验证 | 🟢 **推荐** |
-| C3: GP omission | 中 | 低 | 与现有瓶颈（6 点）同病 | 🟡 |
+| 方案                 | 实现难度 | 与论文接近度 | 对当前分析的影响         |    建议优先级    |
+| :------------------- | :------: | :----------: | :----------------------- | :--------------: |
+| C1: p_outlier 代理   |    低    |      低      | 可增强 DDM 拟合的诊断    |        🟡        |
+| C2: Sigmoid omission |    中    |      中      | 仅改进生成模型的行为验证 | 🟢**推荐** |
+| C3: GP omission      |    中    |      低      | 与现有瓶颈（6 点）同病   |        🟡        |
 
 > **路线 C 推荐顺序**: 先实施 C2 (Sigmoid omission_rate)，后评估 C1（如需要更强的 DDM 诊断），C3 待条件数增加后再考虑。
 
@@ -635,14 +640,14 @@ class GPSigmoidHybridModel:
 
 ### 6.1 HSSM 与 HDDM 的关系
 
-| 特性 | HDDM | HSSM |
-|:---|:---|:---|
-| 框架 | 层级贝叶斯 DDM (PyMC-based) | 层级贝叶斯 SSM (PyMC/Bambi-based) |
-| 支持模型 | 恒定边界 DDM | DDM + ANGLE + WEIBULL + 自定义 SSM |
-| 似然计算 | 解析似然（Wiener diffusion） | LAN（神经网络近似似然）+ 可选解析似然 |
-| Omission 建模 | 截尾数据（rt=deadline, response=0） | LAN+OPN（deadlinedata=True） |
-| 安装 | `pip install hddm` | `pip install hssm` |
-| 数据格式 | `subj_idx, rt, response` | 同 HDDM，额外支持 deadline 列 |
+| 特性          | HDDM                                | HSSM                                  |
+| :------------ | :---------------------------------- | :------------------------------------ |
+| 框架          | 层级贝叶斯 DDM (PyMC-based)         | 层级贝叶斯 SSM (PyMC/Bambi-based)     |
+| 支持模型      | 恒定边界 DDM                        | DDM + ANGLE + WEIBULL + 自定义 SSM    |
+| 似然计算      | 解析似然（Wiener diffusion）        | LAN（神经网络近似似然）+ 可选解析似然 |
+| Omission 建模 | 截尾数据（rt=deadline, response=0） | LAN+OPN（deadlinedata=True）          |
+| 安装          | `pip install hddm`                | `pip install hssm`                  |
+| 数据格式      | `subj_idx, rt, response`          | 同 HDDM，额外支持 deadline 列         |
 
 ### 6.2 安装
 
@@ -723,24 +728,24 @@ summary = model_hssm.summary()
 model_with_opn = hssm.HSSM(
     data=df,
     model="ddm",                    # 可选: "ddm", "angle", "weibull"
-    
+  
     # 参数设置
     include=[...],
-    
+  
     # === Omission 相关配置（核心新增） ===
     deadlinedata=True,              # 启用 omission 数据处理
     deadline="deadline",            # deadline 列名（秒）
-    
+  
     # === LAN 配置 ===
     # 默认使用预训练的 LAN（如存在）
     # 可用 model="ddm" 的解析似然或自定义 LAN
     likelihood=" analytical",       # 或 "lan" / "approx_difference"
-    
+  
     # === OPN 配置 ===
     # deadlinedata=True 时 HSSM 自动加载/训练 OPN
     # 也可手动指定:
     # opn_network = "default_ddm_opn"  # 预训练的 DDM OPN
-    
+  
     # === 层级结构 ===
     hierarchical=True,
 )
@@ -766,19 +771,19 @@ def convert_hddm_to_hssm(group_id, P_val, T_val, W_val):
     """单个 group 的转换"""
     csv_path = BASE_DIR / f"2_Data/Real_Data/HDDM_Ready/hddm_data_group{group_id}_P{P_val}_T{T_val}_W{W_val}.csv"
     df = pd.read_csv(csv_path)
-    
+  
     # 添加 deadline 列（秒）
     deadline_ms = T_val + W_val
     df["deadline"] = deadline_ms / 1000.0
-    
+  
     # 添加实验条件信息
     df["P"] = P_val
     df["T"] = T_val
     df["W"] = W_val
-    
+  
     # HSSM 与 HDDM 共用列: subj_idx, rt, response, identity
     # HSSM 额外需要: deadline（秒）
-    
+  
     # 保存
     out_dir = BASE_DIR / "2_Data/Real_Data/HSSM_Ready"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -800,12 +805,12 @@ for gid, P, T, W in groups:
 
 ### 6.6 当前限制与 Workaround
 
-| 限制 | 说明 | Workaround |
-|:---|:---|:---|
-| LAN+OPN 仍在开发 | HSSM 论文标记为 "in prep" | 使用 `deadlinedata=False` + 手动构造 likelihood |
-| OPN 预训练数据 | 默认 OPN 可能不覆盖本项目的参数范围 | 基于本项目 DDM 参数范围自己训练 OPN |
-| 层级模型复杂度 | HSSM 的语法与 HDDM 有差异 | 参考 HSSM 文档中的 `include` 参数语法 |
-| JAX 依赖 | GPU 加速需要 JAX | CPU 模式也可运行（较慢） |
+| 限制             | 说明                                | Workaround                                       |
+| :--------------- | :---------------------------------- | :----------------------------------------------- |
+| LAN+OPN 仍在开发 | HSSM 论文标记为 "in prep"           | 使用`deadlinedata=False` + 手动构造 likelihood |
+| OPN 预训练数据   | 默认 OPN 可能不覆盖本项目的参数范围 | 基于本项目 DDM 参数范围自己训练 OPN              |
+| 层级模型复杂度   | HSSM 的语法与 HDDM 有差异           | 参考 HSSM 文档中的`include` 参数语法           |
+| JAX 依赖         | GPU 加速需要 JAX                    | CPU 模式也可运行（较慢）                         |
 
 > **本章要点**: (1) HSSM 是 HDDM 的"未来版本"，支持更复杂的 SSM 和 LAN+OPN；(2) 数据格式从 HDDM 迁移只需要添加 deadline 列；(3) deadlinedata=True 是启用 OPN 的唯一配置项；(4) 当前建议以概念学习为主，实际运行需等待工具成熟。
 
@@ -815,17 +820,17 @@ for gid, P, T, W in groups:
 
 ### 7.1 决策矩阵
 
-| 阶段 | 期限 | 内容 | 依赖 | 状态 |
-|:---|:---|:---|:---|:---:|
-| **Phase 2.4** | 2026-06 | Censor vs Drop 敏感性分析 | HDDM Docker | ✅ 完成 |
-| **Phase 3.2** | 2026-06 | G7/G8 区分、G1-G2 排除决策 | 敏感性分析结论 | ✅ 完成 |
-| **Phase 5.1** | Week 1 | 正式排除 G1/G2，更新所有分析引用 | §2.4 结论 | 📋 待执行 |
-| **Phase 5.2** | Week 1-2 | 重新训练 GP+Sigmoid 模型使用 G3-G8 | HDDM Traces (Censor) | 📋 待执行 |
-| **Phase 5.3** | Week 2-3 | 路线 C2: Sigmoid omission_rate 预测 | G3-G8 omission 数据 | 📋 待执行 |
-| **Phase 5.4** | Week 3-4 | Parameter Recovery + LOCV (G3-G8) | 新 GP 模型 | 📋 待执行 |
-| **Phase 5.5** | Week 4-6 | 论文初稿 Methods + Results + Omission 讨论 | 上述全部 | 📋 待执行 |
-| **Phase 6** | 长期 | 追踪 HSSM LAN+OPN 发布状态 | 论文作者 | 🔮 展望 |
-| **Phase 6** | 长期 | 新增 4-6 实验条件后重新评估 | 新数据采集 | 🔮 展望 |
+| 阶段                | 期限     | 内容                                       | 依赖                 |   状态   |
+| :------------------ | :------- | :----------------------------------------- | :------------------- | :-------: |
+| **Phase 2.4** | 2026-06  | Censor vs Drop 敏感性分析                  | HDDM Docker          |  ✅ 完成  |
+| **Phase 3.2** | 2026-06  | G7/G8 区分、G1-G2 排除决策                 | 敏感性分析结论       |  ✅ 完成  |
+| **Phase 5.1** | Week 1   | 正式排除 G1/G2，更新所有分析引用           | §2.4 结论           | 📋 待执行 |
+| **Phase 5.2** | Week 1-2 | 重新训练 GP+Sigmoid 模型使用 G3-G8         | HDDM Traces (Censor) | 📋 待执行 |
+| **Phase 5.3** | Week 2-3 | 路线 C2: Sigmoid omission_rate 预测        | G3-G8 omission 数据  | 📋 待执行 |
+| **Phase 5.4** | Week 3-4 | Parameter Recovery + LOCV (G3-G8)          | 新 GP 模型           | 📋 待执行 |
+| **Phase 5.5** | Week 4-6 | 论文初稿 Methods + Results + Omission 讨论 | 上述全部             | 📋 待执行 |
+| **Phase 6**   | 长期     | 追踪 HSSM LAN+OPN 发布状态                 | 论文作者             |  🔮 展望  |
+| **Phase 6**   | 长期     | 新增 4-6 实验条件后重新评估                | 新数据采集           |  🔮 展望  |
 
 ### 7.2 风险地图
 
@@ -897,13 +902,13 @@ bias in parameter estimation.
 
 ### 8.3 建议图表清单
 
-| # | 图表 | 内容 | 来源 |
-|:---:|:---|:---|:---|
-| 1 | Sensitivity figure (bar) | Censor vs Drop 6 参数 + 95% CI | `3_Figures/Omission_Sensitivity/sensitivity_censor_vs_drop_params.png` |
+| # | 图表                         | 内容                                        | 来源                                                                      |
+| :-: | :--------------------------- | :------------------------------------------ | :------------------------------------------------------------------------ |
+| 1 | Sensitivity figure (bar)     | Censor vs Drop 6 参数 + 95% CI              | `3_Figures/Omission_Sensitivity/sensitivity_censor_vs_drop_params.png`  |
 | 2 | Sensitivity figure (scatter) | Censor vs Drop 参数散点（颜色=omission 率） | `3_Figures/Omission_Sensitivity/sensitivity_scatter_censor_vs_drop.png` |
-| 3 | Omission summary | 各组 omission 率与试次分布 | `3_Figures/Omission_Sensitivity/omission_summary_by_group.png` |
-| 4 | Conceptual figure | LAN+OPN 框架示意图（改编自论文 Figure 1B） | 需自行绘制或引用论文 |
-| 5 | Delta vs omission rate | Δ 随遗漏率变化的趋势 | `3_Figures/Omission_Sensitivity/sensitivity_delta_vs_omission_rate.png` |
+| 3 | Omission summary             | 各组 omission 率与试次分布                  | `3_Figures/Omission_Sensitivity/omission_summary_by_group.png`          |
+| 4 | Conceptual figure            | LAN+OPN 框架示意图（改编自论文 Figure 1B）  | 需自行绘制或引用论文                                                      |
+| 5 | Delta vs omission rate       | Δ 随遗漏率变化的趋势                       | `3_Figures/Omission_Sensitivity/sensitivity_delta_vs_omission_rate.png` |
 
 ### 8.4 关键引用格式
 
@@ -919,32 +924,32 @@ Manuscript in preparation.
 
 ## 附录 A：与 v1（Omission建模可行性分析.md）的差异对照
 
-| v1 内容 | v2 新增/改动 |
-|:---|:---|
-| §1 文献核心发现（高层摘要） | §1 论文方法论深度解读（数学公式 + 伪代码） |
-| §2 本项目 Omission 现状 | §4 适配性深度评估（11 维度对照表） |
-| §3 三种路线（概要） | §5 三种路线（可执行代码骨架） |
-| — | §2 偏倚量化机制（似然函数层面解释） |
-| — | §3 跨条件比较（论文 Figure 4 → 本项目 SPE_v） |
-| — | §6 HSSM 入门教程（全新） |
-| §4-6 建议 + 计划 | §7-8 分阶段实施 + 论文写作方案（基于已完成工作更新） |
+| v1 内容                      | v2 新增/改动                                          |
+| :--------------------------- | :---------------------------------------------------- |
+| §1 文献核心发现（高层摘要） | §1 论文方法论深度解读（数学公式 + 伪代码）           |
+| §2 本项目 Omission 现状     | §4 适配性深度评估（11 维度对照表）                   |
+| §3 三种路线（概要）         | §5 三种路线（可执行代码骨架）                        |
+| —                           | §2 偏倚量化机制（似然函数层面解释）                  |
+| —                           | §3 跨条件比较（论文 Figure 4 → 本项目 SPE_v）       |
+| —                           | §6 HSSM 入门教程（全新）                             |
+| §4-6 建议 + 计划            | §7-8 分阶段实施 + 论文写作方案（基于已完成工作更新） |
 
 ---
 
 ## 附录 B：关键术语中英对照
 
-| 英文 | 中文 | 首次出现章节 |
-|:---|:---|:---|
-| Sequential Sampling Model (SSM) | 顺序抽样模型 | §1.1 |
-| Drift Diffusion Model (DDM) | 漂移扩散模型 | §1.2.1 |
-| Likelihood Approximation Network (LAN) | 似然近似网络 | §1.3.2 |
-| Omission Probability Network (OPN) | 遗漏概率网络 | §1.3.3 |
-| Right-censoring | 右截尾 | §2.2 |
-| Collapsing boundary | 塌缩边界 | §1.2.2 |
-| Lapse distribution | 注意流失分布 | §1.4 |
-| Posterior predictive check | 后验预测检查 | §3.1 |
-| Hierarchical Bayesian | 层级贝叶斯 | §6.1 |
-| Deadline | 截止时间（deadline） | §1.2 |
+| 英文                                   | 中文                 | 首次出现章节 |
+| :------------------------------------- | :------------------- | :----------- |
+| Sequential Sampling Model (SSM)        | 顺序抽样模型         | §1.1        |
+| Drift Diffusion Model (DDM)            | 漂移扩散模型         | §1.2.1      |
+| Likelihood Approximation Network (LAN) | 似然近似网络         | §1.3.2      |
+| Omission Probability Network (OPN)     | 遗漏概率网络         | §1.3.3      |
+| Right-censoring                        | 右截尾               | §2.2        |
+| Collapsing boundary                    | 塌缩边界             | §1.2.2      |
+| Lapse distribution                     | 注意流失分布         | §1.4        |
+| Posterior predictive check             | 后验预测检查         | §3.1        |
+| Hierarchical Bayesian                  | 层级贝叶斯           | §6.1        |
+| Deadline                               | 截止时间（deadline） | §1.2        |
 
 ---
 

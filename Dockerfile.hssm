@@ -1,0 +1,23 @@
+# HSSM Docker 镜像 (Python 3.11 + HSSM + Jupyter)
+# 用途：在 Windows 上运行 HSSM，无需本地安装 conda
+FROM condaforge/mambaforge:latest
+
+# 创建 HSSM 环境
+RUN conda create -n hssm python=3.11 -y && conda clean -afy
+
+# 安装 HSSM 和 Jupyter 生态
+RUN conda run -n hssm pip install jax jupyter notebook ipykernel && \
+    conda run -n hssm conda install -c conda-forge hssm -y && \
+    conda run -n hssm conda install -c conda-forge pandas matplotlib scikit-learn seaborn -y && \
+    conda clean -afy
+
+# 注册 kernel
+RUN conda run -n hssm python -m ipykernel install --user --name hssm --display-name "Python (HSSM)"
+
+# 工作目录
+WORKDIR /home/jovyan/work
+
+# 启动 Jupyter（不自动打开浏览器）
+CMD ["conda", "run", "-n", "hssm", "jupyter", "notebook", \
+     "--ip=0.0.0.0", "--port=8888", "--no-browser", \
+     "--allow-root", "--NotebookApp.token=''"]
