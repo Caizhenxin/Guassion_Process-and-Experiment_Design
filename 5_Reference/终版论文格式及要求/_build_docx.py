@@ -30,7 +30,7 @@ import xml.sax.saxutils as sax
 
 BASE = Path(__file__).resolve().parent
 TEMPLATE = BASE / "温_毕业论文_设计空间_v13最终版.docx"
-OUT = BASE / "毕业论文_蔡振辛_初稿v0_20260902.docx"
+OUT = BASE / "毕业论文_蔡振辛_初稿v1_20260902.docx"
 DRAFT12 = BASE.parent / "毕业论文初稿_第1-2章_绪论与文献综述_20260902.md"
 DRAFT35 = BASE.parent / "毕业论文初稿_第3-5章_已完成研究_20260902.md"
 
@@ -41,8 +41,12 @@ def esc(t):
     return sax.escape(t)
 
 
-def runs_from_inline(text, color=None):
-    """支持 **加粗** 与 `代码/路径`；返回 runs XML。"""
+BASE_RPR = ('<w:rFonts w:hint="default" w:ascii="Times New Roman" w:hAnsi="Times New Roman"'
+            ' w:eastAsia="宋体" w:cs="Times New Roman"/><w:kern w:val="0"/><w:sz w:val="24"/>')
+
+
+def runs_from_inline(text, color=None, size_half=None, font_east=None):
+    """支持 **加粗** 与 `代码/路径`；rPr 基座复刻模板正文（宋体/小四）。"""
     out = []
     tokens = re.split(r"(\*\*.+?\*\*|`[^`]+`)", text)
     for tk in tokens:
@@ -55,36 +59,45 @@ def runs_from_inline(text, color=None):
         else:
             out.append(("", tk))
     xml = ""
+    extra_sz = ('<w:sz w:val="%d"/><w:szCs w:val="%d"/>' % (size_half, size_half)) if size_half else ""
+    extra_ea = ('<w:eastAsia w:val="%s"/>' % font_east) if font_east else ""
     for fmt, seg in out:
-        rpr = "<w:rPr>%s%s%s</w:rPr>" % (fmt, "<w:color w:val='C00000'/>" if color else "", "")
+        rpr = "<w:rPr>" + BASE_RPR + extra_sz + extra_ea + fmt + (
+            "<w:color w:val='C00000'/>" if color else "") + "</w:rPr>"
         xml += "<w:r>%s<w:t xml:space='preserve'>%s</w:t></w:r>" % (rpr, esc(seg))
     return xml
 
 
-def para(text, style=None, color=None, align=None, size_half=None, font_east=None):
+def para(text, style=None, color=None, align=None, size_half=None, font_east=None, indent=True, line_400=True):
     ppr = "<w:pPr>"
     if style:
         ppr += "<w:pStyle w:val='%s'/>" % style
+    if line_400:
+        ppr += '<w:widowControl/><w:spacing w:line="400" w:lineRule="exact"/>'
+    if indent and not align:
+        ppr += '<w:ind w:firstLine="480" w:firstLineChars="200"/>'
     if align:
         ppr += "<w:jc w:val='%s'/>" % align
-    if size_half or font_east:
-        rpr = "<w:rPr>"
-        if size_half:
-            rpr += "<w:sz w:val='%d'/><w:szCs w:val='%d'/>" % (size_half, size_half)
-        if font_east:
-            rpr += "<w:rFonts w:ascii='Times New Roman' w:hAnsi='Times New Roman' w:eastAsia='%s'/>" % font_east
-        rpr += "</w:rPr>"
-        ppr += "</w:pPr>"
-        body = "<w:r>%s<w:t xml:space='preserve'>%s</w:t></w:r>" % (rpr, esc(text))
-        return "<w:p>%s%s</w:p>" % (ppr, body)
     ppr += "</w:pPr>"
+    if size_half or font_east:
+        return ("<w:p>%s<w:r><w:rPr>%s</w:rPr><w:t xml:space='preserve'>%s</w:t></w:r></w:p>"
+                % (ppr, BASE_RPR +
+                   ('<w:sz w:val="%d"/><w:szCs w:val="%d"/>' % (size_half, size_half) if size_half else "") +
+                   ('<w:eastAsia w:val="%s"/>' % font_east if font_east else ""), esc(text)))
     return "<w:p>%s%s</w:p>" % (ppr, runs_from_inline(text, color=color))
 
 
 def heading(text, level):
     style = {1: "2", 2: "3", 3: "4", 4: "4"}[level]
-    return "<w:p><w:pPr><w:pStyle w:val='%s'/><w:outlineLvl w:val='%d'/></w:pPr>%s</w:p>" % (
-        style, level - 1, runs_from_inline(text))
+    sp = {"1": '<w:spacing w:before="312" w:after="312"/>',
+          "2": '<w:spacing w:before="156" w:after="156"/>',
+          "3": '<w:spacing w:before="120" w:after="120"/>',
+          "4": '<w:spacing w:before="120" w:after="120"/>'}[str(level)]
+    runrpr = ('<w:rPr><w:rFonts w:hint="default" w:ascii="Times New Roman"'
+              ' w:hAnsi="Times New Roman" w:cs="Times New Roman"/></w:rPr>')
+    return ("<w:p><w:pPr><w:pStyle w:val='%s'/>%s<w:outlineLvl w:val='%d'/></w:pPr>"
+            "<w:r>%s<w:t xml:space='preserve'>%s</w:t></w:r></w:p>"
+            % (style, sp, level - 1, runrpr, esc(re.sub(r"\*\*|`", "", text))))
 
 
 def pagebreak():
@@ -100,7 +113,7 @@ def toc_field():
             '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>')
 
 
-def md_to_xml(lines, sub_map=None, no_bullet=False):
+def md_to_xml(lines, sub_map=None, no_bullet=False, no_indent=False):
     """极简 md→OOXML：'#/##/###/####' 标题、正文、'- '条目、'|'表格、'>'引用、'⚠️'标红。"""
     out = []
     i = 0
@@ -143,7 +156,7 @@ def md_to_xml(lines, sub_map=None, no_bullet=False):
             s = s.lstrip(">").strip()
         if s.startswith("- "):
             s = s[2:] if no_bullet else "• " + s[2:]
-        out.append(para(s, color=color))
+        out.append(para(s, color=color, indent=not no_indent))
         i += 1
     return "".join(out)
 
@@ -203,29 +216,29 @@ def build():
 
     # ============ 封面 ============
     xml = []
-    xml.append(para("硕 士 学 位 论 文", align="center", size_half=44, font_east="黑体"))
-    xml.append(para(" ", align="center"))
-    xml.append(para(meta["TITLE_CN"].split("：")[0] + "：", align="center", size_half=30, font_east="黑体"))
-    xml.append(para(meta["TITLE_CN"].split("：")[1] if "：" in meta["TITLE_CN"] else "", align="center", size_half=30, font_east="黑体"))
-    xml.append(para(" ", align="center"))
+    xml.append(para("硕 士 学 位 论 文", align="center", size_half=44, font_east="黑体", line_400=False))
+    xml.append(para(" ", align="center", line_400=False))
+    xml.append(para(meta["TITLE_CN"].split("：")[0] + "：", align="center", size_half=30, font_east="黑体", line_400=False))
+    xml.append(para(meta["TITLE_CN"].split("：")[1] if "：" in meta["TITLE_CN"] else "", align="center", size_half=30, font_east="黑体", line_400=False))
+    xml.append(para(" ", align="center", line_400=False))
     for label, val in [("研究生", meta["AUTHOR"]), ("指导教师", meta["ADVISOR"]),
                        ("培养单位", meta["UNIT"]), ("一级学科", meta["DISCIPLINE1"]),
                        ("二级学科", meta["DISCIPLINE2"]), ("完成时间", meta["FINISH_TIME"]),
                        ("答辩时间", meta["DEFENSE_TIME"])]:
-        xml.append(para("%s：　%s" % (label, val), align="center", size_half=28))
-    xml.append(para(" ", align="center"))
-    xml.append(para("学　　号：　%s" % meta["STUDENT_ID"], align="center", size_half=24))
+        xml.append(para("%s：　%s" % (label, val), align="center", size_half=28, line_400=False))
+    xml.append(para(" ", align="center", line_400=False))
+    xml.append(para("学　　号：　%s" % meta["STUDENT_ID"], align="center", size_half=24, line_400=False))
     xml.append(pagebreak())
 
     # ============ 独创性/授权声明 ============
     xml.append(heading("学位论文独创性声明", 1))
-    xml.append(para("本人郑重声明：所提交的学位论文是本人在导师指导下进行的研究工作和取得的研究成果。本论文中除引文外，所有实验、数据和有关材料均是真实的。本论文中除引文和致谢的内容外，不包含其他人或其它机构已经发表或撰写过的研究成果。其他同志对本研究所做的贡献均已在论文中作了声明并表示了谢意。"))
-    xml.append(para("学位论文作者签名：　　　　　　　　　日　　期：　　年　　月　　日"))
+    xml.append(para("本人郑重声明：所提交的学位论文是本人在导师指导下进行的研究工作和取得的研究成果。本论文中除引文外，所有实验、数据和有关材料均是真实的。本论文中除引文和致谢的内容外，不包含其他人或其它机构已经发表或撰写过的研究成果。其他同志对本研究所做的贡献均已在论文中作了声明并表示了谢意。", indent=False, line_400=False))
+    xml.append(para("学位论文作者签名：　　　　　　　　　日　　期：　　年　　月　　日", indent=False, line_400=False))
     xml.append(pagebreak())
     xml.append(heading("学位论文使用授权声明", 1))
-    xml.append(para("研究生在校攻读学位期间论文工作的知识产权单位属南京师范大学。学校有权保存本学位论文的电子和纸质文档，可以借阅或上网公布本学位论文的部分或全部内容，可以采用影印、复印等手段保存、汇编本学位论文。学校可以向国家有关机关或机构送交论文的电子和纸质文档，允许论文被查阅和借阅。"))
-    xml.append(para("学位论文作者签名：　　　　　　　　　指导教师签名："))
-    xml.append(para("日　　期：　　年　　月　　日　　　　日　　期：　　年　　月　　日"))
+    xml.append(para("研究生在校攻读学位期间论文工作的知识产权单位属南京师范大学。学校有权保存本学位论文的电子和纸质文档，可以借阅或上网公布本学位论文的部分或全部内容，可以采用影印、复印等手段保存、汇编本学位论文。学校可以向国家有关机关或机构送交论文的电子和纸质文档，允许论文被查阅和借阅。", indent=False, line_400=False))
+    xml.append(para("学位论文作者签名：　　　　　　　　　指导教师签名：", indent=False, line_400=False))
+    xml.append(para("日　　期：　　年　　月　　日　　　　日　　期：　　年　　月　　日", indent=False, line_400=False))
     xml.append(pagebreak())
 
     # ============ 摘要 / Abstract ============
@@ -279,7 +292,7 @@ def build():
     # 参考文献 段（'# 参考文献'后至'# 附录A'前）
     refs = slice_lines("".join(back), "# 参考文献", "# 附录A")
     xml.append(heading("参考文献", 1))
-    xml.append(md_to_xml(refs, no_bullet=True))
+    xml.append(md_to_xml(refs, no_bullet=True, no_indent=True))
     for sec_marker, title in [("# 附录A", "附录A　冻结设计表与关键数字锁定表"),
                               ("# 附录B", "附录B　脚本与可复现性说明"),
                               ("# 致谢", "致谢")]:
