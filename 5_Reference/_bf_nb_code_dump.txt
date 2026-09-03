@@ -1,0 +1,742 @@
+# ============================================================
+# Cell 1: Import libraries
+# ============================================================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from scipy import stats
+from scipy.integrate import quad
+from scipy.optimize import brentq
+from scipy.special import gamma as gamma_func
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import os, re, warnings, json
+warnings.filterwarnings('ignore')
+
+%matplotlib inline
+plt.rcParams.update({
+    'figure.dpi': 120,
+    'font.size': 11,
+    'axes.titlesize': 13,
+    'axes.labelsize': 12
+})
+
+print('Libraries loaded successfully.')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 2: Define paths
+# ============================================================
+PROJ_ROOT = r'd:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design'
+STATS_DIR = os.path.join(PROJ_ROOT, '2_Data', 'Real_Data', 'HDDM_Traces')
+OUTPUT_DIR = os.path.join(PROJ_ROOT, '1_Code', 'Python_for_Check', 'Basic_Hypothesis')
+FIG_DIR = os.path.join(PROJ_ROOT, '3_Figures', 'Basic_Hypothesis')
+os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+print(f'Stats dir: {STATS_DIR}')
+print(f'Output dir: {OUTPUT_DIR}')
+print(f'Figure dir: {FIG_DIR}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 3: Load group-level DDM parameters
+# ============================================================
+params_csv = os.path.join(STATS_DIR, 'all_groups_ddm_params.csv')
+df_group = pd.read_csv(params_csv)
+print(f'Group-level data: {df_group.shape[0]} conditions × {df_group.shape[1]} columns')
+print(f'Columns: {list(df_group.columns)}')
+df_group[['group_id', 'P', 'T_ms', 'W_ms', 'SPE_v', 'v_self_mean', 'v_stranger_mean']]
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 4: Extract subject-level SPE from HDDM stats files
+# ============================================================
+def extract_subject_spe(stats_dir):
+    """Extract subject-level SPE (v_self - v_stranger) from each group's HDDM stats CSV."""
+    records = []
+    stats_files = sorted([f for f in os.listdir(stats_dir) if f.endswith('_stats.csv')])
+    print(f'Found {len(stats_files)} stats files')
+    
+    for fname in stats_files:
+        match = re.match(
+            r'hddm_data_group(\d+)_P(\d+)_T(\d+)_W(\d+)_stats\\.csv', fname
+        )
+        if not match:
+            print(f'  SKIP: cannot parse {fname}')
+            continue
+        gid = int(match.group(1))
+        P_val = int(match.group(2))
+        T_val = int(match.group(3))
+        W_val = int(match.group(4))
+        
+        fpath = os.path.join(stats_dir, fname)
+        df = pd.read_csv(fpath, index_col=0)
+        
+        v0_cols = [c for c in df.index if c.startswith('v_subj(0).')]
+        v1_cols = [c for c in df.index if c.startswith('v_subj(1).')]
+        
+        if not v0_cols or not v1_cols:
+            print(f'  SKIP: no subject-level v in {fname}')
+            continue
+        
+        for v0_key, v1_key in zip(sorted(v0_cols), sorted(v1_cols)):
+            subj_idx = int(v0_key.split('.')[1])
+            v_stranger = df.loc[v0_key, 'mean']
+            v_self = df.loc[v1_key, 'mean']
+            spe = v_self - v_stranger
+            records.append({
+                'group_id': gid,
+                'subject': subj_idx,
+                'P': P_val,
+                'T_ms': T_val,
+                'W_ms': W_val,
+                'M_ms': T_val + W_val,
+                'v_stranger': v_stranger,
+                'v_self': v_self,
+                'SPE_v': spe,
+            })
+        print(f'  Group {gid} (P={P_val}, T={T_val}, W={W_val}): {len(v0_cols)} subjects')
+    
+    return pd.DataFrame(records)
+
+df_subj = extract_subject_spe(STATS_DIR)
+print(f'\nTotal subject-level records: {len(df_subj)}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 5: Data quality check & filter
+# ============================================================
+# Check for extreme SPE values (outliers in subject-level estimates)
+print('===== Subject-level SPE summary (all 8 groups) =====')
+print(df_subj.groupby('group_id')['SPE_v'].describe().round(3))
+
+# Flag extreme subjects (|SPE| > 30, likely unreliable HDDM estimates)
+extreme_mask = np.abs(df_subj['SPE_v']) > 30
+print(f'\nExtreme subjects (|SPE| > 30): {extreme_mask.sum()}')
+if extreme_mask.sum() > 0:
+    print(df_subj[extreme_mask][['group_id', 'subject', 'SPE_v']])
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 6: Create analysis datasets
+# ============================================================
+# Dataset A: All 8 groups, full subjects
+df_all = df_subj.copy()
+
+# Dataset B: Exclude G1 & G2 (high omission, per RoadMap recommendation)
+df_core = df_subj[~df_subj['group_id'].isin([1, 2])].copy()
+
+# Dataset C: G2-G8 (G1 only excluded as most extreme)
+df_lenient = df_subj[df_subj['group_id'] != 1].copy()
+
+# Dataset D: Exclude groups AND extreme subjects
+df_clean = df_core[np.abs(df_core['SPE_v']) <= 30].copy()
+
+for label, df in [('A: All 8 groups', df_all), 
+                   ('B: Exclude G1,G2 (core)', df_core),
+                   ('C: Exclude G1 only', df_lenient),
+                   ('D: Clean (B + no extreme subj)', df_clean)]:
+    print(f'{label}: N={len(df)}, groups={sorted(df["group_id"].unique())}, '
+          f'SPE mean={df["SPE_v"].mean():.3f}±{df["SPE_v"].std():.3f}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 7: Visualization - SPE across groups
+# ============================================================
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Left: Boxplot of subject-level SPE by group
+ax = axes[0]
+df_plot = df_core.copy()
+df_plot['label'] = df_plot.apply(
+    lambda r: f'G{r["group_id"]}\nP={r["P"]},T={r["T_ms"]},W={r["W_ms"]}', axis=1
+)
+groups = sorted(df_plot['group_id'].unique())
+data_by_group = [df_plot[df_plot['group_id']==g]['SPE_v'].values for g in groups]
+labels = [df_plot[df_plot['group_id']==g]['label'].iloc[0] for g in groups]
+
+bp = ax.boxplot(data_by_group, labels=labels, patch_artist=True,
+                widths=0.6, showfliers=True, showmeans=True,
+                meanprops=dict(marker='D', markerfacecolor='red', markersize=6))
+colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(groups)))
+for patch, color in zip(bp['boxes'], colors):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.7)
+ax.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+ax.set_ylabel('SPE (v_self - v_stranger)')
+ax.set_title('Subject-Level SPE by Experimental Condition (G3-G8)')
+ax.tick_params(axis='x', rotation=20, labelsize=8)
+ax.grid(axis='y', alpha=0.3)
+
+# Right: Group-level SPE vs design parameters
+ax = axes[1]
+df_sp = df_group[~df_group['group_id'].isin([1,2])].copy()
+# Scatter: SPE vs P, color by T
+sc = ax.scatter(df_sp['P'], df_sp['SPE_v'], c=df_sp['T_ms'], 
+                s=df_sp['W_ms']/5, cmap='coolwarm', edgecolors='black', linewidth=0.5)
+for _, row in df_sp.iterrows():
+    ax.annotate(f'G{int(row["group_id"])}', (row['P'], row['SPE_v']),
+                textcoords='offset points', xytext=(5, 5), fontsize=8)
+cbar = plt.colorbar(sc, ax=ax)
+cbar.set_label('T (ms)')
+ax.set_xlabel('P (practice trials)')
+ax.set_ylabel('Group-level SPE')
+ax.set_title('SPE vs Design Parameters (G3-G8)')
+ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+fig.savefig(os.path.join(FIG_DIR, 'SPE_overview.png'), dpi=150, bbox_inches='tight')
+plt.show()
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 8: G*Power 敏感性分析 (Sensitivity Analysis)
+# ============================================================
+from scipy.stats import ncf, f as f_dist
+
+def gpower_sensitivity_anova(k_groups, n_total, alpha=0.05, power=0.80):
+    """
+    G*Power 敏感性分析：找到在给定 α, power, k_groups, N 下可检测的最小 f
+    
+    G*Power 内部逻辑（ANOVA: Fixed effects, omnibus, one-way）:
+    - 非中心 F 分布: F(df1, df2, λ)
+    - λ = N × f² (非中心参数)
+    - df1 = k - 1, df2 = N - k
+    - H₀: F_crit = F_{1-α}(df1, df2)
+    - Power = 1 - F_{nc}(F_crit | df1, df2, λ)
+    """
+    df1 = k_groups - 1
+    df2 = n_total - k_groups
+    F_crit = f_dist.ppf(1 - alpha, df1, df2)
+    
+    def compute_power(f_val):
+        lam = n_total * f_val**2
+        return 1 - ncf.cdf(F_crit, df1, df2, lam)
+    
+    # Binary search for f that gives target power
+    f_lo, f_hi = 0.001, 5.0
+    for _ in range(200):
+        f_mid = (f_lo + f_hi) / 2
+        if compute_power(f_mid) < power:
+            f_lo = f_mid
+        else:
+            f_hi = f_mid
+    
+    f_min = (f_lo + f_hi) / 2
+    eta2_min = f_min**2 / (1 + f_min**2)
+    
+    return {
+        'f_min': f_min,
+        'eta2_min': eta2_min,
+        'F_crit': F_crit,
+        'df1': df1,
+        'df2': df2,
+        'lambda': n_total * f_min**2,
+        'verified_power': compute_power(f_min),
+    }
+
+# Run sensitivity analyses for different scenarios
+print('='*70)
+print('G*Power 敏感性分析结果')
+print('='*70)
+
+scenarios = [
+    ('Core: G3-G8 (6 groups)', 6, 65),
+    ('Lenient: G2-G8 (7 groups)', 7, 77),
+    ('All: G1-G8 (8 groups)', 8, 88),
+    ('Core: 6 groups, N=30', 6, 30),
+    ('Core: 6 groups, N=90', 6, 90),
+]
+
+for name, k, n in scenarios:
+    res = gpower_sensitivity_anova(k, n)
+    print(f'\n{name}:')
+    print(f'  df1={res["df1"]}, df2={res["df2"]}')
+    print(f'  Minimum detectable f = {res["f_min"]:.4f}  (Cohen: {"small" if res["f_min"]<0.25 else "medium" if res["f_min"]<0.4 else "large"})')
+    print(f'  Minimum detectable η² = {res["eta2_min"]:.4f}')
+    print(f'  Noncentrality λ = {res["lambda"]:.2f}')
+    print(f'  F_crit({res["df1"]},{res["df2"]}) = {res["F_crit"]:.3f}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 9: 观察效应量 vs 最低可检测效应量
+# ============================================================
+from statsmodels.formula.api import ols
+
+def compute_observed_effect_anova(df_data):
+    """Compute observed effect size (f, eta2) from one-way ANOVA."""
+    model = ols('SPE_v ~ C(group_id)', data=df_data).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)
+    ss_between = anova_table.loc['C(group_id)', 'sum_sq']
+    ss_residual = anova_table.loc['Residual', 'sum_sq']
+    ss_total = ss_between + ss_residual
+    eta2 = ss_between / ss_total
+    f_obs = np.sqrt(eta2 / (1 - eta2)) if eta2 < 1 else np.inf
+    return {
+        'F': anova_table.loc['C(group_id)', 'F'],
+        'p': anova_table.loc['C(group_id)', 'PR(>F)'],
+        'eta2': eta2,
+        'f': f_obs,
+        'ss_between': ss_between,
+        'ss_residual': ss_residual,
+    }
+
+print('='*70)
+print('观察到的效应量 vs 最低可检测效应量')
+print('='*70)
+
+# Sensitivity result for core dataset
+sens_core = gpower_sensitivity_anova(6, len(df_clean))
+
+for label, df_data in [('A: All 8 groups', df_all),
+                        ('B: Core G3-G8', df_core),
+                        ('D: Clean', df_clean)]:
+    res = compute_observed_effect_anova(df_data)
+    n_grp = df_data['group_id'].nunique()
+    n_subj = len(df_data)
+    f_min = gpower_sensitivity_anova(n_grp, n_subj)['f_min']
+    sufficient = 'YES ✅' if res['f'] >= f_min else 'NO ❌'
+    print(f'\n{label} (k={n_grp}, N={n_subj}):')
+    print(f'  F({n_grp-1},{n_subj-n_grp}) = {res["F"]:.3f}, p = {res["p"]:.4f}')
+    print(f'  Observed f = {res["f"]:.4f}, η² = {res["eta2"]:.4f}')
+    print(f'  Minimum detectable f (80% power) = {f_min:.4f}')
+    print(f'  Observed ≥ Minimum? {sufficient}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 10: Power curve visualization
+# ============================================================
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Left: Power curve for ANOVA with 6 groups
+ax = axes[0]
+n_list = [30, 50, 65, 90, 120]
+f_range = np.linspace(0.05, 1.2, 200)
+colors = plt.cm.plasma(np.linspace(0.2, 0.9, len(n_list)))
+
+for n, c in zip(n_list, colors):
+    df1 = 5
+    df2 = n - 6
+    F_crit = f_dist.ppf(0.95, df1, df2)
+    powers = [1 - ncf.cdf(F_crit, df1, df2, n * f**2) for f in f_range]
+    ax.plot(f_range, powers, color=c, linewidth=2, label=f'N={n}')
+
+ax.axhline(y=0.80, color='red', linestyle='--', alpha=0.7, label='Power=0.80')
+ax.axhline(y=0.95, color='orange', linestyle='--', alpha=0.7, label='Power=0.95')
+# Mark Cohen's benchmarks
+for f_val, label, ls in [(0.10, 'small', 'dotted'), (0.25, 'medium', 'dashed'), (0.40, 'large', 'dashdot')]:
+    ax.axvline(x=f_val, color='gray', linestyle=ls, alpha=0.5)
+    ax.text(f_val, 0.05, f'f={f_val}\n{label}', ha='center', fontsize=7, alpha=0.7)
+
+ax.set_xlabel("Cohen's f")
+ax.set_ylabel('Statistical Power')
+ax.set_title('Power Curve: One-Way ANOVA (6 groups)')
+ax.legend(fontsize=8)
+ax.set_ylim(0, 1.05)
+ax.grid(alpha=0.3)
+
+# Right: Observed effect size vs minimum detectable
+ax = axes[1]
+datasets_info = [
+    ('All\n(G1-G8)', df_all),
+    ('Core\n(G3-G8)', df_core),
+    ('Clean\n(G3-G8)', df_clean),
+]
+x_labels = []
+obs_f = []
+min_f = []
+for label, df_d in datasets_info:
+    k = df_d['group_id'].nunique()
+    n = len(df_d)
+    obs = compute_observed_effect_anova(df_d)
+    gp = gpower_sensitivity_anova(k, n)
+    x_labels.append(label)
+    obs_f.append(obs['f'])
+    min_f.append(gp['f_min'])
+
+x = np.arange(len(x_labels))
+width = 0.3
+bars1 = ax.bar(x - width/2, obs_f, width, label='Observed f', color='steelblue', edgecolor='black')
+bars2 = ax.bar(x + width/2, min_f, width, label='Minimum detectable f\n(80% power)', color='salmon', edgecolor='black')
+for bar, val in zip(bars1, obs_f):
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, f'{val:.2f}', ha='center', fontsize=9)
+for bar, val in zip(bars2, min_f):
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, f'{val:.2f}', ha='center', fontsize=9)
+ax.set_xticks(x)
+ax.set_xticklabels(x_labels)
+ax.set_ylabel("Cohen's f")
+ax.set_title('Observed vs Minimum Detectable Effect Size')
+ax.legend(fontsize=8)
+ax.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+fig.savefig(os.path.join(FIG_DIR, 'Gpower_power_analysis.png'), dpi=150, bbox_inches='tight')
+plt.show()
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 11: JZS Bayes Factor for one-way ANOVA
+# ============================================================
+# Based on Rouder, Morey, Speckman, & Province (2012)
+# Journal of Mathematical Psychology, 56, 356-374
+
+def jzs_prior_g(g, r_scale=0.5):
+    """
+    JZS prior density for g (scaled inverse-chi-squared on 1 df).
+    p(g) = (r/√(2π)) * g^(-3/2) * exp(-r²/(2g))
+    
+    This is the standard JZS prior: g ~ InverseGamma(1/2, r²/2)
+    combined with (1+g)^(-1/2) from the Zellner-Siow prior.
+    """
+    if g <= 0:
+        return 0.0
+    return (r_scale / np.sqrt(2 * np.pi)) * g**(-1.5) * np.exp(-r_scale**2 / (2 * g))
+
+
+def bf_oneway_anova_jzs(df_data, dv_col='SPE_v', group_col='group_id', r_scale=0.5):
+    """
+    Compute Bayes Factor for one-way ANOVA using JZS prior.
+    
+    H0: all group means equal
+    H1: group means differ
+    
+    Formula (Rouder et al., 2012, Eq. 3):
+    BF10 = ∫ (1 + N*g)^(-a/2) * [1 + g*(SSE1/SST)]^(-N/2) * p(g) dg
+    
+    where:
+    N = total sample size
+    a = number of groups
+    SSE1 = sum of squared errors (alternative model)
+    SST = total sum of squares
+    """
+    groups = df_data[group_col].values
+    y = df_data[dv_col].values
+    
+    a = len(np.unique(groups))
+    N = len(y)
+    
+    grand_mean = np.mean(y)
+    SST = np.sum((y - grand_mean)**2)
+    
+    SSE1 = 0
+    for g in np.unique(groups):
+        y_g = y[groups == g]
+        group_mean = np.mean(y_g)
+        SSE1 += np.sum((y_g - group_mean)**2)
+    
+    def integrand(g):
+        if g <= 0:
+            return 0.0
+        term1 = (1 + N * g)**(-a / 2)
+        term2 = (1 + g * (SSE1 / SST))**(-N / 2)
+        prior = jzs_prior_g(g, r_scale)
+        return term1 * term2 * prior
+    
+    bf10, err = quad(integrand, 1e-10, np.inf, limit=200)
+    
+    if bf10 < 1e-10 or err > 1e-4:
+        print(f'  Warning: integration may be inaccurate (err={err:.2e})')
+    
+    bf01 = 1.0 / bf10 if bf10 > 0 else np.inf
+    
+    return {
+        'BF10': bf10,
+        'BF01': bf01,
+        'a': a,
+        'N': N,
+        'r_scale': r_scale,
+        'SST': SST,
+        'SSE1': SSE1,
+        'R2': 1 - SSE1/SST,
+        'integration_err': err,
+    }
+
+print('JZS Bayes Factor functions defined.')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 12: Compute BF for different datasets
+# ============================================================
+def interpret_bf(bf10):
+    if bf10 > 100:
+        return 'Decisive for H₁'
+    elif bf10 > 30:
+        return 'Very strong for H₁'
+    elif bf10 > 10:
+        return 'Strong for H₁'
+    elif bf10 > 3:
+        return 'Substantial for H₁'
+    elif bf10 > 1:
+        return 'Anecdotal for H₁'
+    elif bf10 > 1/3:
+        return 'Anecdotal for H₀'
+    elif bf10 > 1/10:
+        return 'Substantial for H₀'
+    elif bf10 > 1/30:
+        return 'Strong for H₀'
+    elif bf10 > 1/100:
+        return 'Very strong for H₀'
+    else:
+        return 'Decisive for H₀'
+
+print('='*70)
+print('贝叶斯因子计算结果：单因素方差分析')
+print('='*70)
+
+bf_results = {}
+for label, df_data, r in [
+    ('A: All G1-G8 (medium prior)', df_all, 0.5),
+    ('A: All G1-G8 (wide prior)', df_all, 1.0),
+    ('A: All G1-G8 (ultrawide prior)', df_all, np.sqrt(2)),
+    ('B: Core G3-G8 (medium prior)', df_core, 0.5),
+    ('B: Core G3-G8 (wide prior)', df_core, 1.0),
+    ('B: Core G3-G8 (ultrawide prior)', df_core, np.sqrt(2)),
+    ('C: Lenient G2-G8 (medium prior)', df_lenient, 0.5),
+    ('D: Clean (medium prior)', df_clean, 0.5),
+]:
+    res = bf_oneway_anova_jzs(df_data, r_scale=r)
+    bf_results[label] = res
+    print(f'\n{label}:')
+    print(f'  Groups={res["a"]}, N={res["N"]}, R²={res["R2"]:.4f}')
+    print(f'  BF₁₀ = {res["BF10"]:.4f}  →  {interpret_bf(res["BF10"])}')
+    print(f'  BF₀₁ = {res["BF01"]:.4f}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 13: BF for regression model SPE ~ P + T + W
+# ============================================================
+def bf_regression_jzs(X, y, r_scale=0.5):
+    """
+    Bayes Factor for linear regression with JZS prior.
+    
+    H0: y = intercept + ε (null model, no predictors)
+    H1: y = intercept + X*β + ε (full model)
+    
+    Formula (Rouder & Morey, 2012; Liang et al., 2008):
+    BF10 = ∫ (1+g)^((n-p-1)/2) * [1+g*(1-R²)]^(-(n-1)/2) * p(g) dg
+    
+    where:
+    n = sample size
+    p = number of predictors
+    R² = coefficient of determination of full model
+    p(g) = JZS prior: IG(1/2, r²/2) × (1+g)^(-1/2)
+    """
+    n = len(y)
+    p = X.shape[1]
+    
+    X_sm = sm.add_constant(X)
+    model = sm.OLS(y, X_sm).fit()
+    R2 = model.rsquared
+    
+    def integrand(g):
+        if g <= 0:
+            return 0.0
+        term1 = (1 + g)**((n - p - 1) / 2)
+        term2 = (1 + g * (1 - R2))**(-(n - 1) / 2)
+        prior = jzs_prior_g(g, r_scale)
+        return term1 * term2 * prior
+    
+    bf10, err = quad(integrand, 1e-10, np.inf, limit=200)
+    
+    return {
+        'BF10': bf10,
+        'BF01': 1.0/bf10 if bf10 > 0 else np.inf,
+        'n': n,
+        'p': p,
+        'R2': R2,
+        'r_scale': r_scale,
+        'integration_err': err,
+    }
+
+print('='*70)
+print('贝叶斯因子计算结果：多元回归 SPE ~ P + T + W')
+print('='*70)
+
+for label, df_data in [
+    ('Core G3-G8 (medium prior)', df_clean, 0.5),
+    ('Core G3-G8 (wide prior)', df_clean, 1.0),
+    ('All G1-G8 (medium prior)', df_all, 0.5),
+]:
+    X = df_data[['P', 'T_ms', 'W_ms']].values
+    y = df_data['SPE_v'].values
+    res = bf_regression_jzs(X, y, r_scale=r_scale)
+    print(f'\n{label}:')
+    print(f'  n={res["n"]}, p={res["p"]}, R²={res["R2"]:.4f}')
+    print(f'  BF₁₀ = {res["BF10"]:.4f}  →  {interpret_bf(res["BF10"])}')
+    print(f'  BF₀₁ = {res["BF01"]:.4f}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 14: BF robustness check - prior sensitivity
+# ============================================================
+r_scales = np.logspace(-1, 0.5, 30)
+bf_values_core = []
+bf_values_reg = []
+
+for r in r_scales:
+    res_anova = bf_oneway_anova_jzs(df_clean, r_scale=r)
+    bf_values_core.append(res_anova['BF10'])
+    
+    X = df_clean[['P', 'T_ms', 'W_ms']].values
+    y = df_clean['SPE_v'].values
+    res_reg = bf_regression_jzs(X, y, r_scale=r)
+    bf_values_reg.append(res_reg['BF10'])
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(r_scales, bf_values_core, 'b-o', linewidth=2, markersize=4, label='ANOVA: SPE ~ Group (G3-G8)')
+ax.plot(r_scales, bf_values_reg, 'r-s', linewidth=2, markersize=4, label='Regression: SPE ~ P + T + W (G3-G8)')
+ax.axhline(y=1, color='gray', linestyle='--', alpha=0.7, label='BF=1 (no evidence)')
+ax.axhline(y=3, color='green', linestyle=':', alpha=0.7, label='BF=3 (substantial)')
+ax.axhline(y=10, color='orange', linestyle=':', alpha=0.7, label='BF=10 (strong)')
+ax.axvline(x=0.5, color='purple', linestyle='--', alpha=0.5, label='r=0.5 (medium default)')
+ax.set_xscale('log')
+ax.set_xlabel('JZS Prior Scale (r)')
+ax.set_ylabel('BF₁₀')
+ax.set_title('Bayes Factor Robustness: Prior Sensitivity Analysis')
+ax.legend(fontsize=9)
+ax.grid(alpha=0.3)
+fig.savefig(os.path.join(FIG_DIR, 'BF_prior_sensitivity.png'), dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f'At r=0.5 (default): BF_anova = {bf_values_core[14]:.3f}, BF_regression = {bf_values_reg[14]:.3f}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 15: Pairwise BF - which groups differ?
+# ============================================================
+from itertools import combinations
+
+def bf_ttest_jzs(x, y, r_scale=np.sqrt(2)/2):
+    """
+    JZS Bayes Factor for independent-samples t-test.
+    Based on Rouder et al. (2009).
+    """
+    nx, ny = len(x), len(y)
+    mx, my = np.mean(x), np.mean(y)
+    vx, vy = np.var(x, ddof=1), np.var(y, ddof=1)
+    sp = np.sqrt(((nx-1)*vx + (ny-1)*vy) / (nx + ny - 2))
+    t_stat = (mx - my) / (sp * np.sqrt(1/nx + 1/ny))
+    df = nx + ny - 2
+    N_eff = 1 / (1/nx + 1/ny)
+    
+    def integrand(g):
+        if g <= 0:
+            return 0.0
+        term1 = (1 + N_eff * g)**(-0.5)
+        term2 = (1 + t_stat**2 / (df * (1 + N_eff * g)))**((df + 1) / 2)
+        prior = jzs_prior_g(g, r_scale)
+        return term1 * term2 * prior
+    
+    bf10, err = quad(integrand, 1e-10, np.inf, limit=200)
+    return bf10
+
+print('='*70)
+print('Pairwise Bayes Factors: which groups differ? (Clean dataset)')
+print('='*70)
+
+groups_clean = sorted(df_clean['group_id'].unique())
+bf_matrix = np.zeros((len(groups_clean), len(groups_clean)))
+group_labels = [f'G{g}' for g in groups_clean]
+
+print(f'\n{"Pair":>12}  {"BF₁₀":>10}  {"Evidence":>20}')
+print('-'*50)
+for (i, g1), (j, g2) in combinations(enumerate(groups_clean), 2):
+    x1 = df_clean[df_clean['group_id']==g1]['SPE_v'].values
+    x2 = df_clean[df_clean['group_id']==g2]['SPE_v'].values
+    bf = bf_ttest_jzs(x1, x2)
+    bf_matrix[i, j] = bf
+    bf_matrix[j, i] = bf
+    print(f'G{g1} vs G{g2}:  {bf:>10.3f}  {interpret_bf(bf):>20}')
+
+# ===== CELL =====
+
+# ============================================================
+# Cell 16: Summary visualization - all results
+# ============================================================
+fig, axes = plt.subplots(2, 2, figsize=(14, 11))
+
+# Panel 1: SPE by group (boxplot)
+ax = axes[0, 0]
+df_viz = df_clean.copy()
+groups_order = sorted(df_viz['group_id'].unique())
+box_data = [df_viz[df_viz['group_id']==g]['SPE_v'].values for g in groups_order]
+bp = ax.boxplot(box_data, labels=[f'G{g}' for g in groups_order], patch_artist=True,
+                widths=0.5, showmeans=True, meanprops=dict(marker='D', markerfacecolor='red', markersize=6))
+for patch, c in zip(bp['boxes'], plt.cm.Set2(np.linspace(0, 1, len(groups_order)))):
+    patch.set_facecolor(c)
+ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+ax.set_ylabel('SPE (v_self - v_stranger)')
+ax.set_title('Subject-Level SPE by Group (G3-G8, Clean)')
+ax.grid(axis='y', alpha=0.3)
+
+# Panel 2: BF comparison bar chart
+ax = axes[0, 1]
+bf_labels = ['ANOVA\nAll G1-G8', 'ANOVA\nCore G3-G8', 'ANOVA\nClean',
+             'Regression\nCore G3-G8', 'Regression\nClean']
+bf_vals = [
+    bf_oneway_anova_jzs(df_all, r_scale=0.5)['BF10'],
+    bf_oneway_anova_jzs(df_core, r_scale=0.5)['BF10'],
+    bf_oneway_anova_jzs(df_clean, r_scale=0.5)['BF10'],
+    bf_regression_jzs(df_core[['P','T_ms','W_ms']].values, df_core['SPE_v'].values)['BF10'],
+    bf_regression_jzs(df_clean[['P','T_ms','W_ms']].values, df_clean['SPE_v'].values)['BF10'],
+]
+colors_bf = ['#3498db', '#2ecc71', '#27ae60', '#e74c3c', '#c0392b']
+bars = ax.barh(bf_labels, bf_vals, color=colors_bf, edgecolor='black')
+ax.axvline(x=1, color='gray', linestyle='--', alpha=0.7)
+ax.axvline(x=3, color='green', linestyle=':', alpha=0.5)
+for bar, val in zip(bars, bf_vals):
+    ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, f'{val:.1f}', va='center', fontsize=9)
+ax.set_xlabel('BF₁₀')
+ax.set_title('Bayes Factors Summary (r=0.5)')
+ax.set_xscale('log')
+ax.grid(axis='x', alpha=0.3)
+
+# Panel 3: SPE vs P, colored by T
+ax = axes[1, 0]
+for g in groups_order:
+    gdata = df_clean[df_clean['group_id']==g]
+    ax.scatter(np.ones(len(gdata))*gdata['P'].iloc[0], gdata['SPE_v'], 
+               alpha=0.3, s=20, color='gray')
+    ax.scatter(gdata['P'].iloc[0], gdata['SPE_v'].mean(), s=120, 
+               c=[gdata['T_ms'].iloc[0]], cmap='coolwarm', vmin=30, vmax=500,
+               edgecolors='black', linewidth=2, zorder=5)
+ax.set_xlabel('P (Practice Trials)')
+ax.set_ylabel('SPE')
+ax.set_title('SPE by P, Color=T (Clean)')
+ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+ax.grid(alpha=0.3)
+
+# Panel 4: Effect size comparison
+ax = axes[1, 1]
+eta2_vals = []
+eta2_labels = []
+for label, df_d in [('All', df_all), ('Core', df_core), ('Clean', df_clean)]:
+    obs = compute_observed_effect_anova(df_d)
+    eta2_vals.append(obs['eta2'])
+    eta2_labels.append(label)
+bars = ax.bar(eta2_labels, eta2_vals, color=['#95a5a6', '#3498db', '#2ecc71'], edgecolor='black')
+for bar, val in zip(bars, eta2_vals):
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.005, f'η²={val:.3f}', ha='center', fontsize=10)
+ax.set_ylabel('η² (Eta-squared)')
+ax.set_title('Observed Effect Size (η²)')
+ax.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+fig.savefig(os.path.join(FIG_DIR, 'BF_summary_dashboard.png'), dpi=150, bbox_inches='tight')
+plt.show()
