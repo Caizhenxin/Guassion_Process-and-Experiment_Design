@@ -14,14 +14,16 @@ BF/ANOVA 冻结版重跑脚本 (2026-09-02)
 """
 import os
 import re
+import sys
 import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.integrate import quad
 
 PROJ_ROOT = r"d:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design"
-STATS_DIR = os.path.join(PROJ_ROOT, "2_Data", "Real_Data", "HDDM_Traces")
-OUT_DIR = os.path.join(PROJ_ROOT, "5_Reference")
+STATS_DIR = os.environ.get("STATS_DIR") or os.path.join(PROJ_ROOT, "2_Data", "Real_Data", "HDDM_Traces")
+OUT_DIR = os.environ.get("OUT_DIR") or os.path.join(PROJ_ROOT, "5_Reference")
+OUT_LOCK = os.environ.get("OUT_LOCK") or os.path.join(OUT_DIR, "lock_BF_ANOVA_20260902.csv")
 
 # ---- 权威设计表（冻结规格书 §2）----
 DESIGN = {
