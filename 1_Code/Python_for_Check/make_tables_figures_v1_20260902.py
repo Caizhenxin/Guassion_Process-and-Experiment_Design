@@ -345,11 +345,12 @@ plt.close(fig)
 print("图: F5-3")
 
 # 拷贝现成图
+CAN4_FIGS = ROOT / "3_Figures" / "GP_Sigmoid_Canonical4"
 copy_map = [
-    (CAN4 / "step4_training_fit_cleaned.png", "F7-1_insample_fit.png"),
-    (CAN4 / "step4_locv_fit_cleaned.png", "F7-2_locv_fit.png"),
-    (CAN4 / "step5_behavior_validation_condition_scatter.png", "F7-3_behavior_scatter.png"),
-    (CAN4 / "step6_candidate_design_points.png", "F7-4_candidate_points.png"),
+    (CAN4_FIGS / "step4_training_fit_cleaned.png", "F7-1_insample_fit.png"),
+    (CAN4_FIGS / "step4_locv_fit_cleaned.png", "F7-2_locv_fit.png"),
+    (CAN4_FIGS / "step5_behavior_validation_condition_scatter.png", "F7-3_behavior_scatter.png"),
+    (CAN4_FIGS / "step6_candidate_design_points.png", "F7-4_candidate_points.png"),
 ]
 figs_opn = list((ROOT / "3_Figures" / "OPN_Training").glob("*.png"))
 for f in figs_opn:

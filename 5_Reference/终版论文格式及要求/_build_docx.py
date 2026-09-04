@@ -19,6 +19,8 @@ sectPr），仅替换 word/document.xml 正文；正文内容由以下 md 源文
      参考文献/附录/致谢 <- _b_refs_backmatter.md（去掉外层 # 标题行管理，参考文献行 '-'→正文行）
 依赖：python 标准库（zipfile/xml）；无需 python-docx。
 """
+import json
+import os
 import re
 import shutil
 import sys
@@ -30,7 +32,9 @@ import xml.sax.saxutils as sax
 
 BASE = Path(__file__).resolve().parent
 TEMPLATE = BASE / "温_毕业论文_设计空间_v13最终版.docx"
-OUT = BASE / "毕业论文_蔡振辛_初稿v1_20260902.docx"
+OUT = BASE / ("毕业论文_蔡振辛_初稿v2_图版_20260902.docx"
+              if os.environ.get("THESIS_FIGS") == "1"
+              else "毕业论文_蔡振辛_初稿v1_20260902.docx")
 DRAFT12 = BASE.parent / "毕业论文初稿_第1-2章_绪论与文献综述_20260902.md"
 DRAFT35 = BASE.parent / "毕业论文初稿_第3-5章_已完成研究_20260902.md"
 
@@ -111,6 +115,41 @@ def toc_field():
             '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
             '<w:r><w:t>（目录：请全选文档后按 F9 更新域）</w:t></w:r>'
             '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>')
+
+
+def png_size(path):
+    with open(path, "rb") as f:
+        head = f.read(26)
+    w = int.from_bytes(head[16:20], "big")
+    h = int.from_bytes(head[20:24], "big")
+    return w, h
+
+
+def image_para(path, rid, docid, target_w=4700000):
+    w, h = png_size(path)
+    cx = int(target_w)
+    cy = int(cx * h / max(w, 1))
+    pic = (
+        '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:line="360" w:lineRule="auto"/></w:pPr>'
+        '<w:r><w:drawing>'
+        '<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+        'distT="0" distB="0" distL="0" distR="0">'
+        '<wp:extent cx="%d" cy="%d"/>'
+        '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+        '<wp:docPr id="%d" name="fig%d"/>'
+        '<wp:cNvGraphicFramePr><a:graphicFrameLocks '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+        '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<pic:nvPicPr><pic:cNvPr id="%d" name="fig%d"/><pic:cNvPicPr/></pic:nvPicPr>'
+        '<pic:blipFill><a:blip r:embed="%s"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+        '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm>'
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+        '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    ) % (cx, cy, docid, docid, docid, docid, rid, cx, cy)
+    return pic
 
 
 def md_to_xml(lines, sub_map=None, no_bullet=False, no_indent=False):
@@ -314,6 +353,113 @@ def build():
         sectpr = doc[sect_i: sect_j + len("</w:sectPr>")]
         tail = doc[tail_i + len("</w:body>"):]
         new_doc = head + "".join(xml) + sectpr + "</w:body>" + tail
+
+        import os as _os
+        media = []  # (target_name, bytes)
+        if _os.environ.get("THESIS_FIGS") == "1":
+            figdir = BASE.parents[1] / "3_Figures" / "Thesis_20260902" / "figures"
+
+            def pick(prefix):
+                hits = sorted(p.name for p in figdir.glob(prefix + "*.png"))
+                return (figdir / hits[0]) if hits else None
+
+            FIGS = [
+                ("实验设计空间与理论假设", "F4-1_design_space.png", "F4-1_design_space.png",
+                 "图4-1 实验设计空间 Ω 与 8 组取点分布",
+                 "横轴分别为 P/W 与 T/W，颜色=质量档。G1/G2（高遗漏，红）位于资源受限角落，"
+                 "主口径 G3–G8 覆盖 P∈{0,8,120}、T∈{30,80,100,500}、W∈{600,800,1100,1500}；"
+                 "G7 与 G8 构成 W=800 处的 T 对比（30 vs 80 ms）。"),
+                ("行为层面：SPE_RT 与 SPE_ACC", "F5-1_spe_subjects.png", "F5-1_spe_subjects.png",
+                 "图5-1 被试级 SPE：行为层（RT/ACC）与 DDM 参数层（4 链）",
+                 "行为 SPE_RT 中位数在多数单元为负（自我更快），长时限条件（G5/G6）偏移更明显，"
+                 "短时限 P0_T30_W300 反而为正；SPE_ACC 差异小。右图 4 链 SPE_v 显示 G4–G8 为正、"
+                 "G3 为负（与 G3 行为 SPE_RT 为正的方向一致）；组间差异未达统计显著（表5-3）。"),
+                ("DDM 参数层面：SPE_v 的主口径检验", "F5-2_gpower_4chain.png", "F5-2_gpower_4chain.png",
+                 "图5-2 参数层 SPE_v 观察效应量 vs 80% 功效门槛（4 链口径）",
+                 "G3–G8 观察 f≈.40，低于最小可检测 f≈.47；G5–G8 更低（f≈.21 vs .52）。"
+                 "说明以当前被试量，参数层组间差异缺乏检验功效——应结合行为层显著结果与描述性趋势解读。"),
+                ("DDM 参数层面：SPE_v 的主口径检验", "F5-3_bf_prior_sensitivity_4chain.png", "F5-3_bf_prior_sensitivity_4chain.png",
+                 "图5-3 贝叶斯因子对先验尺度的敏感性（G3–G8, 4 链）",
+                 "在常见的先验尺度 r 下，ANOVA（组别哑变量）与回归的 BF10 均未超过 3 的实质性阈值，"
+                 "部分先验下接近或低于 1，说明数据对“参数层存在组间差异”的支持为轶事级甚至不支持——"
+                 "与研究一叙述（差异不显著+功效不足）一致。"),
+                ("遗漏率与偏倚模式", "F6-1", "F6-1_omission_sensitivity.png",
+                 "图6-1 Omission 敏感性：遗漏率与 Censor vs Drop 影响（图题待按所选图核对）",
+                 "短窗口组（G1–G4）遗漏率高且 Censor/Drop 参数估计差异超出 95% CI；"
+                 "低遗漏组（G5–G8）两种方案基本一致——对应表6-1 中 G1 的 Δ≈6.81 等结果。"),
+                ("OPN 第一版", "F6-2", "F6-2_opn_accuracy.png",
+                 "图6-2 OPN（省略概率网络）第一版预测表现",
+                 "网络在训练/测试集上 R²≈.99/.99、MAE≈.017，说明小网络可近似 (θ, deadline)→omission 概率，"
+                 "为显式 omission 建模提供概念验证（表6-2）。"),
+                ("参数层拟合与交叉验证", "F7-1_insample_fit.png", "F7-1_insample_fit.png",
+                 "图7-1 混合模型 in-sample 参数拟合（canonical4）",
+                 "训练条件上预测与 4 链 HDDM 后验均值几乎重合（表7-3），主要反映 GP 对残差的吸收，"
+                 "属插值性质，不宜作为外推能力的证据。"),
+                ("参数层拟合与交叉验证", "F7-2_locv_fit.png", "F7-2_locv_fit.png",
+                 "图7-2 留一条件交叉验证（LOCV, 6 折）",
+                 "外推预测误差显著增大（v RMSE≈1.2），r 介于 −0.02~0.53，表明仅 6 个设计点不足以支撑"
+                 "GP 泛化——这是需要更大设计空间采样的结构性证据（表7-4）。"),
+                ("行为层重建（核心证据）", "F7-3_behavior_scatter.png", "F7-3_behavior_scatter.png",
+                 "图7-3 行为层重建：模拟 vs 真实（identity 与 condition 层）",
+                 "正确 RT 均值 r≈.97（RMSE≈45 ms）、ACC r≈.99、omission r≈.97、SPE_RT（条件层）r≈.75；"
+                 "相关由跨条件趋势驱动，解读须同时参考 RMSE 与逐格偏差（表7-5，in-sample）。"),
+                ("候选设计点（探索性）", "F7-4_candidate_points.png", "F7-4_candidate_points.png",
+                 "图7-4 基于 GP 不确定性的候选实验点",
+                 "高不确定性集中于 T≈480–500 ms、W≈300–350 ms 区域（总不确定≈2.39，主要来自 v）；"
+                 "top-20 间几乎无区分，仅作为“信息量最少区域”的探索性提示，不作最优设计推荐。"),
+                ("8.3 结果", "F8-1_sliding_window.png", "F8-1_sliding_window.png",
+                 "图8-1 内部数据滑动窗口分析：匹配键 SPE 正确率差随 RT 窗口变化",
+                 "内部 88 人数据：自我—陌生人正确率差在约 234–780 ms 窗口内显著为正，峰值约 0.19"
+                 "（≈440 ms）——系内部数据证据，非跨研究结论。"),
+                ("8.3 结果", "F8-3", "F8-3_stimcoding_crf.png",
+                 "图8-3 起始点偏向（Stim-Coding）仿真的 CRF 曲线（双引擎）",
+                 "起始点偏向越大，自我侧早期正确率优势越明显；两套引擎（Euler–Maruyama/HDDM）形态一致，"
+                 "支持“偏向机制→行为模式”的生成链解释（定性对照）。"),
+            ]
+            # 解析实际文件名（F6-1/F6-2/F8-3 为前缀）
+            resolved = []
+            for anchor, spec, _fname, caption, explain in FIGS:
+                if spec.startswith("F6-1") or spec.startswith("F6-2") or spec.startswith("F8-3"):
+                    p = pick(spec)
+                    if not p:
+                        print("缺图:", spec)
+                        continue
+                    spec = p.name
+                resolved.append((anchor, figdir / spec, caption, explain))
+            # 按锚点分组并插入
+            groups = {}
+            for anchor, p, caption, explain in resolved:
+                groups.setdefault(anchor, []).append((p, caption, explain))
+            rid_idx = 1
+            docid = 9000
+            for anchor, items in groups.items():
+                block = ""
+                for p, caption, explain in items:
+                    rid = "rIdThesisFig%d" % rid_idx
+                    rid_idx += 1
+                    docid += 1
+                    media.append(("word/media/thesis_fig_%d.png" % (docid - 9000), p.read_bytes()))
+                    block += image_para(str(p), rid, docid)
+                    block += para(caption, align="center", size_half=21, line_400=False)
+                    block += para("结果说明：" + explain, indent=False)
+                anchor_ok = False
+                pos = new_doc.find(anchor)
+                if pos >= 0:
+                    endp = new_doc.find("</w:p>", pos)
+                    if endp >= 0:
+                        cut = endp + len("</w:p>")
+                        new_doc = new_doc[:cut] + block + new_doc[cut:]
+                        anchor_ok = True
+                print(("已插入图组" if anchor_ok else "⚠️ 锚点未找到:") + anchor)
+            # 更新关系文件
+            rels_name = "word/_rels/document.xml.rels"
+            rels = zin.read(rels_name).decode("utf-8")
+            add = ""
+            for i in range(1, rid_idx):
+                rid = "rIdThesisFig%d" % i
+                add += '<Relationship Id="%s" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/thesis_fig_%d.png"/>' % (rid, i)
+            rels = rels.replace("</Relationships>", add + "</Relationships>")
+
         # 简单校验 XML
         import xml.etree.ElementTree as ET
         ET.fromstring(new_doc.encode("utf-8"))
@@ -321,8 +467,16 @@ def build():
             OUT.unlink()
         with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
-                data = new_doc.encode("utf-8") if item.filename == "word/document.xml" else zin.read(item.filename)
+                if item.filename == "word/document.xml":
+                    data = new_doc.encode("utf-8")
+                elif item.filename == rels_name and _os.environ.get("THESIS_FIGS") == "1":
+                    data = rels.encode("utf-8")
+                else:
+                    data = zin.read(item.filename)
                 zout.writestr(item, data)
+            if _os.environ.get("THESIS_FIGS") == "1":
+                for name, blob in media:
+                    zout.writestr(name, blob)
         print("OK ->", OUT, "bytes:", OUT.stat().st_size)
 
 
