@@ -1,0 +1,14 @@
+{
+  "tag": "curve35_rep1_censor",
+  "data": "/home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/prepared/censor/curve35_rep1_censor.csv",
+  "n_subjects": 12,
+  "n_trials": 3120,
+  "n_omission": 1087,
+  "omission_rate": 0.3483974358974359,
+  "p_outlier": 0.0,
+  "draws": 3000,
+  "burn": 500,
+  "elapsed_sec": 138.9,
+  "traces_saved": true,
+  "stats_file": "curve35_rep1_censor_stats.csv"
+}

@@ -1,0 +1,14 @@
+{
+  "tag": "cond6_rep2_censor",
+  "data": "/home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/prepared/censor/cond6_rep2_censor.csv",
+  "n_subjects": 10,
+  "n_trials": 2600,
+  "n_omission": 57,
+  "omission_rate": 0.021923076923076924,
+  "p_outlier": 0.0,
+  "draws": 3000,
+  "burn": 500,
+  "elapsed_sec": 116.8,
+  "traces_saved": true,
+  "stats_file": "cond6_rep2_censor_stats.csv"
+}

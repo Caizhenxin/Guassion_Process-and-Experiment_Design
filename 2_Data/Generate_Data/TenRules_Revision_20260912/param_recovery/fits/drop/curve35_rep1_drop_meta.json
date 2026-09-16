@@ -1,0 +1,14 @@
+{
+  "tag": "curve35_rep1_drop",
+  "data": "/home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/prepared/drop/curve35_rep1_drop.csv",
+  "n_subjects": 12,
+  "n_trials": 2033,
+  "n_omission": 0,
+  "omission_rate": 0.0,
+  "p_outlier": 0.05,
+  "draws": 3000,
+  "burn": 500,
+  "elapsed_sec": 128.8,
+  "traces_saved": true,
+  "stats_file": "curve35_rep1_drop_stats.csv"
+}

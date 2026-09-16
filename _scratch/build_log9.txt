@@ -1,0 +1,20 @@
+
+Traceback (most recent call last):
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 389, in build
+    out_path.unlink()
+    ~~~~~~~~~~~~~~~^^
+  File "c:\python314\Lib\pathlib\__init__.py", line 1042, in unlink
+    os.unlink(self)
+    ~~~~~~~~~^^^^^^
+PermissionError: [WinError 32] ��һ����������ʹ�ô��ļ��������޷����ʡ�: 'D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\5_Reference\\�հ����ĸ�ʽ��Ҫ��\\��ҵ����_������_����v3_ͼ��_20260912.docx'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 419, in <module>
+    build()
+    ~~~~~^^
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 399, in build
+    print("\u26a0\ufe0f ԭ�ļ���ռ�ã�Word ���У������������", out_path.name)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\u26a0' in position 0: illegal multibyte sequence

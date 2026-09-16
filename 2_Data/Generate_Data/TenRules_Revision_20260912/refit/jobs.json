@@ -1,0 +1,44 @@
+[
+  {
+    "group_id": 3,
+    "tag": "g3_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group3_P120_T30_W600.csv",
+    "p_outlier": 0.0
+  },
+  {
+    "group_id": 4,
+    "tag": "g4_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group4_P120_T80_W600.csv",
+    "p_outlier": 0.0
+  },
+  {
+    "group_id": 5,
+    "tag": "g5_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group5_P8_T100_W1100.csv",
+    "p_outlier": 0.0
+  },
+  {
+    "group_id": 6,
+    "tag": "g6_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group6_P120_T500_W1500.csv",
+    "p_outlier": 0.0
+  },
+  {
+    "group_id": 7,
+    "tag": "g7_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group7_P120_T30_W800.csv",
+    "p_outlier": 0.0
+  },
+  {
+    "group_id": 8,
+    "tag": "g8_refit",
+    "scheme": "censor",
+    "data_rel": "2_Data/Real_Data/HDDM_Ready/hddm_data_group8_P120_T80_W800.csv",
+    "p_outlier": 0.0
+  }
+]

@@ -1,0 +1,5 @@
+,M1_Mean,M2_Linear,M3_Sigmoid,M4_SigmoidGP
+M1_Mean,23,0,14,3
+M2_Linear,13,0,24,3
+M3_Sigmoid,7,0,27,6
+M4_SigmoidGP,0,0,40,0

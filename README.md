@@ -1,166 +1,234 @@
-# Guassion-Process-Experiment-Design
+# Optimizing the Experimental Design Space of the Self-Prioritization Effect
 
-## 项目概述
+**Predicting and validating drift-diffusion model parameters with Gaussian process surrogates**
 
-本项目以 **Self-Matching Task** 为核心范式，研究自我优势效应（**Self-Preference Effect, SPE**）如何受到实验设计变量的系统调控。
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![R](https://img.shields.io/badge/R-cross--validation-276DC3)](https://www.r-project.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-当前聚焦的设计空间为：
-
-- 练习次数 **P**
-- 刺激呈现时间 **T**
-- 反应窗口 **W**
-- 以及潜在条件维度 **M**
-
-项目主线是将传统“离散条件比较”推进为“连续实验设计空间建模”，并结合 **Drift Diffusion Model (DDM)** 与 **Gaussian Process (GP)**，构建“实验设计 → 心理参数 → 行为数据”的生成框架。
+This repository contains the analysis pipeline for my master's thesis. It builds a **generative
+framework that maps continuous experimental design variables onto drift-diffusion model (DDM)
+parameters and then onto trial-level behaviour**, moving beyond the conventional practice of
+comparing a handful of discrete experimental conditions.
 
 ---
 
-## 当前项目进度
+## Overview
 
-### 1) 已完成/较稳定的部分
+Most studies of the self-prioritization effect (SPE) compare a small number of experimenter-chosen
+conditions — for example, one practice level and one stimulus duration. This design strategy is
+inefficient: it leaves the shape of the relationship between design variables and psychological
+parameters unknown, and it cannot tell you *which* design would most sensitively detect an effect.
 
-- **v1**：Sigmoid + DDM 的基础生成框架已建立。
-- **v2.4.x**：生成与检查链路较完整，包含恢复检验、数据检查与真实数据对照流程。
-- **真实数据**：`2_Data/Real_Data/EXP_data_combined.csv` 与分组原始文件已整理完成。
+This project treats the experimental design as a **continuous space** rather than a set of discrete
+conditions, and asks three questions:
 
-### 2) 正在推进的部分
+1. How do design variables jointly shape DDM parameters and, through them, observable behaviour?
+2. Can a **Gaussian process surrogate** predict DDM parameters and effect size across regions of the
+   design space that were never run?
+3. Which design regions maximize the sensitivity of the self-prioritization effect — and are those
+   predictions recoverable from simulated data?
 
-- **v2.5**：更偏向新一轮 GP-DDM 生成探索，属于后续扩展版本。
-- **v3**：可视为进一步探索 GP 残差/边界/扩展结构的实验分支。
+### Design space
 
-### 3) 目前判断
+The design space is parameterized by four variables:
 
-- **v2.4.x**：相对更接近“可复用、可验证”的稳定版本。
-- **v2.5**：更像是新一代实验性分支，而不是完全收敛的终版。
-- 整体上，项目已从“能生成数据”进入到“能比较版本、能做验证、能为实验设计服务”的阶段。
+| Symbol | Variable | Role |
+|---|---|---|
+| **P** | Practice trials | Number of pre-experiment practice trials per identity |
+| **T** | Stimulus presentation duration | How long the shape–label pair is displayed (ms) |
+| **W** | Response window | Deadline for a response (ms) |
+| **M** | Matching condition | Matching vs. non-matching; also used as the condition key for parameter mapping |
 
----
-
-## 版本演进简表
-
-| 版本族                        | 角色           | 主要特征                             |
-| ----------------------------- | -------------- | ------------------------------------ |
-| `v1`                        | 基线模型       | Sigmoid + DDM，验证基础生成思路      |
-| `v2.1 ~ v2.3`               | 过渡/草稿      | 逐步增强参数映射与生成流程           |
-| `v2.4 ~ v2.4.5`             | 较稳定主线     | 生成、检查、恢复、真实数据对照较完整 |
-| `v2.5`                      | 新版探索       | 更偏向 GP-DDM 的扩展与调参           |
-| `v3`                        | 研究分支       | 探索 GP 对残差或更复杂结构的捕捉     |
-| `S2_gen_data_optimized_cp*` | 另一条优化支线 | Sigmoid 优化版本，用于对照与比较     |
+Grid values used in the standard configuration:
+`P = [0, 32, 64, 120]` · `T = [30, 100, 200, 500]` · `W = [300, 600, 1000, 1500]`
 
 ---
 
-## 项目文件夹层级结构
+## Methods
 
-```text
-Guassion-Process-Experiment-Design/
-├── 1_Code/
-│   ├── Python_for_Generate/
-│   │   ├── Generate_Data_v1.ipynb
-│   │   ├── Generate_Data_v2.ipynb
-│   │   ├── Generate_Data_v2.1.ipynb
-│   │   ├── Generate_Data_v2.4.5.ipynb
-│   │   ├── Generate_Data_v2.5.ipynb
-│   │   ├── Generate_Data_v3.ipynb
-│   │   ├── S2_gen_data_optimized_cp.ipynb
-│   │   ├── S2_gen_data_optimized_cp_v2.ipynb
-│   ├── Python_for_Check/
-│   │   ├── Parameter_Recovery.ipynb
-│   │   ├── Check_Generate_Data.ipynb
-│   │   ├── Compare_Real_Generated_DDM_Params_v2.4.3.ipynb
-│   │   ├── Compare_Real_Generated_DDM_Params_v2.4.4.ipynb
-│   │   └── Sigmoid_Optimized/
-│   │       ├── S2_gen_data_optimized_cp_v3.ipynb
-│   │       ├── S2_gen_data_optimized_cp_v4.ipynb
-│   │       ├── S2_gen_data_optimized_cp_v5.ipynb
-│   │       ├── S2_gen_data_optimized_cp_v6.ipynb
-│   │       ├── S2_gen_data_optimized_cp_v7.ipynb
-│   │       ├── S2_gen_data_optimized_cp_v7_alpha_test.ipynb
-│   │       └── S2_gen_data_optimized_cp_v8_additive.ipynb
-│   └── R_for_Check/
-│       └── Check_Generate_Data.Rmd
-├── 2_Data/
-│   ├── Generate_Data/
-│   │   ├── Generate_Data_v2.4.4_checks/
-│   │   ├── Generate_Data_v2.4.5_checks/
-│   │   ├── Generate_Data_v2.5/
-│   │   ├── S2_gen_data_optimized_cp_v5/
-│   │   └── *.csv
-│   └── Real_Data/
-│       ├── EXP_data_combined.csv
-│       └── EXP_data_group*.csv
-├── 3_Figures/
-├── 4_Reports/
-└── README.md
+### Generative pipeline
+
+```
+Design space Ω = (P, T, W, M)
+        │
+        ▼
+Sigmoid S2 mechanism      theoretical prior on how design variables map to (v, a)
+        │
+        ▼
+Gaussian process residual correction
+        │
+        ▼
+DDM simulation (Euler integration, deadline, omissions)
+        │
+        ▼
+Trial-level behaviour (RT, response, accuracy, omission)
 ```
 
----
+### Estimation and validation
 
-## 数据组织说明
+- **Hierarchical Bayesian DDM fitting** with [HDDM](https://github.com/hddm-devs/hddm) via
+  **dockerHDDM**, across 8 design configurations of real self-matching data.
+- **Model comparison** using DIC, plus **posterior predictive checks**.
+- **Prior-sensitivity checks** with 4 MCMC chains.
+- **Parameter recovery**: simulated data with known ground-truth parameters are refitted to quantify
+  how well each parameter is identifiable at a given design.
+- **Omission sensitivity analysis**: two alternative treatments of omitted trials — censoring vs.
+  dropping — compared head to head.
+- **Bias parameterization comparison**: stimulus bias, response bias, and combined bias, to test how
+  the choice of coding scheme shifts parameter estimates.
+- **Independent cross-validation in R** (`1_Code/R_for_Check/`) as a check on the Python pipeline.
 
-### 生成数据
+### Why Gaussian processes rather than a fixed parametric form
 
-- `2_Data/Generate_Data/` 保存各版本模拟数据。
-- `v2.4.x` 目录下的 `*_checks` 文件夹，表示该版本已进入较系统的检查/验证阶段。
-- `v2.5/` 表示更新一轮的 GP-DDM 生成结果，适合继续调参和比较。
-
-### 真实数据
-
-- `2_Data/Real_Data/EXP_data_combined.csv`：整合后的真实实验数据。
-- `2_Data/Real_Data/EXP_data_group*.csv`：按 group 拆分的原始数据。
-
----
-
-## 为什么重点放在 GP-DDM
-
-GP 的优势不只是“更复杂”，而是更适合做**实验设计建模**：
-
-1. **非线性映射**：可学习 `P/T/W → DDM 参数` 的非线性关系。
-2. **不确定性表达**：能同时输出均值与不确定性，方便识别“稳定区”和“边界区”。
-3. **边界探索**：适合回答“什么设计最容易放大 SPE”。
-4. **更灵活**：比固定 Sigmoid 更适合后续扩展到多参数、多条件和个体差异。
-
-### 建议后续可视化任务
-
-- 画出 `P/T/W → SPE` 的响应面图
-- 画出 GP 预测均值与方差热图
-- 对比 `Sigmoid vs GP` 的拟合曲线与误差
-- 标注“高不确定性区域”作为下一轮实验优先采样区
+1. **Nonlinear mapping** — learns the relation `(P, T, W) → DDM parameters` without committing to a
+   functional form.
+2. **Uncertainty quantification** — returns a predictive variance alongside the mean, which
+   identifies where the surrogate is reliable and where it is not.
+3. **Boundary exploration** — supports asking where the effect is largest, and where the surrogate
+   is most uncertain (and therefore where the next experiment is most informative).
+4. **Extensibility** — accommodates additional parameters, conditions, and individual differences
+   more naturally than a fixed sigmoid.
 
 ---
 
-## 下一步推进目标
+## Repository structure
 
-### 近期目标
+```
+.
+├── 1_Code/
+│   ├── Experiment/          # MATLAB/Psychtoolbox task implementation (exp_matlab/)
+│   ├── Python_for_Generate/ # Design-space generation and data simulation (v1 → v3, v2.4.x mainline)
+│   ├── Python_for_Check/    # Verification: parameter recovery, model comparison, PPC,
+│   │                        #   omission sensitivity, bias coding, GP visualization
+│   ├── Python_HDDM/         # Hierarchical Bayesian DDM fitting (dockerHDDM)
+│   ├── Python_HDDM_Nonmatching/
+│   └── R_for_Check/         # Independent R cross-validation
+├── 2_Data/
+│   ├── Generate_Data/       # Simulated datasets per model version
+│   └── Real_Data/           # Behavioural data from the SPE database, HDDM-ready
+├── 3_Figures/               # Output figures, including standardized GP visualization
+├── 4_Reports/               # Slides, reports, references
+├── 5_Reference/             # Thesis drafts, outlines, specification documents
+└── automation/              # One-command reproducible pipeline (see automation/README.md)
+```
 
-- 明确 **GP-DDM 用于实验设计建模** 的主线。
-- 固化一个“可复用”的生成/检查版本。
-- 把真实数据与生成数据的比较流程整理成标准流程。
+### Version lineage
 
-### 中期目标
-
-- 建立 GP 的二维/三维可视化结果。
-- 找到 SPE 最强的设计区域。
-- 做版本比较：`v1` / `v2.4.x` / `v2.5`。
-
-### 长期目标
-
-- 形成“实验设计空间 → 行为结果 → 反向优化”的闭环。
-- 将项目收敛成可投稿的研究框架。
+| Version family | Role |
+|---|---|
+| `v1` | Baseline: Sigmoid + DDM generative framework |
+| `v2.1 – v2.3` | Transitional: parameter mapping and generation refined |
+| **`v2.4 – v2.4.5`** | **Stable mainline**: generation, checks, recovery, real-data comparison |
+| `v2.5` | Exploratory: extended GP-DDM parameterization |
+| `v3` | Research branch: GP residual and boundary structure |
+| `S2_gen_data_optimized_cp*` | Parallel optimization branch (Sigmoid) for comparison |
 
 ---
 
-## 更新日志
+## Quickstart
 
-### 2026-04-25
+The `automation/` package runs the whole pipeline end to end and writes a report.
 
-- 补充当前项目进度判断。
-- 增加完整文件夹层级结构。
-- 增加生成数据/真实数据组织说明。
-- 增加 GP-DDM 的优势说明与后续可视化任务。
-- 增加版本演进与更新路线。
+```bash
+cd automation
+pip install -r requirements.txt
+
+python cli.py --profile quick        # smoke test (~30 s)
+python cli.py --profile standard     # ~2 min
+python cli.py --profile research     # ~8 min, full report
+```
+
+| Profile | Design space | Subjects | Trials/condition | Rounds | Runtime |
+|---|---|---|---|---|---|
+| `quick` | 3×3×3 = 27 | 8 | 8 | 2 | ~30 s |
+| `standard` | 8×8×8 = 512 | 30 | 20 | 5 | ~2 min |
+| `research` | 14×13×9 = 1638 | 50 | 30 | 10 | ~8 min |
+
+Outputs (JSON + Markdown report, design grids, simulated behaviour, model comparison, effect-size
+analysis, run log) are written to `automation/logs/{run_id}/`.
+
+### Programmatic use
+
+```python
+import sys; sys.path.insert(0, '.')
+from automation.pipeline import ExperimentPipeline
+
+pipeline = ExperimentPipeline(config={
+    'experiment': {'n_subjects': 30, 'trials_per_condition': 20},
+    'iteration':  {'n_rounds': 5},
+})
+results = pipeline.run()
+print(results['effect_analysis']['synthetic_SPE']['SPE_ms_mean'])
+```
+
+See [`automation/README.md`](automation/README.md) for module-level documentation, configuration
+options, and a FAQ.
 
 ---
+
+## Environment
+
+| Package | Minimum | Purpose |
+|---|---|---|
+| Python | 3.9+ (3.11+ recommended) | core pipeline |
+| numpy | 1.20+ | numerical computation |
+| pandas | 1.3+ | data handling |
+| scikit-learn | 1.0+ | Gaussian process models |
+| scipy | 1.7+ | statistical tests |
+| matplotlib | 3.4+ | figures |
+
+DDM fitting additionally requires **HDDM** and a Docker environment for **dockerHDDM**
+(`Dockerfile.hssm` is included).
+
+---
+
+## Data
+
+- **Real data** (`2_Data/Real_Data/`) is derived from the **Self-Prioritization Effect Database**, an
+  open, standardized trial-level database of the self-matching task; the HDDM-ready subsets used here
+  cover 8 design configurations. Source studies are cited in the thesis.
+- **Simulated data** (`2_Data/Generate_Data/`) is reproducible from the scripts with fixed random
+  seeds; each `*_checks` directory marks a version that has passed systematic validation.
+
+## How to cite
+
+```bibtex
+@mastersthesis{cai2026designspace,
+  author  = {Cai, Zhenxin},
+  title   = {Optimizing the Experimental Design Space of the Self-Prioritization Effect:
+             Predicting and Validating DDM Parameters via Gaussian Process Surrogates},
+  school  = {Nanjing Normal University},
+  year    = {2026},
+  type    = {Master's thesis}
+}
+```
+
+## Contact
+
+Zhenxin Cai — Nanjing Normal University, School of Psychology
+GitHub: [@Caizhenxin](https://github.com/Caizhenxin)
+
+## Acknowledgements
+
+Advisor: Prof. Chuan-Peng Hu (Hu Lab, Nanjing Normal University). The self-matching paradigm
+originates with Sui, He & Humphreys (2012); this work builds directly on that paradigm and on the
+open data shared by the self-prioritization research community.
 
 ## References
 
-- Sui, J., He, X., & Humphreys, G. W. (2012). Perceptual advantages for self-related stimuli: A review. *Current Directions in Psychological Science*, 21(5), 318-323.
+- Sui, J., He, X., & Humphreys, G. W. (2012). Perceptual effects of social salience: Evidence from
+  self-prioritization effects on perceptual matching. *Journal of Experimental Psychology: Human
+  Perception and Performance*, 38(5), 1105–1117.
+- Ratcliff, R., & McKoon, G. (2008). The diffusion decision model: Theory and data for two-choice
+  decision tasks. *Neural Computation*, 20(4), 873–922.
+- Wiecki, T. V., Sofer, I., & Frank, M. J. (2013). HDDM: Hierarchical Bayesian estimation of the
+  drift-diffusion model in Python. *Frontiers in Neuroinformatics*, 7, 14.
+- Wilkinson, M. D., et al. (2016). The FAIR Guiding Principles for scientific data management and
+  stewardship. *Scientific Data*, 3, 160018.
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

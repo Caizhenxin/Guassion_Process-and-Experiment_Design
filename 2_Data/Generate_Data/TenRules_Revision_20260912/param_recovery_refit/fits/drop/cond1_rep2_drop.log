@@ -1,0 +1,58 @@
+[fit_one_hddm] cond1_rep2_drop: 4 被试 / 7 试次 / omission=0.000 / p_outlier=0.05
+[fit_one_hddm] 设置 z 默认值失败（忽略）：'z'
+No model attribute --> setting up standard HDDM
+Set model to ddm
+[                  1%                  ] 58 of 3000 complete in 0.5 sec
+[-                 3%                  ] 117 of 3000 complete in 1.0 sec
+[--                5%                  ] 160 of 3000 complete in 1.5 sec
+[--                7%                  ] 215 of 3000 complete in 2.0 sec
+[---               9%                  ] 278 of 3000 complete in 2.5 sec
+[----             11%                  ] 333 of 3000 complete in 3.0 sec
+[----             13%                  ] 390 of 3000 complete in 3.5 sec
+[-----            14%                  ] 440 of 3000 complete in 4.1 sec
+[------           16%                  ] 493 of 3000 complete in 4.6 sec
+[------           18%                  ] 548 of 3000 complete in 5.1 sec
+[-------          19%                  ] 596 of 3000 complete in 5.6 sec
+[--------         21%                  ] 637 of 3000 complete in 6.1 sec
+[--------         23%                  ] 691 of 3000 complete in 6.6 sec
+[---------        25%                  ] 752 of 3000 complete in 7.1 sec
+[----------       27%                  ] 814 of 3000 complete in 7.6 sec
+[-----------      29%                  ] 879 of 3000 complete in 8.1 sec
+[-----------      31%                  ] 935 of 3000 complete in 8.6 sec
+[------------     33%                  ] 1000 of 3000 complete in 9.1 sec
+[-------------    35%                  ] 1065 of 3000 complete in 9.6 sec
+[--------------   37%                  ] 1123 of 3000 complete in 10.1 sec
+[---------------  39%                  ] 1189 of 3000 complete in 10.6 sec
+[---------------  41%                  ] 1246 of 3000 complete in 11.1 sec
+[---------------- 43%                  ] 1301 of 3000 complete in 11.6 sec
+[-----------------45%                  ] 1359 of 3000 complete in 12.1 sec
+[-----------------47%                  ] 1423 of 3000 complete in 12.6 sec
+[-----------------49%                  ] 1485 of 3000 complete in 13.1 sec
+[-----------------51%                  ] 1549 of 3000 complete in 13.7 sec
+[-----------------53%                  ] 1611 of 3000 complete in 14.2 sec
+[-----------------55%-                 ] 1677 of 3000 complete in 14.7 sec
+[-----------------57%-                 ] 1733 of 3000 complete in 15.2 sec
+[-----------------59%--                ] 1782 of 3000 complete in 15.7 sec
+[-----------------61%---               ] 1841 of 3000 complete in 16.2 sec
+[-----------------63%----              ] 1903 of 3000 complete in 16.7 sec
+[-----------------65%----              ] 1964 of 3000 complete in 17.2 sec
+[-----------------67%-----             ] 2026 of 3000 complete in 17.7 sec
+[-----------------69%------            ] 2085 of 3000 complete in 18.2 sec
+[-----------------71%-------           ] 2141 of 3000 complete in 18.7 sec
+[-----------------73%-------           ] 2205 of 3000 complete in 19.2 sec
+[-----------------75%--------          ] 2260 of 3000 complete in 19.7 sec
+[-----------------77%---------         ] 2316 of 3000 complete in 20.2 sec
+[-----------------79%----------        ] 2370 of 3000 complete in 20.7 sec
+[-----------------80%----------        ] 2420 of 3000 complete in 21.2 sec
+[-----------------82%-----------       ] 2476 of 3000 complete in 21.7 sec
+[-----------------84%------------      ] 2536 of 3000 complete in 22.2 sec
+[-----------------86%------------      ] 2595 of 3000 complete in 22.8 sec
+[-----------------88%-------------     ] 2652 of 3000 complete in 23.3 sec
+[-----------------90%--------------    ] 2709 of 3000 complete in 23.8 sec
+[-----------------92%---------------   ] 2770 of 3000 complete in 24.3 sec
+[-----------------94%---------------   ] 2829 of 3000 complete in 24.8 sec
+[-----------------96%----------------  ] 2884 of 3000 complete in 25.3 sec
+[-----------------98%----------------- ] 2944 of 3000 complete in 25.8 sec
+[-----------------100%-----------------] 3000 of 3000 complete in 26.2 sec
+hddm sampling elpased time:  26.307 s
+[fit_one_hddm] 完成 cond1_rep2_drop（0.4 分钟）→ /home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/fits/drop

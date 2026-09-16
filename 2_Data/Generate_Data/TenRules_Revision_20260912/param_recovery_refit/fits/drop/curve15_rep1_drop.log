@@ -1,0 +1,267 @@
+[fit_one_hddm] curve15_rep1_drop: 12 被试 / 2644 试次 / omission=0.000 / p_outlier=0.05
+[fit_one_hddm] 设置 z 默认值失败（忽略）：'z'
+No model attribute --> setting up standard HDDM
+Set model to ddm
+[                  0%                  ] 12 of 3000 complete in 0.5 sec
+[                  0%                  ] 26 of 3000 complete in 1.0 sec
+[                  1%                  ] 39 of 3000 complete in 1.6 sec
+[                  1%                  ] 52 of 3000 complete in 2.1 sec
+[                  2%                  ] 65 of 3000 complete in 2.6 sec
+[                  2%                  ] 78 of 3000 complete in 3.1 sec
+[-                 3%                  ] 90 of 3000 complete in 3.7 sec
+[-                 3%                  ] 102 of 3000 complete in 4.2 sec
+[-                 3%                  ] 114 of 3000 complete in 4.7 sec
+[-                 4%                  ] 126 of 3000 complete in 5.2 sec
+[-                 4%                  ] 138 of 3000 complete in 5.7 sec
+[-                 5%                  ] 150 of 3000 complete in 6.2 sec
+[--                5%                  ] 161 of 3000 complete in 6.8 sec
+[--                5%                  ] 171 of 3000 complete in 7.3 sec
+[--                6%                  ] 181 of 3000 complete in 7.8 sec
+[--                6%                  ] 191 of 3000 complete in 8.3 sec
+[--                6%                  ] 201 of 3000 complete in 8.8 sec
+[--                7%                  ] 212 of 3000 complete in 9.3 sec
+[--                7%                  ] 223 of 3000 complete in 9.9 sec
+[--                7%                  ] 233 of 3000 complete in 10.4 sec
+[---               8%                  ] 243 of 3000 complete in 10.9 sec
+[---               8%                  ] 252 of 3000 complete in 11.4 sec
+[---               8%                  ] 262 of 3000 complete in 12.0 sec
+[---               9%                  ] 271 of 3000 complete in 12.5 sec
+[---               9%                  ] 280 of 3000 complete in 13.0 sec
+[---               9%                  ] 290 of 3000 complete in 13.5 sec
+[---              10%                  ] 302 of 3000 complete in 14.1 sec
+[---              10%                  ] 314 of 3000 complete in 14.6 sec
+[----             10%                  ] 326 of 3000 complete in 15.1 sec
+[----             11%                  ] 339 of 3000 complete in 15.7 sec
+[----             11%                  ] 352 of 3000 complete in 16.2 sec
+[----             12%                  ] 365 of 3000 complete in 16.7 sec
+[----             12%                  ] 378 of 3000 complete in 17.2 sec
+[----             13%                  ] 391 of 3000 complete in 17.7 sec
+[-----            13%                  ] 405 of 3000 complete in 18.2 sec
+[-----            13%                  ] 418 of 3000 complete in 18.8 sec
+[-----            14%                  ] 431 of 3000 complete in 19.3 sec
+[-----            14%                  ] 445 of 3000 complete in 19.8 sec
+[-----            15%                  ] 458 of 3000 complete in 20.3 sec
+[-----            15%                  ] 472 of 3000 complete in 20.8 sec
+[------           16%                  ] 485 of 3000 complete in 21.4 sec
+[------           16%                  ] 498 of 3000 complete in 21.9 sec
+[------           17%                  ] 510 of 3000 complete in 22.4 sec
+[------           17%                  ] 522 of 3000 complete in 22.9 sec
+[------           17%                  ] 533 of 3000 complete in 23.4 sec
+[------           18%                  ] 545 of 3000 complete in 24.0 sec
+[-------          18%                  ] 557 of 3000 complete in 24.5 sec
+[-------          19%                  ] 571 of 3000 complete in 25.0 sec
+[-------          19%                  ] 584 of 3000 complete in 25.5 sec
+[-------          19%                  ] 596 of 3000 complete in 26.1 sec
+[-------          20%                  ] 608 of 3000 complete in 26.6 sec
+[-------          20%                  ] 622 of 3000 complete in 27.1 sec
+[--------         21%                  ] 634 of 3000 complete in 27.7 sec
+[--------         21%                  ] 647 of 3000 complete in 28.2 sec
+[--------         22%                  ] 660 of 3000 complete in 28.7 sec
+[--------         22%                  ] 672 of 3000 complete in 29.2 sec
+[--------         22%                  ] 684 of 3000 complete in 29.8 sec
+[--------         23%                  ] 696 of 3000 complete in 30.3 sec
+[--------         23%                  ] 708 of 3000 complete in 30.8 sec
+[---------        24%                  ] 720 of 3000 complete in 31.3 sec
+[---------        24%                  ] 733 of 3000 complete in 31.8 sec
+[---------        24%                  ] 745 of 3000 complete in 32.3 sec
+[---------        25%                  ] 758 of 3000 complete in 32.9 sec
+[---------        25%                  ] 771 of 3000 complete in 33.4 sec
+[---------        26%                  ] 783 of 3000 complete in 33.9 sec
+[----------       26%                  ] 796 of 3000 complete in 34.5 sec
+[----------       26%                  ] 809 of 3000 complete in 35.0 sec
+[----------       27%                  ] 822 of 3000 complete in 35.5 sec
+[----------       27%                  ] 834 of 3000 complete in 36.0 sec
+[----------       28%                  ] 847 of 3000 complete in 36.6 sec
+[----------       28%                  ] 860 of 3000 complete in 37.1 sec
+[-----------      29%                  ] 873 of 3000 complete in 37.6 sec
+[-----------      29%                  ] 885 of 3000 complete in 38.1 sec
+[-----------      29%                  ] 898 of 3000 complete in 38.7 sec
+[-----------      30%                  ] 910 of 3000 complete in 39.2 sec
+[-----------      30%                  ] 922 of 3000 complete in 39.7 sec
+[-----------      31%                  ] 934 of 3000 complete in 40.2 sec
+[-----------      31%                  ] 947 of 3000 complete in 40.8 sec
+[------------     32%                  ] 960 of 3000 complete in 41.3 sec
+[------------     32%                  ] 973 of 3000 complete in 41.8 sec
+[------------     32%                  ] 986 of 3000 complete in 42.3 sec
+[------------     33%                  ] 999 of 3000 complete in 42.8 sec
+[------------     33%                  ] 1012 of 3000 complete in 43.4 sec
+[------------     34%                  ] 1024 of 3000 complete in 43.9 sec
+[-------------    34%                  ] 1036 of 3000 complete in 44.4 sec
+[-------------    34%                  ] 1048 of 3000 complete in 44.9 sec
+[-------------    35%                  ] 1060 of 3000 complete in 45.5 sec
+[-------------    35%                  ] 1071 of 3000 complete in 46.0 sec
+[-------------    36%                  ] 1082 of 3000 complete in 46.5 sec
+[-------------    36%                  ] 1093 of 3000 complete in 47.0 sec
+[-------------    36%                  ] 1105 of 3000 complete in 47.6 sec
+[--------------   37%                  ] 1116 of 3000 complete in 48.1 sec
+[--------------   37%                  ] 1127 of 3000 complete in 48.6 sec
+[--------------   38%                  ] 1140 of 3000 complete in 49.2 sec
+[--------------   38%                  ] 1152 of 3000 complete in 49.7 sec
+[--------------   38%                  ] 1165 of 3000 complete in 50.2 sec
+[--------------   39%                  ] 1178 of 3000 complete in 50.7 sec
+[---------------  39%                  ] 1190 of 3000 complete in 51.3 sec
+[---------------  40%                  ] 1203 of 3000 complete in 51.8 sec
+[---------------  40%                  ] 1216 of 3000 complete in 52.3 sec
+[---------------  40%                  ] 1229 of 3000 complete in 52.8 sec
+[---------------  41%                  ] 1242 of 3000 complete in 53.3 sec
+[---------------  41%                  ] 1253 of 3000 complete in 53.9 sec
+[---------------- 42%                  ] 1264 of 3000 complete in 54.4 sec
+[---------------- 42%                  ] 1276 of 3000 complete in 54.9 sec
+[---------------- 42%                  ] 1288 of 3000 complete in 55.4 sec
+[---------------- 43%                  ] 1299 of 3000 complete in 55.9 sec
+[---------------- 43%                  ] 1311 of 3000 complete in 56.5 sec
+[---------------- 44%                  ] 1323 of 3000 complete in 57.0 sec
+[---------------- 44%                  ] 1334 of 3000 complete in 57.5 sec
+[-----------------44%                  ] 1345 of 3000 complete in 58.0 sec
+[-----------------45%                  ] 1356 of 3000 complete in 58.5 sec
+[-----------------45%                  ] 1367 of 3000 complete in 59.0 sec
+[-----------------45%                  ] 1378 of 3000 complete in 59.6 sec
+[-----------------46%                  ] 1389 of 3000 complete in 60.1 sec
+[-----------------46%                  ] 1400 of 3000 complete in 60.6 sec
+[-----------------47%                  ] 1412 of 3000 complete in 61.1 sec
+[-----------------47%                  ] 1425 of 3000 complete in 61.7 sec
+[-----------------47%                  ] 1437 of 3000 complete in 62.2 sec
+[-----------------48%                  ] 1449 of 3000 complete in 62.7 sec
+[-----------------48%                  ] 1462 of 3000 complete in 63.2 sec
+[-----------------49%                  ] 1474 of 3000 complete in 63.7 sec
+[-----------------49%                  ] 1487 of 3000 complete in 64.2 sec
+[-----------------50%                  ] 1501 of 3000 complete in 64.7 sec
+[-----------------50%                  ] 1513 of 3000 complete in 65.3 sec
+[-----------------50%                  ] 1523 of 3000 complete in 65.8 sec
+[-----------------51%                  ] 1534 of 3000 complete in 66.3 sec
+[-----------------51%                  ] 1546 of 3000 complete in 66.8 sec
+[-----------------51%                  ] 1558 of 3000 complete in 67.4 sec
+[-----------------52%                  ] 1570 of 3000 complete in 67.9 sec
+[-----------------52%                  ] 1581 of 3000 complete in 68.4 sec
+[-----------------53%                  ] 1592 of 3000 complete in 69.0 sec
+[-----------------53%                  ] 1603 of 3000 complete in 69.5 sec
+[-----------------53%                  ] 1614 of 3000 complete in 70.0 sec
+[-----------------54%                  ] 1625 of 3000 complete in 70.6 sec
+[-----------------54%                  ] 1637 of 3000 complete in 71.1 sec
+[-----------------54%                  ] 1649 of 3000 complete in 71.6 sec
+[-----------------55%-                 ] 1662 of 3000 complete in 72.2 sec
+[-----------------55%-                 ] 1675 of 3000 complete in 72.7 sec
+[-----------------56%-                 ] 1688 of 3000 complete in 73.2 sec
+[-----------------56%-                 ] 1700 of 3000 complete in 73.7 sec
+[-----------------57%-                 ] 1712 of 3000 complete in 74.2 sec
+[-----------------57%-                 ] 1724 of 3000 complete in 74.8 sec
+[-----------------57%-                 ] 1735 of 3000 complete in 75.3 sec
+[-----------------58%--                ] 1746 of 3000 complete in 75.8 sec
+[-----------------58%--                ] 1757 of 3000 complete in 76.3 sec
+[-----------------58%--                ] 1768 of 3000 complete in 76.8 sec
+[-----------------59%--                ] 1780 of 3000 complete in 77.4 sec
+[-----------------59%--                ] 1791 of 3000 complete in 77.9 sec
+[-----------------60%--                ] 1802 of 3000 complete in 78.4 sec
+[-----------------60%--                ] 1813 of 3000 complete in 78.9 sec
+[-----------------60%---               ] 1823 of 3000 complete in 79.5 sec
+[-----------------61%---               ] 1833 of 3000 complete in 80.0 sec
+[-----------------61%---               ] 1842 of 3000 complete in 80.5 sec
+[-----------------61%---               ] 1853 of 3000 complete in 81.0 sec
+[-----------------62%---               ] 1863 of 3000 complete in 81.6 sec
+[-----------------62%---               ] 1873 of 3000 complete in 82.1 sec
+[-----------------62%---               ] 1883 of 3000 complete in 82.6 sec
+[-----------------63%---               ] 1892 of 3000 complete in 83.2 sec
+[-----------------63%----              ] 1901 of 3000 complete in 83.7 sec
+[-----------------63%----              ] 1910 of 3000 complete in 84.2 sec
+[-----------------63%----              ] 1919 of 3000 complete in 84.8 sec
+[-----------------64%----              ] 1929 of 3000 complete in 85.3 sec
+[-----------------64%----              ] 1938 of 3000 complete in 85.8 sec
+[-----------------64%----              ] 1949 of 3000 complete in 86.3 sec
+[-----------------65%----              ] 1960 of 3000 complete in 86.8 sec
+[-----------------65%----              ] 1971 of 3000 complete in 87.4 sec
+[-----------------66%-----             ] 1983 of 3000 complete in 87.9 sec
+[-----------------66%-----             ] 1994 of 3000 complete in 88.4 sec
+[-----------------66%-----             ] 2005 of 3000 complete in 88.9 sec
+[-----------------67%-----             ] 2017 of 3000 complete in 89.5 sec
+[-----------------67%-----             ] 2030 of 3000 complete in 90.0 sec
+[-----------------68%-----             ] 2042 of 3000 complete in 90.5 sec
+[-----------------68%------            ] 2054 of 3000 complete in 91.0 sec
+[-----------------68%------            ] 2066 of 3000 complete in 91.6 sec
+[-----------------69%------            ] 2078 of 3000 complete in 92.1 sec
+[-----------------69%------            ] 2090 of 3000 complete in 92.6 sec
+[-----------------70%------            ] 2103 of 3000 complete in 93.1 sec
+[-----------------70%------            ] 2115 of 3000 complete in 93.7 sec
+[-----------------70%------            ] 2127 of 3000 complete in 94.2 sec
+[-----------------71%-------           ] 2140 of 3000 complete in 94.7 sec
+[-----------------71%-------           ] 2153 of 3000 complete in 95.2 sec
+[-----------------72%-------           ] 2165 of 3000 complete in 95.7 sec
+[-----------------72%-------           ] 2177 of 3000 complete in 96.3 sec
+[-----------------72%-------           ] 2189 of 3000 complete in 96.8 sec
+[-----------------73%-------           ] 2200 of 3000 complete in 97.3 sec
+[-----------------73%--------          ] 2212 of 3000 complete in 97.8 sec
+[-----------------74%--------          ] 2225 of 3000 complete in 98.3 sec
+[-----------------74%--------          ] 2237 of 3000 complete in 98.8 sec
+[-----------------74%--------          ] 2249 of 3000 complete in 99.4 sec
+[-----------------75%--------          ] 2262 of 3000 complete in 99.9 sec
+[-----------------75%--------          ] 2273 of 3000 complete in 100.4 sec
+[-----------------76%--------          ] 2284 of 3000 complete in 101.0 sec
+[-----------------76%---------         ] 2296 of 3000 complete in 101.5 sec
+[-----------------76%---------         ] 2308 of 3000 complete in 102.0 sec
+[-----------------77%---------         ] 2320 of 3000 complete in 102.5 sec
+[-----------------77%---------         ] 2332 of 3000 complete in 103.1 sec
+[-----------------78%---------         ] 2344 of 3000 complete in 103.6 sec
+[-----------------78%---------         ] 2356 of 3000 complete in 104.1 sec
+[-----------------78%----------        ] 2369 of 3000 complete in 104.7 sec
+[-----------------79%----------        ] 2382 of 3000 complete in 105.2 sec
+[-----------------79%----------        ] 2396 of 3000 complete in 105.7 sec
+[-----------------80%----------        ] 2409 of 3000 complete in 106.2 sec
+[-----------------80%----------        ] 2421 of 3000 complete in 106.7 sec
+[-----------------81%----------        ] 2434 of 3000 complete in 107.2 sec
+[-----------------81%-----------       ] 2448 of 3000 complete in 107.8 sec
+[-----------------82%-----------       ] 2462 of 3000 complete in 108.3 sec
+[-----------------82%-----------       ] 2475 of 3000 complete in 108.8 sec
+[-----------------82%-----------       ] 2487 of 3000 complete in 109.4 sec
+[-----------------83%-----------       ] 2499 of 3000 complete in 109.9 sec
+[-----------------83%-----------       ] 2512 of 3000 complete in 110.4 sec
+[-----------------84%-----------       ] 2524 of 3000 complete in 110.9 sec
+[-----------------84%------------      ] 2536 of 3000 complete in 111.5 sec
+[-----------------84%------------      ] 2548 of 3000 complete in 112.0 sec
+[-----------------85%------------      ] 2560 of 3000 complete in 112.5 sec
+[-----------------85%------------      ] 2571 of 3000 complete in 113.0 sec
+[-----------------86%------------      ] 2581 of 3000 complete in 113.5 sec
+[-----------------86%------------      ] 2591 of 3000 complete in 114.1 sec
+[-----------------86%------------      ] 2600 of 3000 complete in 114.6 sec
+[-----------------86%-------------     ] 2609 of 3000 complete in 115.1 sec
+[-----------------87%-------------     ] 2617 of 3000 complete in 115.7 sec
+[-----------------87%-------------     ] 2626 of 3000 complete in 116.2 sec
+[-----------------87%-------------     ] 2636 of 3000 complete in 116.8 sec
+[-----------------88%-------------     ] 2646 of 3000 complete in 117.3 sec
+[-----------------88%-------------     ] 2656 of 3000 complete in 117.8 sec
+[-----------------88%-------------     ] 2666 of 3000 complete in 118.3 sec
+[-----------------89%-------------     ] 2676 of 3000 complete in 118.8 sec
+[-----------------89%--------------    ] 2685 of 3000 complete in 119.4 sec
+[-----------------89%--------------    ] 2695 of 3000 complete in 119.9 sec
+[-----------------90%--------------    ] 2705 of 3000 complete in 120.4 sec
+[-----------------90%--------------    ] 2715 of 3000 complete in 121.0 sec
+[-----------------90%--------------    ] 2724 of 3000 complete in 121.5 sec
+[-----------------91%--------------    ] 2732 of 3000 complete in 122.0 sec
+[-----------------91%--------------    ] 2741 of 3000 complete in 122.6 sec
+[-----------------91%--------------    ] 2750 of 3000 complete in 123.1 sec
+[-----------------91%--------------    ] 2759 of 3000 complete in 123.6 sec
+[-----------------92%---------------   ] 2769 of 3000 complete in 124.1 sec
+[-----------------92%---------------   ] 2779 of 3000 complete in 124.7 sec
+[-----------------92%---------------   ] 2788 of 3000 complete in 125.2 sec
+[-----------------93%---------------   ] 2798 of 3000 complete in 125.7 sec
+[-----------------93%---------------   ] 2807 of 3000 complete in 126.2 sec
+[-----------------93%---------------   ] 2816 of 3000 complete in 126.8 sec
+[-----------------94%---------------   ] 2825 of 3000 complete in 127.3 sec
+[-----------------94%---------------   ] 2835 of 3000 complete in 127.8 sec
+[-----------------94%----------------  ] 2845 of 3000 complete in 128.4 sec
+[-----------------95%----------------  ] 2854 of 3000 complete in 128.9 sec
+[-----------------95%----------------  ] 2863 of 3000 complete in 129.4 sec
+[-----------------95%----------------  ] 2872 of 3000 complete in 129.9 sec
+[-----------------96%----------------  ] 2881 of 3000 complete in 130.5 sec
+[-----------------96%----------------  ] 2891 of 3000 complete in 131.0 sec
+[-----------------96%----------------  ] 2901 of 3000 complete in 131.5 sec
+[-----------------97%----------------  ] 2912 of 3000 complete in 132.1 sec
+[-----------------97%----------------- ] 2923 of 3000 complete in 132.6 sec
+[-----------------97%----------------- ] 2933 of 3000 complete in 133.1 sec
+[-----------------98%----------------- ] 2943 of 3000 complete in 133.7 sec
+[-----------------98%----------------- ] 2953 of 3000 complete in 134.2 sec
+[-----------------98%----------------- ] 2964 of 3000 complete in 134.7 sec
+[-----------------99%----------------- ] 2976 of 3000 complete in 135.3 sec
+[-----------------99%----------------- ] 2988 of 3000 complete in 135.8 sec
+[-----------------100%-----------------] 3000 of 3000 complete in 136.3 sec
+[-----------------100%-----------------] 3000 of 3000 complete in 136.4 sec
+hddm sampling elpased time:  136.456 s
+[fit_one_hddm] 完成 curve15_rep1_drop（2.3 分钟）→ /home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/fits/drop

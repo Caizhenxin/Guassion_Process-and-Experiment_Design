@@ -1,0 +1,5 @@
+stat,n_cells,coverage_95
+acc_all,18,0.1111111111111111
+correct_rt_mean_ms,18,0.05555555555555555
+correct_rt_q50_ms,18,0.0
+omission_rate,18,0.3888888888888889

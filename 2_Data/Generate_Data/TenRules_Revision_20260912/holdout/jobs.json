@@ -1,0 +1,62 @@
+[
+  {
+    "group_id": 3,
+    "tag": "holdout_est_g3",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g3.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 7,
+    "n_subjects_hold": 3,
+    "n_trials": 1820
+  },
+  {
+    "group_id": 4,
+    "tag": "holdout_est_g4",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g4.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 7,
+    "n_subjects_hold": 4,
+    "n_trials": 1820
+  },
+  {
+    "group_id": 5,
+    "tag": "holdout_est_g5",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g5.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 7,
+    "n_subjects_hold": 4,
+    "n_trials": 1820
+  },
+  {
+    "group_id": 6,
+    "tag": "holdout_est_g6",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g6.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 7,
+    "n_subjects_hold": 3,
+    "n_trials": 1820
+  },
+  {
+    "group_id": 7,
+    "tag": "holdout_est_g7",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g7.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 8,
+    "n_subjects_hold": 4,
+    "n_trials": 2080
+  },
+  {
+    "group_id": 8,
+    "tag": "holdout_est_g8",
+    "scheme": "censor",
+    "rel_path": "TenRules_Revision_20260912/holdout/prepared/holdout_est_g8.csv",
+    "p_outlier": 0.0,
+    "n_subjects_est": 7,
+    "n_subjects_hold": 4,
+    "n_trials": 1820
+  }
+]

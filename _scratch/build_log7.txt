@@ -1,0 +1,12 @@
+
+Traceback (most recent call last):
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 407, in <module>
+    build()
+    ~~~~~^^
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 387, in build
+    OUT.unlink()
+    ~~~~~~~~~~^^
+  File "c:\python314\Lib\pathlib\__init__.py", line 1042, in unlink
+    os.unlink(self)
+    ~~~~~~~~~^^^^^^
+PermissionError: [WinError 32] ��һ����������ʹ�ô��ļ��������޷����ʡ�: 'D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\5_Reference\\�հ����ĸ�ʽ��Ҫ��\\��ҵ����_������_����v3_ͼ��_20260912.docx'

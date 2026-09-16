@@ -1,0 +1,14 @@
+{
+  "tag": "cond8_rep2_drop",
+  "data": "/home/jovyan/work/2_Data/Generate_Data/TenRules_Revision_20260912/param_recovery/prepared/drop/cond8_rep2_drop.csv",
+  "n_subjects": 11,
+  "n_trials": 2188,
+  "n_omission": 0,
+  "omission_rate": 0.0,
+  "p_outlier": 0.05,
+  "draws": 3000,
+  "burn": 500,
+  "elapsed_sec": 117.4,
+  "traces_saved": true,
+  "stats_file": "cond8_rep2_drop_stats.csv"
+}

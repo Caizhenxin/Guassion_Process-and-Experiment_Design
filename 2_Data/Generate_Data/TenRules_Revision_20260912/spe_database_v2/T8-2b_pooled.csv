@@ -1,0 +1,2 @@
+n_datasets,n_studies,n_subjects,n_trials,SPE_RT_mean,SPE_RT_ci_lo,SPE_RT_ci_hi,SPE_RT_median,between_dataset_sd,pct_datasets_self_faster,SPE_ACC_mean
+25,18,2488,337050,-93.78829511897214,-113.5947723473021,-74.4964587896348,-88.33259877911672,50.220904158937266,1.0,0.08940325517762383

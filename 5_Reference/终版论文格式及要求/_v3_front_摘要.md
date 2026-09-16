@@ -1,0 +1,42 @@
+TITLE_CN=自我优势效应的实验设计空间优化：基于漂移扩散模型与高斯过程的混合建模研究
+TITLE_EN=Optimizing the Experimental Design Space of the Self-Prioritization Effect: A Hybrid DDM–Gaussian Process Modeling Approach
+AUTHOR=蔡振辛
+STUDENT_ID=242302035
+ADVISOR=胡传鹏 教授
+UNIT=南京师范大学 心理学院
+DISCIPLINE1=心理学
+DISCIPLINE2=基础心理学
+FINISH_TIME=2027年（待定）
+DEFENSE_TIME=2027年（待定）
+
+# 摘要
+
+自我优势效应（self-prioritization effect, SPE）指与自我相关联的刺激获得更快、更准加工的稳健现象，但已有研究通常只在少数离散条件上比较效应大小，缺乏对"实验参数—潜在心理过程—行为表现"这一映射链条的系统建模。本研究以自我匹配任务（self-matching task, SMT）为载体，将练习试次数（P）、刺激呈现时间（T）与反应窗口（W）形式化为三维实验设计空间 Ω，以漂移扩散模型（drift diffusion model, DDM）参数（漂移率 v、边界分离 a、非决策时间 t、起始点 z）作为连接实验设计与行为数据的中介变量，构建"Sigmoid 理论先验 + 高斯过程（Gaussian process, GP）残差"的混合生成模型，并通过真实实验数据、方法学检验、外部数据库与机制仿真进行多源验证。
+
+研究一在课题组前期采集的 88 名被试、8 组实验设计数据上检验设计空间对 SPE 的调控。行为层面，SPE_RT 在 8 个设计单元间差异显著，F(7, 80) = 2.79, p = .012, η² = .196，而 SPE_ACC 差异不显著，p = .183；参数层面（主口径 6 个条件），漂移率层面的自我优势 SPE_v 差异在历史参数配置下显著（F(5, 59) = 2.95, p = .019, BF₁₀ = 2.83–3.29），但该配置存在收敛不足（G3 的 ESS 仅 8.6）与 p_outlier 设置冲突；改用修正配置（p_outlier = 0、4 条链 × 8,000 draws、2,000 burn-in，核心参数 ESS ≥ 9,400、R̂ ≤ 1.000）后，该差异不再显著（F(5, 59) = 1.72, p = .145, BF₁₀ = 1.03）。P、T、W 的线性回归几乎无解释力（R² = .051，BF₁₀ = 0.73），提示设计参数的作用具有强非线性，需要非线性映射建模。
+
+研究二系统评估遗漏（omission）处理方式对 DDM 参数估计的影响（8 组 × 2 方案共 16 次层级贝叶斯拟合），并在已知真值的仿真数据上完成参数恢复检验。结果显示：遗漏试次的处理方式主要改变漂移率的**绝对水平**——在遗漏率超过约 35% 的条件下（G1–G4），两方案估计差异超出 95% 可信区间的重叠范围（G1 的 v_self 相差 Δ = 6.81），而自我优势的相对方向（SPE_v）保持稳定；在遗漏率低于约 15% 的条件下（G5–G8），两方案基本一致。仿真数据上的参数恢复进一步显示，{待填：恢复偏差与 95% CI 覆盖率}，并且遗漏率–偏倚曲线为"约 15% / 约 35%"的经验分档提供了仿真支持。据此确立"排除高遗漏组、以高质量条件为主口径"的数据策略。此外，本研究训练了适用于本范式的省略概率网络（omission probability network, OPN）概念验证版本（测试集 R² = .986）。
+
+研究三在主口径 6 个条件上校准并验证 Sigmoid+GP 混合生成模型，并补充了模型比较、模型恢复与后验预测检验三项严格验证。差分进化校准（修正参数配置）给出 α₁ = 0.153（自我条件的漂移率增益仅约 +15%）、β₁ = −0.631（高总可用时间条件下边界反而更低，方向与假设相反）与 RMSE = 0.704；该结果表明：当参数估计更可靠时，理论与数据的偏离更为清晰，Sigmoid 假设需要修正。模型比较表明：线性模型的预测误差高出一个数量级（聚合 RMSE = 8.535，而纯 Sigmoid 为 1.135、Sigmoid+GP 为 1.232、均值基线为 1.269），说明非线性映射不可或缺；但在仅 6 个设计点的条件下，GP 残差层**未提升**跨设计点的预测精度（其价值体现在预测不确定性的量化与候选设计点识别）。留一条件交叉验证（LOCV）显示参数层外推不成立（v_self 的 r = −0.03），模型恢复的混淆矩阵进一步表明当前设计对模型判别的功效不足。后验预测检验显示，模型在**跨条件趋势**上与真实数据一致，但在**行为分布层面存在系统性失配**（五个统计量的 95% 预测区间覆盖率仅为 .17–.33；例如长时限条件的遗漏率观测为 .056 而预测为 .008）。这一结果表明恒定边界 DDM 在含截止时间的 SMT 任务中存在模型误配，指向跨试次变异、注意脱失与塌缩边界（ANGLE/WEIBULL）以及遗漏的显式似然建模（LAN+OPN 路线）等改进方向；据此本研究将模型定位为"设计空间趋势模型"而非"可逐条件复现行为分布的模型"。
+
+研究四将上述发现与更大范围证据对照：基于课题组 SPE 数据库的**可获得子集**（全库自述 44 篇文献/70 数据集/3,603 人；本文实际分析 {待填：数据集数} 个数据集、{待填：被试数} 名被试）考察 SPE 的跨研究分布及其与呈现时间、试次数等设计变量的关系；并通过条件反应函数（conditional response function, CRF）分析与 Stim-Coding 仿真建立"起始点偏向—行为模式"的生成链条，对由实测 CRF 反推 DDM 参数的可辨识性进行可行性分析。需说明的是，数据库层面的设计变量关系与内部数据的方向存在不一致，本文对此进行专门讨论。
+
+综上，本研究构建了从实验设计参数经 DDM 参数到行为表现的完整映射框架，系统揭示了设计空间对 SPE 的调制规律及其边界条件，并通过参数恢复、模型比较/模型恢复、后验预测检验构成完整的验证链，明确了该框架的适用边界：**理论映射是不可或缺的，设计空间外推需要更多设计点，行为分布层面的复现需要更复杂的模型形式。**
+
+关键词：自我优势效应；自我匹配任务；实验设计空间；漂移扩散模型；高斯过程；遗漏反应；参数恢复
+
+# Abstract
+
+The self-prioritization effect (SPE) refers to the robust finding that self-associated stimuli are processed faster and more accurately than other-associated stimuli. Yet most studies compare effect sizes across only a few discrete conditions and lack a systematic model of the mapping from experimental parameters, through latent cognitive processes, to observable behavior. Using the self-matching task (SMT) as a testbed, this thesis formalizes the number of practice trials (P), stimulus duration (T), and response window (W) into a three-dimensional experimental design space Ω, employs drift diffusion model (DDM) parameters (drift rate v, boundary separation a, non-decision time t, starting point z) as latent mediators, and develops a hybrid generative model combining a theoretical Sigmoid prior with Gaussian process (GP) residual learning, validated through empirical data, methodological checks, an external database, and mechanistic simulations.
+
+Study 1 examined how the design space modulates SPE in data from 88 participants across eight designs collected by the laboratory. Behaviorally, SPE in RT differed across design cells, F(7, 80) = 2.79, p = .012, η² = .196, whereas SPE in ACC did not (p = .183). At the parameter level (six high-quality conditions), SPE in drift rate differed significantly under the historical estimation configuration (F(5, 59) = 2.95, p = .019, BF₁₀ = 2.83–3.29), but that configuration suffered from inadequate convergence (ESS = 8.6 for one parameter in G3) and a p_outlier setting incompatible with censored omissions; with the corrected configuration (p_outlier = 0; 4 chains × 8,000 draws; ESS ≥ 9,400; R̂ ≤ 1.000) the difference was no longer significant (F(5, 59) = 1.72, p = .145, BF₁₀ = 1.03). Linear regressions of P, T, and W explained almost no variance (R² = .051, BF₁₀ = 0.73), motivating nonlinear mapping.
+
+Study 2 evaluated how omission handling affects DDM parameter estimation (16 hierarchical Bayesian fits across 8 designs × 2 schemes) and added a parameter-recovery test on synthetic data with known ground truth. The treatment of omissions mainly shifted the absolute level of drift rate: where omission rates exceeded ~35% (G1–G4), the two schemes differed beyond 95% credible-interval overlap (Δ = 6.81 for v_self in G1), while the relative SPE direction remained stable; below ~15% omission (G5–G8) the schemes converged. Parameter recovery on synthetic data showed {to be filled}, and the omission-rate–bias curve provides simulation support for the empirical ~15%/~35% benchmarks. A proof-of-concept omission probability network (OPN) was trained for this paradigm (test R² = .986).
+
+Study 3 calibrated and validated the Sigmoid+GP hybrid model on the six primary conditions and added model comparison, model recovery, and posterior predictive checks. Differential-evolution calibration under the corrected configuration yielded α₁ = 0.153 (a self-advantage gain in drift rate of only about +15%) and β₁ = −0.631 (a lower boundary under generous time budgets, opposite to the time-pressure hypothesis), with RMSE = 0.704, indicating that the Sigmoid assumption needs revision. Model comparison showed that a linear model performed an order of magnitude worse (aggregate RMSE = 8.535 vs. 1.135 for pure Sigmoid, 1.232 for Sigmoid+GP, and 1.269 for a mean baseline), establishing the necessity of nonlinear mapping; however, with only six design points the GP residual layer did not improve cross-design prediction (its value lies in uncertainty quantification and candidate-point identification). Leave-one-condition-out validation failed at the parameter level (r = −0.03 for v_self), and model recovery revealed insufficient design power for model discrimination. Posterior predictive checks showed consistency in cross-condition trends but systematic misfit at the level of behavioral distributions (95% predictive-interval coverage of only .17–.33; e.g., observed omission rate .056 vs. predicted .008 in the long-deadline condition). This indicates misspecification of the constant-boundary DDM for deadline-based SMT and points to across-trial variability, attentional lapses, collapsing boundaries (ANGLE/WEIBULL), and explicit omission likelihood modeling (LAN+OPN). Accordingly, the model is positioned as a design-space trend model rather than a trial-level behavioral replicator.
+
+Study 4 confronted these findings with broader evidence: using the accessible subset of the lab's SPE database {to be filled}, it examined cross-study SPE distributions and their relations to stimulus duration and trial counts, and used conditional response function (CRF) analyses plus Stim-Coding simulations to link starting-point bias to behavioral patterns, with a feasibility analysis of reverse inference from empirical CRFs to DDM parameters. Inconsistencies between database-level and internal design-variable relationships are discussed explicitly.
+
+In sum, this thesis constructs a complete mapping framework from experimental design parameters through DDM parameters to behavioral outcomes, characterizes how the design space modulates SPE and its boundary conditions, and—through parameter recovery, model comparison/recovery, and posterior predictive checks—delimits the framework's scope: the theoretical mapping is indispensable, design-space extrapolation requires more design points, and trial-level behavioral replication requires richer model forms.
+
+Keywords: self-prioritization effect; self-matching task; experimental design space; drift diffusion model; Gaussian process; omission; parameter recovery

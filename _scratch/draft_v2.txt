@@ -1,0 +1,692 @@
+﻿
+硕 士 学 位 论 文
+ 
+自我优势效应的实验设计空间优化：
+基于Ω的 DDM 参数预测与验证
+ 
+研究生：　蔡振辛
+指导教师：　胡传鹏 教授
+培养单位：　心理学院
+一级学科：　心理学
+二级学科：　基础心理学
+完成时间：　2027年（待定）
+答辩时间：　2027年（待定）
+ 
+学　　号：　242302035
+
+学位论文独创性声明
+本人郑重声明：所提交的学位论文是本人在导师指导下进行的研究工作和取得的研究成果。本论文中除引文外，所有实验、数据和有关材料均是真实的。本论文中除引文和致谢的内容外，不包含其他人或其它机构已经发表或撰写过的研究成果。其他同志对本研究所做的贡献均已在论文中作了声明并表示了谢意。
+学位论文作者签名：　　　　　　　　　日　　期：　　年　　月　　日
+
+学位论文使用授权声明
+研究生在校攻读学位期间论文工作的知识产权单位属南京师范大学。学校有权保存本学位论文的电子和纸质文档，可以借阅或上网公布本学位论文的部分或全部内容，可以采用影印、复印等手段保存、汇编本学位论文。学校可以向国家有关机关或机构送交论文的电子和纸质文档，允许论文被查阅和借阅。
+学位论文作者签名：　　　　　　　　　指导教师签名：
+日　　期：　　年　　月　　日　　　　日　　期：　　年　　月　　日
+
+摘要
+实验设计参数的选取深刻影响心理现象能否被稳定、可靠地观察到，但传统研究往往仅在少数离散条件上比较效应大小，缺乏对"实验参数—潜在心理过程—行为表现"这一映射链条的系统建模。本研究以自我匹配任务（Self-Matching Task, SMT）中的自我优势效应（Self-Prioritization Effect, SPE）为载体，将练习试次数量（P）、刺激呈现时间（T）与反应窗口（W）形式化为三维实验设计空间 Ω，并以漂移扩散模型（DDM）参数（漂移率 v、边界分离 a、非决策时间 t、起始点 z）作为连接实验设计与行为数据的中介变量，构建"Sigmoid 理论先验 + 高斯过程（GP）残差"的混合生成模型，实现从实验设计参数到心理过程再到行为表现（反应时 RT、正确率 ACC、遗漏率）的定量预测，并通过真实数据、敏感性分析、外部数据库与机制仿真进行多源验证。
+研究一在课题组前期采集的 88 名被试、8 组实验设计数据上，系统检验了设计空间对 SPE 行为表现与 DDM 参数的系统性调控：行为层 SPE_RT 在 8 个设计单元间存在显著差异（F(7,80)=2.79, p=.012），但 SPE_ACC 差异不显著（p=.183）；DDM 参数层在主口径（6 个高质量条件）下 SPE_v 差异显著（F(5,59)=2.95, p=.019），贝叶斯因子处于轶事至实质证据之间；而 P/T/W 的线性回归几乎无解释力（R²=.05），提示其作用具有强非线性，需要非线性映射建模。
+研究二针对短反应窗口下高发的无反应（omission）试次，系统比较了 Censor 与 Drop 两种处理方案对 DDM 参数估计的影响（8 组×2 方案，16 次层级贝叶斯拟合）。结果显示，遗漏试次的处理方式会强烈改变漂移率 v 的绝对估计：在遗漏率超过约 35% 的条件下（G1–G4），两方案参数差异超出 95% CI 重叠范围（如 G1 的 v_self 相差 Δ=6.81），仅 SPE 的相对方向保持稳定；在遗漏率低于约 15% 的条件下（G5–G8），Censor 方案足够可靠。据此，本研究确立了"排除高遗漏组、以高质量条件为主口径"的数据策略，并首次构建了适用于本范式的省略概率网络（OPN）概念验证。
+研究三在主口径 6 个设计条件上校准并验证了 Sigmoid+GP 混合生成模型。差分进化校准显示：校准后边界调制参数方向与"时间压力—决策边界"假设一致（β₁=+0.33），自我条件漂移率增益约为 +86%（低于初始默认 150%），且不再出现旧版（含低质量组）校准中观测到的边界参数饱和伪影；模型在行为层可高度重建真实被试的模式（正确 RT 均值 r=.97、ACC r=.90、SPE_RT r=.85），但参数层的留一条件交叉验证（LOCV）表明，仅 6 个设计点不足以支撑高斯过程的外推，这一局限同时构成了开展更大规模设计空间探索的必要性论据。基于 GP 预测不确定性，本研究还给出了下一轮实验的高信息量候选区域（T≈480–500 ms、W≈300–350 ms 附近）。
+研究四将行为与模型层面的 SPE 特征与更大范围证据对照：一方面，基于课题组构建的 SPE 数据库（44 篇文献/70 数据集/3,603 人，本文使用其中可获得子集）考察 SPE 的跨研究分布及其与呈现时间、试次数等设计变量的关系；另一方面，通过 CRF（条件反应函数）分析与 Stim-Coding 仿真建立"起始点偏差—行为模式"的生成链条，并对由实测 CRF 反推 DDM 参数的可辨识性进行了可行性分析。
+综上，本研究构建了从实验设计参数（P,T,W）经 DDM 参数（v,a,t,z）到行为表现（RT/ACC/omission）的完整映射框架，系统揭示了设计空间对 SPE 的调制规律及其边界条件，验证了"理论引导 + 数据校准"混合建模在实验设计优化中的价值，并为 DDM 应用中遗漏反应的处理提供了基于真实数据的量化依据。
+关键词：自我优势效应；自我匹配任务；实验设计空间；漂移扩散模型；高斯过程；遗漏反应
+
+Abstract
+The choice of experimental design parameters profoundly shapes whether a psychological phenomenon can be observed stably and reliably. However, traditional studies typically compare effects across only a few discrete conditions and lack a systematic model of the mapping from experimental parameters, through latent cognitive processes, to observable behavior. Using the Self-Prioritization Effect (SPE) in the Self-Matching Task (SMT) as a testbed, the present study formalizes the number of practice trials (P), stimulus duration (T), and response window (W) into a three-dimensional experimental design space Ω and employs drift-diffusion model (DDM) parameters (drift rate v, boundary separation a, non-decision time t, and starting point z) as latent mediators. We develop a hybrid generative model combining a theoretical Sigmoid prior with Gaussian process (GP) residual learning, enabling quantitative prediction from design parameters, through cognitive parameters, to behavioral outcomes (RT, ACC, and omission rate), and validate it through empirical data, sensitivity analyses, an external database, and mechanistic simulations.
+Study 1 systematically tested how the design space modulates SPE at both behavioral and DDM-parameter levels using data from 88 participants across eight experimental designs collected by the laboratory. SPE in RT differed significantly across design cells (F(7,80)=2.79, p=.012), whereas SPE in ACC did not (p=.183). Under the primary quality-restricted scope of six conditions, SPE in drift rate differed significantly (F(5,59)=2.95, p=.019) with anecdotal-to-substantial Bayes factors, while linear regressions of P/T/W explained almost no variance (R²=.05), motivating nonlinear mapping.
+Study 2 systematically compared Censor versus Drop treatments of omission trials on DDM parameter estimation (16 hierarchical Bayesian fits across 8 designs × 2 treatments). Parameter estimates of drift rate were strongly affected by the treatment: when omission rates exceeded approximately 35% (G1–G4), differences exceeded 95% CI overlap (e.g., Δ=6.81 for v_self in G1), although the relative SPE direction remained stable; below approximately 15% omission (G5–G8), the Censor scheme was sufficiently reliable. This established the data-quality criteria for the study, and a proof-of-concept Omission Probability Network (OPN) was developed.
+Study 3 calibrated and validated the Sigmoid+GP hybrid model on the six high-quality conditions. Calibrated boundary-modulation parameters were consistent with the time-pressure hypothesis (β₁=+0.33), the self-advantage gain in drift rate was about +86% (lower than the default 150%), and boundary-saturation artifacts previously observed when including low-quality groups disappeared. The model reconstructed real behavioral patterns at the behavioral level (r=.97 for correct RT, .90 for ACC, .85 for SPE_RT), whereas leave-one-condition-out validation showed that six design points are insufficient for GP extrapolation—constituting the rationale for broader design-space sampling. GP prediction uncertainty further identified high-information candidate regions (T≈480–500 ms, W≈300–350 ms) for future experiments.
+Study 4 confronted these findings with broader evidence: SPE database analyses of cross-study distributions and their relations to stimulus duration and trial counts (using the accessible subset of 44 papers/70 datasets/3,603 participants), together with CRF-based analyses and Stim-Coding simulations linking starting-point bias to behavioral patterns, and a feasibility analysis of reverse inference from empirical CRF curves to DDM parameters.
+Taken together, this thesis constructs a complete mapping framework from experimental design parameters (P, T, W) through DDM parameters (v, a, t, z) to behavioral performance, revealing how the design space modulates SPE and its boundary conditions, and providing quantitative, data-based guidance for omission handling in DDM applications.
+Keywords: Self-Prioritization Effect; Self-Matching Task; experimental design space; drift-diffusion model; Gaussian process; omission
+
+	
+	 TOC \o "1-3" \h \z \u 
+	 HYPERLINK \l _Toc16360 第1章 引言	 PAGEREF _Toc16360 \h 12
+	 HYPERLINK \l _Toc6592 1.1 研究背景与动机	 PAGEREF _Toc6592 \h 12
+	 HYPERLINK \l _Toc20831 1.2 研究思路与目标	 PAGEREF _Toc20831 \h 12
+	 HYPERLINK \l _Toc5433 1.3 论文结构	 PAGEREF _Toc5433 \h 12
+	 HYPERLINK \l _Toc6907 第2章 文献综述：自我优势效应与证据积累模型	 PAGEREF _Toc6907 \h 13
+	 HYPERLINK \l _Toc8568 第 1 章 绪论	 PAGEREF _Toc8568 \h 13
+	 HYPERLINK \l _Toc25512 1.1 研究背景	 PAGEREF _Toc25512 \h 13
+	 HYPERLINK \l _Toc1357 1.2 理论框架：从实验参数到心理过程的四条假设	 PAGEREF _Toc1357 \h 14
+	 HYPERLINK \l _Toc27692 1.3 研究问题	 PAGEREF _Toc27692 \h 15
+	 HYPERLINK \l _Toc1754 1.4 研究意义	 PAGEREF _Toc1754 \h 15
+	 HYPERLINK \l _Toc28900 1.5 论文结构	 PAGEREF _Toc28900 \h 16
+	 HYPERLINK \l _Toc19640 第 2 章 文献综述	 PAGEREF _Toc19640 \h 16
+	 HYPERLINK \l _Toc21202 2.1 Self-Matching Task 与自我优势效应	 PAGEREF _Toc21202 \h 16
+	 HYPERLINK \l _Toc32112 2.1.1 SMT 范式与 SPE 的测量	 PAGEREF _Toc32112 \h 16
+	 HYPERLINK \l _Toc27074 2.1.2 SPE 的行为特征与影响因素	 PAGEREF _Toc27074 \h 16
+	 HYPERLINK \l _Toc14201 2.2 漂移扩散模型（DDM）	 PAGEREF _Toc14201 \h 16
+	 HYPERLINK \l _Toc20672 2.2.1 基本理论与参数含义	 PAGEREF _Toc20672 \h 16
+	 HYPERLINK \l _Toc3669 2.2.2 参数的层级贝叶斯估计（HDDM）	 PAGEREF _Toc3669 \h 17
+	 HYPERLINK \l _Toc18248 2.2.3 参数的经验取值范围与可辨识性	 PAGEREF _Toc18248 \h 17
+	 HYPERLINK \l _Toc23951 2.2.4 DDM 中的 deadline 与 omission 问题	 PAGEREF _Toc23951 \h 17
+	 HYPERLINK \l _Toc21704 第3章 遗漏反应建模、高斯过程与实验设计优化	 PAGEREF _Toc21704 \h 17
+	 HYPERLINK \l _Toc2210 3.2 SPE 数据库与大规模证据整合	 PAGEREF _Toc2210 \h 18
+	 HYPERLINK \l _Toc2420 3.3 CRF 与机制层面的决策研究	 PAGEREF _Toc2420 \h 18
+	 HYPERLINK \l _Toc14094 3.4 文献小结与研究空白	 PAGEREF _Toc14094 \h 18
+	 HYPERLINK \l _Toc20094 第4章 研究框架与总体方法	 PAGEREF _Toc20094 \h 19
+	 HYPERLINK \l _Toc22057 4.1 实验设计空间与理论假设	 PAGEREF _Toc22057 \h 19
+	 HYPERLINK \l _Toc2340 4.2 数据沿革与数据集	 PAGEREF _Toc2340 \h 19
+	 HYPERLINK \l _Toc13937 4.3 建模总体思路	 PAGEREF _Toc13937 \h 20
+	 HYPERLINK \l _Toc12094 4.4 统计口径与可复现性	 PAGEREF _Toc12094 \h 20
+	 HYPERLINK \l _Toc2150 4.5 四项研究导览	 PAGEREF _Toc2150 \h 20
+	 HYPERLINK \l _Toc8499 第5章 研究一：实验设计空间对自我优势效应的系统性调控	 PAGEREF _Toc8499 \h 21
+	 HYPERLINK \l _Toc31857 5.1 研究问题与预期	 PAGEREF _Toc31857 \h 21
+	 HYPERLINK \l _Toc12722 5.2 方法	 PAGEREF _Toc12722 \h 21
+	 HYPERLINK \l _Toc29413 5.2.1 被试与实验设计	 PAGEREF _Toc29413 \h 21
+	 HYPERLINK \l _Toc32408 5.2.2 变量定义	 PAGEREF _Toc32408 \h 21
+	 HYPERLINK \l _Toc22283 5.2.3 分析计划	 PAGEREF _Toc22283 \h 22
+	 HYPERLINK \l _Toc24250 5.3 结果	 PAGEREF _Toc24250 \h 22
+	 HYPERLINK \l _Toc18821 5.3.1 行为层面：SPE_RT 与 SPE_ACC	 PAGEREF _Toc18821 \h 22
+	 HYPERLINK \l _Toc9425 5.3.2 DDM 参数层面：SPE_v 的主口径检验	 PAGEREF _Toc9425 \h 23
+	 HYPERLINK \l _Toc7256 5.3.3 线性模型的检验	 PAGEREF _Toc7256 \h 24
+	 HYPERLINK \l _Toc17456 5.4 讨论要点（待扩写）	 PAGEREF _Toc17456 \h 24
+	 HYPERLINK \l _Toc24908 第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响	 PAGEREF _Toc24908 \h 24
+	 HYPERLINK \l _Toc19520 4.1 研究问题	 PAGEREF _Toc19520 \h 24
+	 HYPERLINK \l _Toc1017 4.2 方法	 PAGEREF _Toc1017 \h 25
+	 HYPERLINK \l _Toc29888 4.2.1 Censor vs Drop 系统对比	 PAGEREF _Toc29888 \h 25
+	 HYPERLINK \l _Toc5509 4.2.2 自研 OPN（第一版）	 PAGEREF _Toc5509 \h 25
+	 HYPERLINK \l _Toc26904 4.3 结果	 PAGEREF _Toc26904 \h 25
+	 HYPERLINK \l _Toc24362 4.3.1 遗漏率与偏倚模式	 PAGEREF _Toc24362 \h 25
+	 HYPERLINK \l _Toc13126 4.3.2 OPN 第一版	 PAGEREF _Toc13126 \h 26
+	 HYPERLINK \l _Toc14831 4.4 讨论要点与展望	 PAGEREF _Toc14831 \h 27
+	 HYPERLINK \l _Toc27434 第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建	 PAGEREF _Toc27434 \h 27
+	 HYPERLINK \l _Toc23878 5.1 研究问题与定位	 PAGEREF _Toc23878 \h 27
+	 HYPERLINK \l _Toc13630 5.2 方法	 PAGEREF _Toc13630 \h 27
+	 HYPERLINK \l _Toc9059 5.2.1 建模输入	 PAGEREF _Toc9059 \h 27
+	 HYPERLINK \l _Toc13307 5.2.2 Sigmoid 参数化	 PAGEREF _Toc13307 \h 28
+	 HYPERLINK \l _Toc31116 5.2.3 GP 残差层	 PAGEREF _Toc31116 \h 28
+	 HYPERLINK \l _Toc27003 5.2.4 验证策略	 PAGEREF _Toc27003 \h 28
+	 HYPERLINK \l _Toc9142 5.3 结果	 PAGEREF _Toc9142 \h 28
+	 HYPERLINK \l _Toc13082 5.3.1 Sigmoid 校准（表 5-2）	 PAGEREF _Toc13082 \h 28
+	 HYPERLINK \l _Toc30243 5.3.2 参数层拟合与交叉验证	 PAGEREF _Toc30243 \h 29
+	 HYPERLINK \l _Toc5917 5.3.3 行为层重建（核心证据）	 PAGEREF _Toc5917 \h 30
+	 HYPERLINK \l _Toc31969 5.3.4 候选设计点（探索性）	 PAGEREF _Toc31969 \h 30
+	 HYPERLINK \l _Toc7344 5.4 讨论要点（据冻结口径重写，待扩写）	 PAGEREF _Toc7344 \h 31
+	 HYPERLINK \l _Toc2140 第6章 研究二：Omission 处理方法对 DDM 参数估计的系统影响	 PAGEREF _Toc2140 \h 32
+	 HYPERLINK \l _Toc26813 第 3 章 研究一：实验设计空间对 SPE 的系统性调控——行为与 DDM 参数层检验	 PAGEREF _Toc26813 \h 32
+	 HYPERLINK \l _Toc3935 3.1 研究问题与预期	 PAGEREF _Toc3935 \h 32
+	 HYPERLINK \l _Toc28249 3.2 方法	 PAGEREF _Toc28249 \h 32
+	 HYPERLINK \l _Toc6712 3.2.1 被试与实验设计	 PAGEREF _Toc6712 \h 32
+	 HYPERLINK \l _Toc14314 3.2.2 变量定义	 PAGEREF _Toc14314 \h 33
+	 HYPERLINK \l _Toc18391 3.2.3 分析计划	 PAGEREF _Toc18391 \h 33
+	 HYPERLINK \l _Toc13874 3.3 结果	 PAGEREF _Toc13874 \h 33
+	 HYPERLINK \l _Toc17706 3.3.1 行为层面：SPE_RT 与 SPE_ACC	 PAGEREF _Toc17706 \h 33
+	 HYPERLINK \l _Toc11481 3.3.2 DDM 参数层面：SPE_v 的主口径检验	 PAGEREF _Toc11481 \h 33
+	 HYPERLINK \l _Toc4091 3.3.3 线性模型的检验	 PAGEREF _Toc4091 \h 34
+	 HYPERLINK \l _Toc20532 3.4 讨论要点（待扩写）	 PAGEREF _Toc20532 \h 34
+	 HYPERLINK \l _Toc27165 第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响	 PAGEREF _Toc27165 \h 34
+	 HYPERLINK \l _Toc1624 6.1 研究问题	 PAGEREF _Toc1624 \h 34
+	 HYPERLINK \l _Toc18096 6.2 方法	 PAGEREF _Toc18096 \h 34
+	 HYPERLINK \l _Toc3520 6.2.1 Censor vs Drop 系统对比	 PAGEREF _Toc3520 \h 34
+	 HYPERLINK \l _Toc2745 6.2.2 自研 OPN（第一版）	 PAGEREF _Toc2745 \h 35
+	 HYPERLINK \l _Toc7684 6.3 结果	 PAGEREF _Toc7684 \h 35
+	 HYPERLINK \l _Toc879 6.3.1 遗漏率与偏倚模式	 PAGEREF _Toc879 \h 35
+	 HYPERLINK \l _Toc31610 6.3.2 OPN 第一版	 PAGEREF _Toc31610 \h 35
+	 HYPERLINK \l _Toc18402 6.4 讨论要点与展望	 PAGEREF _Toc18402 \h 36
+	 HYPERLINK \l _Toc31932 第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建	 PAGEREF _Toc31932 \h 36
+	 HYPERLINK \l _Toc10475 5.1 研究问题与定位	 PAGEREF _Toc10475 \h 36
+	 HYPERLINK \l _Toc14683 5.2 方法	 PAGEREF _Toc14683 \h 36
+	 HYPERLINK \l _Toc10626 5.2.1 建模输入	 PAGEREF _Toc10626 \h 36
+	 HYPERLINK \l _Toc4949 5.2.2 Sigmoid 参数化	 PAGEREF _Toc4949 \h 37
+	 HYPERLINK \l _Toc2804 5.2.3 GP 残差层	 PAGEREF _Toc2804 \h 37
+	 HYPERLINK \l _Toc6402 5.2.4 验证策略	 PAGEREF _Toc6402 \h 37
+	 HYPERLINK \l _Toc5001 5.3 结果	 PAGEREF _Toc5001 \h 37
+	 HYPERLINK \l _Toc27535 5.3.1 Sigmoid 校准（表 5-2）	 PAGEREF _Toc27535 \h 37
+	 HYPERLINK \l _Toc11163 5.3.2 参数层拟合与交叉验证	 PAGEREF _Toc11163 \h 38
+	 HYPERLINK \l _Toc30283 5.3.3 行为层重建（核心证据）	 PAGEREF _Toc30283 \h 38
+	 HYPERLINK \l _Toc3122 5.3.4 候选设计点（探索性）	 PAGEREF _Toc3122 \h 38
+	 HYPERLINK \l _Toc25928 5.4 讨论要点（据冻结口径重写，待扩写）	 PAGEREF _Toc25928 \h 38
+	 HYPERLINK \l _Toc21399 第7章 研究三：Sigmoid 与高斯过程的混合生成模型：构建与验证	 PAGEREF _Toc21399 \h 39
+	 HYPERLINK \l _Toc32291 第 3 章 研究一：实验设计空间对 SPE 的系统性调控——行为与 DDM 参数层检验	 PAGEREF _Toc32291 \h 39
+	 HYPERLINK \l _Toc14215 3.1 研究问题与预期	 PAGEREF _Toc14215 \h 39
+	 HYPERLINK \l _Toc21488 3.2 方法	 PAGEREF _Toc21488 \h 40
+	 HYPERLINK \l _Toc2535 3.2.1 被试与实验设计	 PAGEREF _Toc2535 \h 40
+	 HYPERLINK \l _Toc22427 3.2.2 变量定义	 PAGEREF _Toc22427 \h 40
+	 HYPERLINK \l _Toc11303 3.2.3 分析计划	 PAGEREF _Toc11303 \h 40
+	 HYPERLINK \l _Toc4157 3.3 结果	 PAGEREF _Toc4157 \h 40
+	 HYPERLINK \l _Toc11961 3.3.1 行为层面：SPE_RT 与 SPE_ACC	 PAGEREF _Toc11961 \h 40
+	 HYPERLINK \l _Toc25403 3.3.2 DDM 参数层面：SPE_v 的主口径检验	 PAGEREF _Toc25403 \h 41
+	 HYPERLINK \l _Toc1351 3.3.3 线性模型的检验	 PAGEREF _Toc1351 \h 41
+	 HYPERLINK \l _Toc21024 3.4 讨论要点（待扩写）	 PAGEREF _Toc21024 \h 41
+	 HYPERLINK \l _Toc15755 第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响	 PAGEREF _Toc15755 \h 42
+	 HYPERLINK \l _Toc1176 4.1 研究问题	 PAGEREF _Toc1176 \h 42
+	 HYPERLINK \l _Toc22007 4.2 方法	 PAGEREF _Toc22007 \h 42
+	 HYPERLINK \l _Toc26359 4.2.1 Censor vs Drop 系统对比	 PAGEREF _Toc26359 \h 42
+	 HYPERLINK \l _Toc31376 4.2.2 自研 OPN（第一版）	 PAGEREF _Toc31376 \h 42
+	 HYPERLINK \l _Toc10792 4.3 结果	 PAGEREF _Toc10792 \h 43
+	 HYPERLINK \l _Toc24998 4.3.1 遗漏率与偏倚模式	 PAGEREF _Toc24998 \h 43
+	 HYPERLINK \l _Toc6148 4.3.2 OPN 第一版	 PAGEREF _Toc6148 \h 43
+	 HYPERLINK \l _Toc3925 4.4 讨论要点与展望	 PAGEREF _Toc3925 \h 43
+	 HYPERLINK \l _Toc1878 第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建	 PAGEREF _Toc1878 \h 44
+	 HYPERLINK \l _Toc15849 7.1 研究问题与定位	 PAGEREF _Toc15849 \h 44
+	 HYPERLINK \l _Toc21790 7.2 方法	 PAGEREF _Toc21790 \h 44
+	 HYPERLINK \l _Toc23204 7.2.1 建模输入	 PAGEREF _Toc23204 \h 44
+	 HYPERLINK \l _Toc13522 7.2.2 Sigmoid 参数化	 PAGEREF _Toc13522 \h 44
+	 HYPERLINK \l _Toc16760 7.2.3 GP 残差层	 PAGEREF _Toc16760 \h 44
+	 HYPERLINK \l _Toc30630 7.2.4 验证策略	 PAGEREF _Toc30630 \h 45
+	 HYPERLINK \l _Toc30633 7.3 结果	 PAGEREF _Toc30633 \h 45
+	 HYPERLINK \l _Toc11051 7.3.1 Sigmoid 校准（表 5-2）	 PAGEREF _Toc11051 \h 45
+	 HYPERLINK \l _Toc25721 7.3.2 参数层拟合与交叉验证	 PAGEREF _Toc25721 \h 45
+	 HYPERLINK \l _Toc12733 7.3.3 行为层重建（核心证据）	 PAGEREF _Toc12733 \h 45
+	 HYPERLINK \l _Toc16467 7.3.4 候选设计点（探索性）	 PAGEREF _Toc16467 \h 46
+	 HYPERLINK \l _Toc19359 7.4 讨论要点（据冻结口径重写，待扩写）	 PAGEREF _Toc19359 \h 46
+	 HYPERLINK \l _Toc30210 第8章 研究四：SPE 数据库、CRF 与机制仿真的多源验证	 PAGEREF _Toc30210 \h 46
+	 HYPERLINK \l _Toc32180 8.1 研究目的	 PAGEREF _Toc32180 \h 46
+	 HYPERLINK \l _Toc20221 8.2 方法	 PAGEREF _Toc20221 \h 47
+	 HYPERLINK \l _Toc27442 8.3 结果	 PAGEREF _Toc27442 \h 47
+	 HYPERLINK \l _Toc19161 8.4 讨论	 PAGEREF _Toc19161 \h 49
+	 HYPERLINK \l _Toc8644 第9章 总讨论	 PAGEREF _Toc8644 \h 49
+	 HYPERLINK \l _Toc17230 9.1 核心发现回顾	 PAGEREF _Toc17230 \h 49
+	 HYPERLINK \l _Toc5117 9.2 理论贡献与方法论贡献	 PAGEREF _Toc5117 \h 50
+	 HYPERLINK \l _Toc18814 9.3 局限与未来方向	 PAGEREF _Toc18814 \h 50
+	 HYPERLINK \l _Toc7168 第10章 结论	 PAGEREF _Toc7168 \h 51
+	 HYPERLINK \l _Toc20061 参考文献	 PAGEREF _Toc20061 \h 52
+	 HYPERLINK \l _Toc28873 附录A　冻结设计表与关键数字锁定表	 PAGEREF _Toc28873 \h 54
+	 HYPERLINK \l _Toc30571 附录B　脚本与可复现性说明	 PAGEREF _Toc30571 \h 54
+	 HYPERLINK \l _Toc2695 致谢	 PAGEREF _Toc2695 \h 54
+
+第1章 引言
+1.1 研究背景与动机
+自我相关信息（姓名、面孔、与自我联结的图形等）在知觉与注意加工中享有优先地位。Sui、He 和 Humphreys（2012）提出的自我匹配任务（Self-Matching Task, SMT）通过"图形—标签联结学习 + 匹配判断"将"自我相关性"操作化，并稳定地观察到自我优势效应（Self-Prioritization Effect, SPE）：与陌生人相关刺激相比，自我相关刺激获得更快、更准的反应（Sui & Humphreys, 2015）。
+然而，SMT 虽看似简单，其实验结构却存在巨大的自由度：联结学习的练习次数 P、刺激呈现时间 T、反应窗口 W 等参数在不同研究中取值各异。已有综述与数据库编码工作表明，既有研究在这些维度上的采样存在系统性偏差，大量参数区域未经探索（温佳慧, 2025；课题组 SPE 数据库编码）。更一般地，认知建模传统上把实验设计当作需要"控制"的背景条件，而非理论结构的一部分，导致模型预测的适用边界常常难以界定（刘逸康, 胡传鹏, 2023）。本研究延续课题组"实验设计—认知过程—数据结果"的研究纲领，将 SMT 的实验设计形式化为三维空间 Ω=(P, T, W)，系统考察该空间如何通过潜在决策过程调节 SPE，并据此优化实验设计。
+1.2 研究思路与目标
+本研究以漂移扩散模型（DDM; Ratcliff, 1978; Ratcliff & McKoon, 2008）参数化 SMT 中的决策过程，提出并检验四条理论假设：练习次数提升证据积累速率 v（P→v）；刺激呈现时间影响信息质量进而影响 v（T→v）；总可用时间 M=T+W 通过时间压力调节决策边界 a（M→a）；上述映射具有 S 型（Sigmoid）形式。在此基础上构建"Sigmoid 理论先验 + 高斯过程残差"的混合生成模型，对任意 (P, T, W) 预测 DDM 参数，并在行为层面重建被试的 RT、ACC 与遗漏模式。
+围绕这一目标，本研究回答四个递进的问题：(1) 设计空间如何系统调控 SPE 的行为表现与 DDM 参数？(2) 短窗口下大量存在的无反应试次（omission）应如何处理才不会偏倚参数估计？(3) Sigmoid+GP 混合模型能否由设计参数预测 DDM 参数并在行为层重建 SPE？(4) 模型与效应特征能否获得外部数据库与机制仿真的支持？
+1.3 论文结构
+第 2–3 章为文献综述：第 2 章综述自我匹配任务、自我优势效应与证据积累模型（DDM）的理论与实证基础；第 3 章综述遗漏反应建模、高斯过程与实验设计优化以及 SPE 数据库。第 4 章给出研究框架、数据沿革与总体方法。第 5–8 章依次报告四项研究：设计空间对 SPE 的系统性调控（研究一）、Omission 处理方法对 DDM 参数估计的影响（研究二）、Sigmoid+GP 混合生成模型的构建与验证（研究三）、以及 SPE 数据库与机制仿真的多源验证（研究四）。第 9 章为总讨论，第 10 章为结论。参考文献、附录与致谢列于文末。
+第2章 文献综述：自我优势效应与证据积累模型
+版本：2026-09-02 ｜ 依据：大纲 v3（冻结口径版）｜ 引用格式：APA 第 7 版（正文中英混合）
+用途：初稿。文中以 ⚠️【待核/待补】标注需作者核实或补图/补引之处；所有统计量以《冻结规格书》锁定表为准。
+拟题：自我优势效应的实验设计空间优化：基于漂移扩散模型与高斯过程的混合建模研究
+（Optimizing the Experimental Design Space of the Self-Prioritization Effect: A Hybrid DDM–Gaussian Process Modeling Approach）
+第 1 章 绪论
+1.1 研究背景
+社会信息（尤其是与自我相关的信息）如何优先获得认知加工，是社会认知领域的核心问题之一。Sui、He 和 Humphreys（2012）提出的自我匹配任务（Self-Matching Task, SMT）为研究这一"自我优先化效应"（self-prioritization effect, SPE）提供了高度可控的范式：被试首先将两个几何图形分别与"自我"和"陌生人"标签建立联结，随后完成图形—标签的匹配判断任务。大量研究一致表明，与陌生人相关刺激相比，自我相关刺激获得更快、更准的反应（Sui & Humphreys, 2015），该效应稳健且具有跨任务、跨人群的可重复性。
+SMT 范式的一个突出特点是其实验参数可以被系统性操控：联结学习的练习次数（practice trials, P）、刺激呈现时间（stimulus duration, T）与反应窗口（response window, W）。这三个参数共同构成了一个"实验设计空间"Ω=(P, T, W)，而 SPE 的强度与稳定性在很大程度上取决于研究者在该空间中的取点方式。然而，传统研究通常仅在少数几个离散条件上比较 SPE 大小，缺乏对"实验参数如何经由潜在决策过程影响行为表现"的系统建模，因而实验设计的选择仍依赖经验试错。这种状态带来两个后果：其一，研究者难以预期一个新设计条件下 SPE 的强弱与可靠性；其二，SPE 的组间差异混杂着知觉负荷、时间压力与练习程度等多种机制的共同作用，仅凭行为指标难以分离。
+本研究尝试用计算建模弥合这一缺口：以漂移扩散模型（drift diffusion model, DDM; Ratcliff, 1978）刻画刺激匹配决策中的证据累积过程，将 (P, T, W) 视为作用于 DDM 参数（漂移率 v、边界分离 a、非决策时间 t、起始点 z）的"输入变量"，再用理论驱动的 Sigmoid 映射叠加数据驱动的高斯过程（Gaussian process, GP）残差，建立"实验参数→心理参数→行为输出"的生成式映射框架。为检验这一框架的可靠性，本研究同时开展：(a) 真实实验数据的系统检验（88 人 × 8 组设计条件）；(b) 对遗漏反应（omission）处理方法的系统评估；(c) 大规模外部数据库与机制仿真的多源验证。
+⚠️【声明】本研究所用 88 人行为数据由课题组前期采集（MATLAB + Psychtoolbox 程序，见 1_Code/Experiment/exp_matlab/），本人（论文作者）的独立贡献在于全部建模、分析工具链开发与验证工作；数据使用已获课题组许可。外部 SPE 数据库为课题组在研项目（Cai et al., in prep），本文使用其中可公开获取的试次级数据，并在方法部分报告实际使用子集的精确规模。
+1.2 理论框架：从实验参数到心理过程的四条假设
+本研究建立在"实验设计参数通过影响特定心理过程进而调控 SPE"这一总命题上，并选择 DDM 将心理过程参数化。具体提出四条假设（逻辑链评估详见理论论证文档，正文将在 1.2 各节展开）：
+假设一（P → v）：练习次数通过提升刺激—标签联结的熟悉度而提高证据累积速率 v。该假设得到任务相关练习效应研究的支持（Dutilh et al., 2011），数学上以 v_P(P) 的 S 型函数刻画：少量练习近乎无效（P < 4），达到阈值后快速学习（约 P = 8–32），充分练习后趋于饱和（P > 60）。
+假设二（T → v）：刺激呈现时间 T 主要影响知觉信息的质量，进而影响漂移率 v：T 越短，可用于匹配判断的知觉证据越少，v 越低。将 T 映射至 v 而非非决策时间 t 是一个有条件的建模选择（Ratcliff & McKoon, 2008 曾指出刺激质量对 DDM 存在多参数效应）；本研究允许 t 作为自由参数随条件变化，若 T 对 t 存在独立效应，可在参数诊断中观察到（该论证将在 §3 检验）。
+假设三（M = T + W → a）：总可用时间 M 塑造决策的时间压力，进而调节决策边界 a：时间越紧，被试越倾向"快速作答"，边界越低（速度—准确性权衡；Ratcliff & McKoon, 2008；Voss et al., 2004）。值得强调的是 T 的双重角色：它既是知觉证据数量的来源（→v），又是总时间预算的一部分（→a）；两条路径对反应时的预测方向相反，这种张力构成模型内部的可检验约束。
+假设四（Sigmoid 形式）：上述 v_T、v_P 与 a_M 映射均采用 S 型函数，反映知觉阈值、学习加速与饱和等心理物理过程的三阶段模式（Luce, 1986）。
+⚠️【论文需专节辩护的两点】① 为何将 T 归因于 v 而非 t（见假设二）；② Sigmoid 作为函数形式的选择依据（理论 vs 备择形式如幂函数/线性分段）。参考论证框架见项目文档《理论逻辑链评估与修正建议.md》。
+1.3 研究问题
+本研究的总问题是：实验设计参数 (P, T, W) 如何通过改变潜在决策过程（DDM 参数 v, a, t, z），进而影响 SPE 的行为表现（RT、ACC、omission）与稳定性？ 具体研究问题及其对应章节如下：
+RQ
+ | 内容
+ | 章节
+ | 
+---
+ | ---
+ | ---
+ | 
+RQ0
+ | 设计空间对 SPE 行为表现与 DDM 参数的系统影响及其线性/非线性性质
+ | 第 3 章（研究一）
+ | 
+RQ1
+ | Omission 处理方法对 DDM 参数估计的偏倚及其边界
+ | 第 4 章（研究二）
+ | 
+RQ2
+ | Sigmoid+GP 混合模型能否由 (P,T,W) 预测 DDM 参数并在行为层重建 SPE
+ | 第 5 章（研究三）
+ | 
+RQ3
+ | 模型/效应特征能否获得外部数据库与机制仿真支持（外部效度）
+ | 第 6 章（研究四）
+ | 
+RQ4
+ | （可选）新设计条件下的独立前瞻验证
+ | 可选研究五（预留）
+ | 
+1.4 研究意义
+理论意义：(1) 提出"Sigmoid 理论骨架 + GP 数据柔性"的混合建模框架，将心理学理论假设与数据驱动的残差学习结合；(2) 为 DDM 应用中的 omission 处理方法选择提供基于真实数据而非仅仿真的证据；(3) 通过对理论参数的实证校准，反哺对 SPE 机制的理解。
+方法/实践意义：(1) 提供 SMT 实验设计的量化参数选择指导；(2) 基于 GP 预测不确定性给出下一轮实验的候选设计点，降低试错成本；(3) 形成可复现的分析工具链与数据标准化基础设施。
+独立性说明（对应"数据非本人采集"质疑）：本研究的创新与工作量集中在方法论框架构建、全部数据分析与验证，以及外部数据库的标准化整合；详见 §1.1 声明。
+1.5 论文结构
+本文共七章（另预留可选验证实验章节）。第 1–2 章为绪论与文献综述；第 3–6 章依次为四项研究（设计空间系统检验、omission 方法学、混合生成模型、多源验证与机制探索）；第 7 章为总讨论。各研究共享同一数据清洗与口径框架（G1/G2 因高遗漏率排除于建模主口径，作为敏感性资料报告）。
+第 2 章 文献综述
+2.1 Self-Matching Task 与自我优势效应
+2.1.1 SMT 范式与 SPE 的测量
+SMT 由 Sui、He 和 Humphreys（2012）提出。典型流程分两阶段：(1) 联结学习——将几何图形与身份标签（自我/陌生人/他人等）配对；(2) 匹配判断——呈现图形与标签组合，被试判断是否匹配。SPE 通常以匹配试次中自我条件与对照条件（如陌生人）的 RT/ACC 之差衡量：自我条件反应更快（RT 差为负）且更准。
+2.1.2 SPE 的行为特征与影响因素
+自 2012 年以来，SMT 已被广泛用于健康人群与临床样本，SPE 的稳健性得到大量重复（Sui & Humphreys, 2015）。已有综述性分析（见 §2.5 SPE 数据库相关证据）显示 SPE 的效应量在跨研究间存在变异，这一变异既可能反映被试群体差异，也可能反映实验设计参数差异——这正是本研究把 (P, T, W) 作为核心自变量并系统扫描设计空间的动机。已有文献中关于练习量、刺激呈现时长、时间压力如何定量影响 SPE 的系统证据仍较零散（这是本文献综述与研究一所要填补的空白之一）。
+2.2 漂移扩散模型（DDM）
+2.2.1 基本理论与参数含义
+DDM 将二择一决策建模为有噪声的证据累积过程，直至累积量触及上/下边界之一而做出反应（Ratcliff, 1978；Ratcliff & McKoon, 2008）。其核心参数：漂移率 v（证据累积速率，反映刺激质量与任务难度）、边界分离 a（反应谨慎度，反映速度—准确性权衡）、起始点 z（先验偏向）、非决策时间 t（t0/Ter，反映刺激编码与运动执行）。在包含正确/错误两类反应的数据上，DDM 可同时解释 RT 分布与正确率。
+2.2.2 参数的层级贝叶斯估计（HDDM）
+个体水平参数估计噪声大、样本量需求高；层级贝叶斯框架将个体参数视为群体分布的抽取，可有效利用"个体—群体"双重信息（Wiecki et al., 2013）。本项目采用 Docker 化 HDDM 对 8 组实验数据进行层级拟合，参数以群体后验与个体后验形式输出，为跨条件比较提供统计基础。
+2.2.3 参数的经验取值范围与可辨识性
+DDM 参数并非无约束：Tran、van Maanen、Heathcote 和 Matzke（2021）对 158 篇文献的系统综述给出了各参数的典型取值与推荐先验；Matzke 和 Wagenmakers（2009）讨论了 ex-Gaussian 与扩散类模型的参数可解释性。这些经验范围（如 a ∈ [0.5, 2.5]、v ∈ [0.1, 3.0] 等典型区间）在本研究中用于参数合理性诊断与 Sigmoid 校准的边界设定。⚠️【写作提示】上述具体区间数值引用时请按 Tran et al. (2021) 原文表格核对后写入正文。
+2.2.4 DDM 中的 deadline 与 omission 问题
+含反应截止（deadline）的实验中，部分试次无反应（omission），常见处理是直接删除（drop）或把 RT 设为截止时刻并以错误反应编码（censoring）。Leng、Fengler、Shenhav 和 Frank（2026，已发表于 PLoS Computational Biology）用似然近似网络（likelihood approximation network, LAN; Fengler et al., 2021 ⚠️引文待核）与新增的省略概率网络（omission probability network, OPN）证明：直接删除 omission 会系统性高估 v、低估 a，即使遗漏率低至中等水平；将 omission 作为观测联合建模可显著改善参数恢复，且该收益独立于 lapse（注意脱失）建模。第 4 章研究二在本项目真实数据上检验了这一论断，并给出可接受的遗漏率边界（详见后文，阈值表述为描述性结论）。
+第3章 文献综述：遗漏反应建模、高斯过程与实验设计优化
+高斯过程回归是一种灵活的贝叶斯非参数方法，可对任意函数给出后验均值与不确定性（Schulz et al., 2018）。在认知建模与实验设计领域，基于模型不确定性的主动学习/自适应设计优化（Myung et al., 2013）主张：下一轮实验应选取当前模型"最不确定"的设计点，以最大化信息增益。本研究的建模策略正与之一致：Sigmoid 提供可解释的理论均值函数，GP 捕捉其残差并量化预测不确定性，最后以不确定性引导候选设计点推荐。⚠️【写作提示】§2.3 建议补充 1–2 段"GP 在心理学中的应用实例"（如连续实验设计、效应面建模）以增强综述深度，具体文献可由作者补充。
+3.2 SPE 数据库与大规模证据整合
+SPE 数据库（Cai et al., in prep）由本课题组牵头建设，仿照 Confidence Database 的共享模式，收集 SMT 范式下已发表研究的试次级数据与元数据，当前全库自述规模为 44 篇文献、70 个数据集、3603 名被试。⚠️【透明表述】本文实际使用本地可获得的子集（63 个数据集文件、约 3,327 名被试、约 99 万试次原始行，含少量重复键与脏数据，分析前按标准清洗）；具体分析样本量以第 6 章报告为准，不以全库自述数字代替实际分析规模。该数据库的三层标准化与五组件任务分解框架，以及预注册元分析（OSF: euqmf）与本项目的关系，将作为第 6 章外部验证的数据基础。
+3.3 CRF 与机制层面的决策研究
+条件反应函数（conditional response function, CRF）刻画反应正确性随反应时间分位的变化，可在不拟合完整模型的情况下概览决策动态。结合 DDM 仿真（如通过起始点 z 的操作模拟偏向）可建立"参数→CRF 形态"的正向生成链，为机制解释提供中间层证据（详见第 6 章研究四；⚠️建议在此补充 1–2 篇 CRF 方法学原始文献）。由实测 CRF 反推 DDM 参数的逆向推断在理论上可行，但面临参数补偿（如 v 与 a、v 与 z）导致的可辨识性限制（Tran et al., 2021；本文第 6 章可行性分析）。
+3.4 文献小结与研究空白
+综上，现有文献存在三方面缺口：
+1. 系统性参数映射框架缺失：少有工作把 (P, T, W) 同时建模为 v、a（乃至 t、z）的函数并对映射形式做经验校准；
+2. omission 处理缺乏真实数据评估：Leng et al. (2026) 的结论主要来自仿真，其在含极端 deadline 的真实实验数据上的定量表现（以及"可接受遗漏率边界"）尚未被系统检验；
+3. 多源外部验证缺失：模型导向的 SPE 研究大多只报告单一样本，缺乏跨数据库、跨仿真的一致性评估。
+本研究以"第 3–6 章四项研究"逐一回应上述缺口，构建从实验设计参数到心理过程再到行为表现的完整证据链。
+第4章 研究框架与总体方法
+4.1 实验设计空间与理论假设
+
+图4-1 实验设计空间 Ω 与 8 组取点分布
+结果说明：横轴分别为 P/W 与 T/W，颜色=质量档。G1/G2（高遗漏，红）位于资源受限角落，主口径 G3–G8 覆盖 P∈{0,8,120}、T∈{30,80,100,500}、W∈{600,800,1100,1500}；G7 与 G8 构成 W=800 处的 T 对比（30 vs 80 ms）。
+本研究将 SMT 的三个可操控实验参数形式化为设计空间 Ω=(P, T, W)。物理世界与任务结构共同约束了参数取值：刺激呈现需高于知觉阈值（T≳30 ms），反应窗口需大于最短反应所需时间（W≥300 ms），练习次数需在可行实验时长内（本数据集 P∈{0, 8, 120}）。在该空间内，每条理论假设把 (P, T, W) 或由其派生的总可用时间 M=T+W 映射到 DDM 参数（v、a）之上（详见研究三的数学形式化），从而把"SPE 随设计条件变化"转化为可由 DDM 生成式检验的预测。
+4.2 数据沿革与数据集
+本研究使用的行为数据由课题组前期采集：研究框架确立后，课题组先后在多个设计条件下开展 SMT 实验（相应设计参数与结果见温佳慧, 2025 及课题组内部记录），共覆盖 8 组实验设计（D1–D4b，即本文编号 G1–G8），合计 88 名健康成人被试（每组 10–12 人，每人完成 520 个正式试次，其中 260 个为匹配试次）。数据采集使用 MATLAB + Psychtoolbox（Brainard, 1997）编写的实验程序（1_Code/Experiment/exp_matlab/）。各设计条件的人数、参数与遗漏率见表 4-1。⚠️【表4-1】= 冻结设计表：G1 P0T30W300 (n=11, om=71.6%)、G2 P0T30W600 (n=12, 54.0%)、G3 P120T30W600 (n=10, 38.0%)、G4 P120T80W600 (n=11, 39.2%)、G5 P8T100W1100 (n=11, 11.0%)、G6 P120T500W1500 (n=10, 5.3%)、G7 P120T30W800 (n=12, 15.2%)、G8 P120T80W800 (n=11, 15.5%)。
+⚠️【作者贡献与数据授权声明（置于本章脚注或方法部分）】：本论文所分析的全部行为数据由课题组前期研究采集，作者（蔡振辛）的工作包括：数据整理与质量审计、全部计算建模（DDM/HDDM 拟合、Omission 敏感性分析、Sigmoid+GP 建模）、统计分析与外部数据库整合验证；数据使用已获课题组与导师许可。本文与课题组既往学位论文（温佳慧, 2025）使用部分相同数据，但研究问题（以 DDM 参数预测为核心的建模与验证、omission 方法学、混合生成模型）与分析路径均有实质区别。
+4.3 建模总体思路
+本研究采用"Sigmoid 理论先验 + GP 残差"的混合策略：Sigmoid 函数族依据心理物理规律（阈值—增长—饱和；Luce, 1986）将 (P, T, W, M) 映射到 v、a，提供可解释的理论骨架；高斯过程（GP）学习"真实 DDM 参数 − Sigmoid 预测"的系统残差，提供数据驱动的柔性修正与预测不确定性（Schulz et al., 2018）。该策略的关键在于：即使设计点稀疏（GP 外推受限），Sigmoid 理论先验仍能保障行为层面的合理重建；同时 GP 的不确定性可用于识别信息量最大的下一轮实验点（Myung et al., 2013）。
+4.4 统计口径与可复现性
+依据质量审计（高遗漏率使 G1/G2 的 DDM 拟合不可靠），本研究确立主口径为 G3–G8 六个条件；G1/G2 在敏感性分析与附录中报告。所有统计量、参数估计均来自可复现脚本（见附录 B），关键数值在"数字锁定表"中登记，正文引用一律以冻结口径为准（如 G7 设计坐标为 P120_T30_W800，而非早期元数据误记的 T80）。
+4.5 四项研究导览
+研究一（第 5 章）在行为与 DDM 参数两个层面检验设计空间对 SPE 的系统调控及其线性/非线性性质；研究二（第 6 章）评估 omission 处理方法对参数估计的偏倚并确立数据质量准则；研究三（第 7 章）构建并验证 Sigmoid+GP 混合生成模型；研究四（第 8 章）通过 SPE 数据库、CRF 与机制仿真考察模型结论的外部效度与机制基础。
+第5章 研究一：实验设计空间对自我优势效应的系统性调控
+版本：2026-09-02 ｜ 依据：大纲 v3 + 冻结规格书（全部统计量出自锁定表 S01–S12）
+用途：方法 + 结果初稿；讨论给出"要点清单"待扩写。图/表以 ⚠️【待补】占位。
+通用口径：主分析使用 G3–G8（6 条件）；G1/G2 因高遗漏率仅在敏感性/附录中报告。
+第 3 章 研究一：实验设计空间对 SPE 的系统性调控——行为与 DDM 参数层检验
+5.1 研究问题与预期
+• RQ0a：八个设计单元（G1–G8）之间，行为层 SPE（SPE_RT、SPE_ACC）是否存在差异？
+• RQ0b：P/T/W 的线性连续模型能否解释 SPE 的变异？（预期：不能——为非线性建模提供依据）
+• RQ0c：主口径（G3–G8）下，DDM 漂移率层面的 SPE（SPE_v）是否随设计单元变化？其稳健性如何？
+5.2 方法
+5.2.1 被试与实验设计
+88 名健康成年被试（每组 10–12 人，总计 8 组）完成 SMT。刺激为几何图形（方/圆）与身份标签（自我/陌生人），试次分匹配（Matching）与不匹配（NonMatching），反应有截止时限。8 组条件构成设计空间 Ω = (P, T, W)，各组人数、遗漏率与质量分档见表 3-1（⚠️【表 3-1】数据=冻结设计表；P0 组无练习试次，P>0 组含对应数量练习试次，正式试次每人 520 个 = 260 Matching + 260 NonMatching）。
+⚠️【数据声明，置于脚注或 3.2.1 末】行为数据由课题组前期采集（MATLAB + Psychtoolbox），作者负责全部数据处理与建模；数据使用已获授权。
+5.2.2 变量定义
+• 行为指标（正式试次、Matching 试次）：SPE_RT_ms = 正确试次下 Self 平均 RT − Stranger 平均 RT（个体水平）；SPE_ACC = Self 平均正确率 − Stranger 平均正确率，其中 omission 计为错误。
+• 参数指标：HDDM 层级拟合后被试级 SPE_v = v_self − v_stranger（个体后验均值）。
+• omission 口径：正式试次中 RT 缺失/超窗，文中凡报遗漏率均注明口径（本报告以"全部正式试次"为准；Matching 口径数值见附录）。
+5.2.3 分析计划
+单因素方差分析（ANOVA）＋η²；JZS 贝叶斯因子（组别哑变量回归形式，r = 0.5 与 1.0，实现与验证见 Rouder et al., 2009, 2012）；G*Power 敏感性分析（80% 功效下可检测最小 f）；多元线性回归 SPE_v ~ P + T + W 及其 JZS BF。全部结果由冻结脚本产出（Basic_Hypothesis/BF_freeze_20260902.py、ANOVA/run_spe_anova_freeze_20260902.py），数字见锁定表 S01–S05。
+5.3 结果
+5.3.1 行为层面：SPE_RT 与 SPE_ACC
+
+图5-1 被试级 SPE：行为层（RT/ACC）与 DDM 参数层（4 链）
+结果说明：行为 SPE_RT 中位数在多数单元为负（自我更快），长时限条件（G5/G6）偏移更明显，短时限 P0_T30_W300 反而为正；SPE_ACC 差异小。右图 4 链 SPE_v 显示 G4–G8 为正、G3 为负（与 G3 行为 SPE_RT 为正的方向一致）；组间差异未达统计显著（表5-3）。
+八个设计单元间 SPE_RT 存在显著差异，F(7, 80) = 2.792, p = .012, η² = .196；而 SPE_ACC 差异不显著，F(7, 80) = 1.489, p = .183（表 3-2）。主口径六单元下 SPE_RT 差异稳健，F(5, 59) = 3.096, p = .015, η² = .208。⚠️【表 3-2】含 8 单元与 6 单元两行 ANOVA 摘要。
+单元格均值显示（表 3-3 ⚠️）：SPE_RT 的组间差异主要由长时限、低遗漏的设计单元贡献——G5（P8, T100, W1100）为 −47.9 ms、G6（P120, T500, W1500）为 −65.9 ms，而短时限的 P0_T30_W300 单元 SPE_RT 为 +4.3 ms（方向反转）。即：SPE 的 RT 表现随设计参数呈非单调、强条件依赖的模式。⚠️【图 3-1】SPE_RT 单元格箱线/点图。
+5.3.2 DDM 参数层面：SPE_v 的主口径检验
+
+图5-2 参数层 SPE_v 观察效应量 vs 80% 功效门槛（4 链口径）
+结果说明：G3–G8 观察 f≈.40，低于最小可检测 f≈.47；G5–G8 更低（f≈.21 vs .52）。说明以当前被试量，参数层组间差异缺乏检验功效——应结合行为层显著结果与描述性趋势解读。
+
+图5-3 贝叶斯因子对先验尺度的敏感性（G3–G8, 4 链）
+结果说明：在常见的先验尺度 r 下，ANOVA（组别哑变量）与回归的 BF10 均未超过 3 的实质性阈值，部分先验下接近或低于 1，说明数据对“参数层存在组间差异”的支持为轶事级甚至不支持——与研究一叙述（差异不显著+功效不足）一致。
+主口径（G3–G8）下 SPE_v 的组间差异显著：F(5, 59) = 2.948, p = .019, η² = .200（表 3-4），JZS BF₁₀ = 2.83（r = 0.5）/ 3.29（r = 1.0），证据强度处于"轶事级—实质性"之间；G*Power 显示 80% 功效下可检测的最小效应 f = .465，观察效应 f = .500，安全边际很窄。稳健子集检查（G5–G8）：F(3, 40) = 0.975, p = .414，不显著（观察 f = .270 < 可检测 f_min = .523，功效不足）——该结果表明"设计空间对 SPE_v 的效应"主要体现在跨更宽参数范围的条件比较中，高质量子集内部差异被个体间噪声稀释，须诚实报告。
+5.3.3 线性模型的检验
+以 P、T、W 为连续预测变量的线性回归对 SPE_v 几乎无解释力（R² = .051, BF₁₀ = 0.73，指向 H₀），且系数方向不稳定。该负结果与 §3.3.1/3.3.2 的显著组间差异形成对照，说明 (P, T, W) 对 SPE 的作用并非线性可加，支持引入非线性映射（Sigmoid + GP，见第 5 章）。⚠️【写作提示】回归系数字段请补入正文/附表；并说明 G7 坐标已按冻结口径（T=30）校正，此前的 R²=.055 为旧标注产物。
+5.4 讨论要点（待扩写）
+1. 效应存在但证据边际（BF≈3、G*Power 刚过线）——解释为中等组间效应被大幅个体差异稀释（组内 SD ≫ 组间差异）。
+2. SPE 主要出现在"足够知觉时间 + 充分练习/宽松窗口"的设计区；极短窗口导致反应僵化甚至方向反转——为实验设计提供直接的实践启示。
+3. 线性失败 → 非线性建模必要性论证（衔接第 5 章）。
+4. 稳健子集不显著的两种解读：效应依赖于宽参数范围 OR 功效不足——需在局限中讨论并关联"可选验证实验"（见总讨论）。
+第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响
+4.1 研究问题
+RQ1a：在真实 SMT 数据上，Censor 与 Drop 两种 omission 处理方案得到的 DDM 参数是否存在系统性差异？差异量级如何随遗漏率变化？
+RQ1b：是否存在可接受的遗漏率边界？（本数据为描述性探索）
+RQ1c（初步）：自研省略概率网络（OPN）能否近似 "参数→omission 概率" 映射，为显式 omission 建模铺路？
+4.2 方法
+4.2.1 Censor vs Drop 系统对比
+• 8 组 × 2 方案 = 16 次独立的 HDDM 层级拟合（Docker hcp4715/hddm；MCMC 3,000 draws / 500 burn-in）。
+• Censor：omission 试次 rt = deadline（T+W）、response = 0，作为带错误编码的观测参与拟合（p_outlier = 0）。
+• Drop：删除 omission 试次（p_outlier = 0.05）。
+• 比较指标：各参数（v_self, v_stranger, SPE_v, a, t, z）两种方案差异 Δ、95% CI 是否重叠、Cohen's d。
+• ⚠️【补跑项】收敛诊断（R-hat/ESS）待基于既有 trace 计算或重跑后回填。
+⚠️【措辞更正（写作时务必执行）】"Censor"在本实现中指"将 omission 编码为截止时刻的错误反应参与拟合"，并非严格的右截尾似然；论文中采用此准确表述，并把严格截尾建模列为未来方向（HSSM/OPN 路线）。
+4.2.2 自研 OPN（第一版）
+• 仿真器：带 deadline 的 DDM 试次生成器（Euler–Maruyama；批量版见 simulate_ddm_batch_vectorized）。
+• 训练数据：在参数空间与 deadline 网格采样 4,699 组 (v, a, t, z, deadline) → 由仿真统计 omission 比例作标签。
+• 网络：MLP（128-64-32，sklearn），输出 omission 概率；数据标准化。
+• ⚠️【注】本版为"快速（fast）模式"小样本概念验证；正式路线为复用 Leng et al. (2026) 官方 ddm_opn.onnx 接入 HSSM（见 4.4）。
+4.3 结果
+4.3.1 遗漏率与偏倚模式
+
+图6-1 Omission 敏感性：遗漏率与 Censor vs Drop 影响（图题待按所选图核对）
+结果说明：短窗口组（G1–G4）遗漏率高且 Censor/Drop 参数估计差异超出 95% CI；低遗漏组（G5–G8）两种方案基本一致——对应表6-1 中 G1 的 Δ≈6.81 等结果。
+各组遗漏率（正式试次口径）：G1 71.6%、G2 54.0%、G3 38.0%、G4 39.2%、G5 11.0%、G6 5.3%、G7 15.2%、G8 15.5%（表 4-1）。偏倚集中于 v 的绝对水平：如 G1 的 v_self 在 Censor（−4.86）与 Drop（+1.95）间相差 Δ = 6.81 且 95% CI 不重叠；须注意该"符号反转"仅发生在 v 的绝对水平（v_self 与 v_stranger 同向），SPE_v 在两种方案下均接近 0，未发生方向反转（表 4-2、图 4-1 ⚠️）。95% CI 在遗漏率约 >35% 时普遍不重叠、约 <15% 时普遍重叠；介于 15%–35% 之间无数据组，故该边界为按 8 组事后归纳的描述性结论，不作为统计阈值推广。
+4.3.2 OPN 第一版
+
+图6-2 OPN（省略概率网络）第一版预测表现
+结果说明：网络在训练/测试集上 R²≈.99/.99、MAE≈.017，说明小网络可近似 (θ, deadline)→omission 概率，为显式 omission 建模提供概念验证（表6-2）。
+模型在训练/测试集上 R² = .990/.986（测试 MAE = .017），预测的 omission 概率与仿真真值高度一致（图 4-2 ⚠️：预测精度与边缘效应图）。该结果说明"以小网络近似 (θ, deadline)→omission 概率"在本项目仿真器中可行，为第 4.4 的正式 OPN 路线提供了概念验证。
+4.4 讨论要点与展望
+1. Leng et al. (2026) 的偏倚机制在真实数据上得到印证——丢弃 omission 对 v 的绝对水平影响强烈，且影响随遗漏率增大而加剧。
+2. 数据清洗决策（G1/G2 排除、G3/G4 谨慎、G5–G8 核心）由此获得实证依据，支撑全文主口径。
+3. 自研 OPN 仅为【初步】；LAN+OPN 端到端建模为【展望】：官方 OPN（ddm_opn.onnx，Leng et al., 2026 开源仓库 github.com/Jasonleng/opn）+ HSSM 0.4.0 集成已有另一项目 synthetic 参数恢复的可行性验证（见 OPN_training_summary.md；注意 angle_opn 存在 θ 梯度冲突问题，本项目只用 ddm_opn）。触发条件：若时间允许（2026-11 前），补 synthetic 恢复小节；否则作为 future direction，并明确说明因工具成熟度与条件数限制而未实施（段落模板见 Omission_v2.md §8.2）。
+第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建
+5.1 研究问题与定位
+RQ2：在六条件（G3–G8）上，(a) Sigmoid 理论映射能否经差分进化校准拟合真实 HDDM 参数？(b) 校准后的混合模型（Sigmoid + GP 残差）能否在行为层重建被试的 RT/ACC/omission/SPE？(c) GP 预测不确定性能否提供下一轮实验的候选点？
+定位声明：行为重建为模型有效性的核心证据；参数层外推（LOCV）受限于 6 个设计点，其结果作为"需更多设计点"的结构性证据，而非模型失败；候选点仅为探索性输出。
+5.2 方法
+5.2.1 建模输入
+主口径六条件（G3–G8）的 HDDM 群体后验均值（v_self、v_stranger、a、t、z），每个条件对应约 10–12 名被试、每身份约 1,300–1,560 个 Matching 试次（表 5-1 ⚠️，数值见表 S11）。
+5.2.2 Sigmoid 参数化
+• v(T, P, condition) = v_T(T) × v_P(P) × base_scale_v × (1 + 条件调制 α₁/α₂)，其中 v_T、v_P 均为 Sigmoid（拐点/陡度取心理物理固定值，T₀=100 ms 等）；
+• a(M) = Sigmoid(M; M₀=600) × base_scale_a × (1 + 边界调制 β₁/β₂)，M = T + W；
+• t 与 z 在 Sigmoid 层取训练条件均值基线（t₀ = 0.420, z₀ = 0.550，冻结口径值），由 GP 学习其残差。
+• 差分进化（DE）联合优化 7 个自由参数（α₁, α₂, β₁, β₂, γ, base_scale_v, base_scale_a），目标为预测与真实参数的 RMSE；边界设置见代码（sigmoid_calibration.py）。
+5.2.3 GP 残差层
+对 v_self、v_stranger、a、t、z 各训练一个独立 GP（核：ConstantKernel × RBF + WhiteKernel），学习目标 = 真实 HDDM 参数 − Sigmoid 预测；最终预测 = Sigmoid + GP 残差。
+5.2.4 验证策略
+• in-sample：训练条件上的 RMSE 与 Pearson r；
+• LOCV：Leave-One-Condition-Out（6 折，每折在 5 个条件上重训）；
+• 行为验证：用预测参数做试次级 Euler–Maruyama DDM 模拟（dt = 2 ms，deadline 判 omission），在身份×条件与条件层面对比模拟与真实的 ACC、omission 率、正确 RT 均值与 SPE_RT；
+• 候选点：25×25×25 (P,T,W) 网格上的 GP 预测不确定性 top-N，剔除靠近已有设计点的区域。
+• 复现：run_frozen6_20260902.py（seed = 42），产物目录 GP_Sigmoid_Frozen6/（与旧 8 条件产物 GP_Sigmoid_Cleaned/ 分开存放，避免混用）。
+5.3 结果
+5.3.1 Sigmoid 校准（表 5-2）
+冻结版（6 条件）最优参数：α₁ = 0.862、α₂ = 0.142、β₁ = +0.328、β₂ = −0.518、γ = 0.614、base_scale_v = 1.126、base_scale_a = 1.293；拟合 RMSE = 1.090，DE 收敛。
+⚠️【叙述要点（据冻结"叙述冲击"记录，重要）】早期基于含 G1/G2 的 8 条件版本曾报告 α₁≈0.20、β₁ 符号反转、base_scale_a 触上界等结果；这些结论在排除高遗漏组后不再成立，属低质量数据导致的伪影。冻结口径下：(1) β₁ 为正值（+0.33），方向与"时间压力→边界"假设 H3 一致；(2) base_scale_a 不再触界；(3) α₁ = 0.86 说明"自我相对增强"约为 +86%，仍低于初始默认假设（1.5 倍）——结果定位为对理论参数的实证校准。正文与讨论一律以冻结版为准。
+5.3.2 参数层拟合与交叉验证
+
+图7-1 混合模型 in-sample 参数拟合（canonical4）
+结果说明：训练条件上预测与 4 链 HDDM 后验均值几乎重合（表7-3），主要反映 GP 对残差的吸收，属插值性质，不宜作为外推能力的证据。
+
+图7-2 留一条件交叉验证（LOCV, 6 折）
+结果说明：外推预测误差显著增大（v RMSE≈1.2），r 介于 −0.02~0.53，表明仅 6 个设计点不足以支撑GP 泛化——这是需要更大设计空间采样的结构性证据（表7-4）。
+in-sample：v_self/v_stranger/z 的 r ≈ 1.00（插值拟合，仅说明 GP 能吸收残差），a 的 r = 0.36（RMSE 0.42）——边界参数的 Sigmoid 拟合较弱（表 5-3）。
+LOCV（6 折）：v_self r = −0.03、v_stranger = −0.13、a = −0.29、t = −0.17、z = −0.06、SPE_v = +0.26；v_self RMSE = 1.59（表 5-4，图 5-1 ⚠️）。参数层外推不成立：6 个设计点不足以支撑 GP 泛化——这是设计空间建模的公认小样本困境，也是"需要更多设计点/独立验证数据"的结构性论据。
+5.3.3 行为层重建（核心证据）
+
+图7-3 行为层重建：模拟 vs 真实（identity 与 condition 层）
+结果说明：正确 RT 均值 r≈.97（RMSE≈45 ms）、ACC r≈.99、omission r≈.97、SPE_RT（条件层）r≈.75；相关由跨条件趋势驱动，解读须同时参考 RMSE 与逐格偏差（表7-5，in-sample）。
+身份层（12 格）：正确 RT 均值 r = .967（RMSE 61.6 ms）、ACC r = .904（RMSE .155）、omission r = .580（RMSE .155）；条件层（6 格）：ACC r = .902、SPE_RT r = .845（RMSE 19.7 ms）（表 5-5、图 5-2 ⚠️）。
+解读注意：(1) 相关性高主要由跨条件的大尺度趋势驱动，必须同时报告 RMSE 与逐格偏差（部分格子偏差可达 ±50–100 ms）；(2) 验证为 in-sample（在训练设计点上预测并模拟）；(3) omission 率相关在移除 G1/G2 后由 0.92 降至 0.58，反映短窗条件对 omission 相关的驱动作用——讨论中如实说明。
+5.3.4 候选设计点（探索性）
+
+图7-4 基于 GP 不确定性的候选实验点
+结果说明：高不确定性集中于 T≈480–500 ms、W≈300–350 ms 区域（总不确定≈2.39，主要来自 v）；top-20 间几乎无区分，仅作为“信息量最少区域”的探索性提示，不作最优设计推荐。
+top 候选集中于 T ≈ 480–500 ms、W ≈ 300–350 ms 区域（rank 1: P≈0–5, T=500, W=300, M=800；总不确定性 ≈3.26，主要来自 v 分量），但 top-20 不确定性几乎相同（第 3–4 位小数才分序）（表 5-6 ⚠️）。因此候选输出仅用于指示"当前数据覆盖最差的高不确定区域"，不作为对最优设计的强推荐；结合预期遗漏率/可行性准则的改进版推荐列于未来方向（RoadMap Phase 4 遗留）。
+5.4 讨论要点（待扩写）
+1. 理论校准价值：排除低质量组后映射方向与假设一致（H1：练习提升 v；H3：时间压力降低 a），但幅度低于默认先验——Sigmoid 参数化是可检验的"理论仪器"，本研究给出其经验取值。
+2. 行为重建成功 = Sigmoid 理论先验提供了超出纯数据拟合的约束力（即使参数层 GP 泛化失败，行为层仍可复现）；
+3. 局限与改进：6 点小样本（LOCV 失败）、恒定边界 DDM（未含塌缩边界与跨试次变异）、行为验证 in-sample；改进路径 = 更多设计点 +（可选）独立验证实验（见总讨论 §7 与可选研究五）；
+4. 候选点与实验设计的衔接：本研究同时给出"何处信息最少"的量化指引，供下一轮实验设计参考（配合预期遗漏率约束，短 W 需谨慎，因为 W=300 区间在真实数据中与高遗漏相关）。
+第6章 研究二：Omission 处理方法对 DDM 参数估计的系统影响
+版本：2026-09-02 ｜ 依据：大纲 v3 + 冻结规格书（全部统计量出自锁定表 S01–S12）
+用途：方法 + 结果初稿；讨论给出"要点清单"待扩写。图/表以 ⚠️【待补】占位。
+通用口径：主分析使用 G3–G8（6 条件）；G1/G2 因高遗漏率仅在敏感性/附录中报告。
+第 3 章 研究一：实验设计空间对 SPE 的系统性调控——行为与 DDM 参数层检验
+3.1 研究问题与预期
+• RQ0a：八个设计单元（G1–G8）之间，行为层 SPE（SPE_RT、SPE_ACC）是否存在差异？
+• RQ0b：P/T/W 的线性连续模型能否解释 SPE 的变异？（预期：不能——为非线性建模提供依据）
+• RQ0c：主口径（G3–G8）下，DDM 漂移率层面的 SPE（SPE_v）是否随设计单元变化？其稳健性如何？
+3.2 方法
+3.2.1 被试与实验设计
+88 名健康成年被试（每组 10–12 人，总计 8 组）完成 SMT。刺激为几何图形（方/圆）与身份标签（自我/陌生人），试次分匹配（Matching）与不匹配（NonMatching），反应有截止时限。8 组条件构成设计空间 Ω = (P, T, W)，各组人数、遗漏率与质量分档见表 3-1（⚠️【表 3-1】数据=冻结设计表；P0 组无练习试次，P>0 组含对应数量练习试次，正式试次每人 520 个 = 260 Matching + 260 NonMatching）。
+⚠️【数据声明，置于脚注或 3.2.1 末】行为数据由课题组前期采集（MATLAB + Psychtoolbox），作者负责全部数据处理与建模；数据使用已获授权。
+3.2.2 变量定义
+• 行为指标（正式试次、Matching 试次）：SPE_RT_ms = 正确试次下 Self 平均 RT − Stranger 平均 RT（个体水平）；SPE_ACC = Self 平均正确率 − Stranger 平均正确率，其中 omission 计为错误。
+• 参数指标：HDDM 层级拟合后被试级 SPE_v = v_self − v_stranger（个体后验均值）。
+• omission 口径：正式试次中 RT 缺失/超窗，文中凡报遗漏率均注明口径（本报告以"全部正式试次"为准；Matching 口径数值见附录）。
+3.2.3 分析计划
+单因素方差分析（ANOVA）＋η²；JZS 贝叶斯因子（组别哑变量回归形式，r = 0.5 与 1.0，实现与验证见 Rouder et al., 2009, 2012）；G*Power 敏感性分析（80% 功效下可检测最小 f）；多元线性回归 SPE_v ~ P + T + W 及其 JZS BF。全部结果由冻结脚本产出（Basic_Hypothesis/BF_freeze_20260902.py、ANOVA/run_spe_anova_freeze_20260902.py），数字见锁定表 S01–S05。
+3.3 结果
+3.3.1 行为层面：SPE_RT 与 SPE_ACC
+八个设计单元间 SPE_RT 存在显著差异，F(7, 80) = 2.792, p = .012, η² = .196；而 SPE_ACC 差异不显著，F(7, 80) = 1.489, p = .183（表 3-2）。主口径六单元下 SPE_RT 差异稳健，F(5, 59) = 3.096, p = .015, η² = .208。⚠️【表 3-2】含 8 单元与 6 单元两行 ANOVA 摘要。
+单元格均值显示（表 3-3 ⚠️）：SPE_RT 的组间差异主要由长时限、低遗漏的设计单元贡献——G5（P8, T100, W1100）为 −47.9 ms、G6（P120, T500, W1500）为 −65.9 ms，而短时限的 P0_T30_W300 单元 SPE_RT 为 +4.3 ms（方向反转）。即：SPE 的 RT 表现随设计参数呈非单调、强条件依赖的模式。⚠️【图 3-1】SPE_RT 单元格箱线/点图。
+3.3.2 DDM 参数层面：SPE_v 的主口径检验
+主口径（G3–G8）下 SPE_v 的组间差异显著：F(5, 59) = 2.948, p = .019, η² = .200（表 3-4），JZS BF₁₀ = 2.83（r = 0.5）/ 3.29（r = 1.0），证据强度处于"轶事级—实质性"之间；G*Power 显示 80% 功效下可检测的最小效应 f = .465，观察效应 f = .500，安全边际很窄。稳健子集检查（G5–G8）：F(3, 40) = 0.975, p = .414，不显著（观察 f = .270 < 可检测 f_min = .523，功效不足）——该结果表明"设计空间对 SPE_v 的效应"主要体现在跨更宽参数范围的条件比较中，高质量子集内部差异被个体间噪声稀释，须诚实报告。
+3.3.3 线性模型的检验
+以 P、T、W 为连续预测变量的线性回归对 SPE_v 几乎无解释力（R² = .051, BF₁₀ = 0.73，指向 H₀），且系数方向不稳定。该负结果与 §3.3.1/3.3.2 的显著组间差异形成对照，说明 (P, T, W) 对 SPE 的作用并非线性可加，支持引入非线性映射（Sigmoid + GP，见第 5 章）。⚠️【写作提示】回归系数字段请补入正文/附表；并说明 G7 坐标已按冻结口径（T=30）校正，此前的 R²=.055 为旧标注产物。
+3.4 讨论要点（待扩写）
+1. 效应存在但证据边际（BF≈3、G*Power 刚过线）——解释为中等组间效应被大幅个体差异稀释（组内 SD ≫ 组间差异）。
+2. SPE 主要出现在"足够知觉时间 + 充分练习/宽松窗口"的设计区；极短窗口导致反应僵化甚至方向反转——为实验设计提供直接的实践启示。
+3. 线性失败 → 非线性建模必要性论证（衔接第 5 章）。
+4. 稳健子集不显著的两种解读：效应依赖于宽参数范围 OR 功效不足——需在局限中讨论并关联"可选验证实验"（见总讨论）。
+第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响
+6.1 研究问题
+RQ1a：在真实 SMT 数据上，Censor 与 Drop 两种 omission 处理方案得到的 DDM 参数是否存在系统性差异？差异量级如何随遗漏率变化？
+RQ1b：是否存在可接受的遗漏率边界？（本数据为描述性探索）
+RQ1c（初步）：自研省略概率网络（OPN）能否近似 "参数→omission 概率" 映射，为显式 omission 建模铺路？
+6.2 方法
+6.2.1 Censor vs Drop 系统对比
+• 8 组 × 2 方案 = 16 次独立的 HDDM 层级拟合（Docker hcp4715/hddm；MCMC 3,000 draws / 500 burn-in）。
+• Censor：omission 试次 rt = deadline（T+W）、response = 0，作为带错误编码的观测参与拟合（p_outlier = 0）。
+• Drop：删除 omission 试次（p_outlier = 0.05）。
+• 比较指标：各参数（v_self, v_stranger, SPE_v, a, t, z）两种方案差异 Δ、95% CI 是否重叠、Cohen's d。
+• ⚠️【补跑项】收敛诊断（R-hat/ESS）待基于既有 trace 计算或重跑后回填。
+⚠️【措辞更正（写作时务必执行）】"Censor"在本实现中指"将 omission 编码为截止时刻的错误反应参与拟合"，并非严格的右截尾似然；论文中采用此准确表述，并把严格截尾建模列为未来方向（HSSM/OPN 路线）。
+6.2.2 自研 OPN（第一版）
+• 仿真器：带 deadline 的 DDM 试次生成器（Euler–Maruyama；批量版见 simulate_ddm_batch_vectorized）。
+• 训练数据：在参数空间与 deadline 网格采样 4,699 组 (v, a, t, z, deadline) → 由仿真统计 omission 比例作标签。
+• 网络：MLP（128-64-32，sklearn），输出 omission 概率；数据标准化。
+• ⚠️【注】本版为"快速（fast）模式"小样本概念验证；正式路线为复用 Leng et al. (2026) 官方 ddm_opn.onnx 接入 HSSM（见 4.4）。
+6.3 结果
+6.3.1 遗漏率与偏倚模式
+各组遗漏率（正式试次口径）：G1 71.6%、G2 54.0%、G3 38.0%、G4 39.2%、G5 11.0%、G6 5.3%、G7 15.2%、G8 15.5%（表 4-1）。偏倚集中于 v 的绝对水平：如 G1 的 v_self 在 Censor（−4.86）与 Drop（+1.95）间相差 Δ = 6.81 且 95% CI 不重叠；须注意该"符号反转"仅发生在 v 的绝对水平（v_self 与 v_stranger 同向），SPE_v 在两种方案下均接近 0，未发生方向反转（表 4-2、图 4-1 ⚠️）。95% CI 在遗漏率约 >35% 时普遍不重叠、约 <15% 时普遍重叠；介于 15%–35% 之间无数据组，故该边界为按 8 组事后归纳的描述性结论，不作为统计阈值推广。
+6.3.2 OPN 第一版
+模型在训练/测试集上 R² = .990/.986（测试 MAE = .017），预测的 omission 概率与仿真真值高度一致（图 4-2 ⚠️：预测精度与边缘效应图）。该结果说明"以小网络近似 (θ, deadline)→omission 概率"在本项目仿真器中可行，为第 4.4 的正式 OPN 路线提供了概念验证。
+6.4 讨论要点与展望
+1. Leng et al. (2026) 的偏倚机制在真实数据上得到印证——丢弃 omission 对 v 的绝对水平影响强烈，且影响随遗漏率增大而加剧。
+2. 数据清洗决策（G1/G2 排除、G3/G4 谨慎、G5–G8 核心）由此获得实证依据，支撑全文主口径。
+3. 自研 OPN 仅为【初步】；LAN+OPN 端到端建模为【展望】：官方 OPN（ddm_opn.onnx，Leng et al., 2026 开源仓库 github.com/Jasonleng/opn）+ HSSM 0.4.0 集成已有另一项目 synthetic 参数恢复的可行性验证（见 OPN_training_summary.md；注意 angle_opn 存在 θ 梯度冲突问题，本项目只用 ddm_opn）。触发条件：若时间允许（2026-11 前），补 synthetic 恢复小节；否则作为 future direction，并明确说明因工具成熟度与条件数限制而未实施（段落模板见 Omission_v2.md §8.2）。
+第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建
+5.1 研究问题与定位
+RQ2：在六条件（G3–G8）上，(a) Sigmoid 理论映射能否经差分进化校准拟合真实 HDDM 参数？(b) 校准后的混合模型（Sigmoid + GP 残差）能否在行为层重建被试的 RT/ACC/omission/SPE？(c) GP 预测不确定性能否提供下一轮实验的候选点？
+定位声明：行为重建为模型有效性的核心证据；参数层外推（LOCV）受限于 6 个设计点，其结果作为"需更多设计点"的结构性证据，而非模型失败；候选点仅为探索性输出。
+5.2 方法
+5.2.1 建模输入
+主口径六条件（G3–G8）的 HDDM 群体后验均值（v_self、v_stranger、a、t、z），每个条件对应约 10–12 名被试、每身份约 1,300–1,560 个 Matching 试次（表 5-1 ⚠️，数值见表 S11）。
+5.2.2 Sigmoid 参数化
+• v(T, P, condition) = v_T(T) × v_P(P) × base_scale_v × (1 + 条件调制 α₁/α₂)，其中 v_T、v_P 均为 Sigmoid（拐点/陡度取心理物理固定值，T₀=100 ms 等）；
+• a(M) = Sigmoid(M; M₀=600) × base_scale_a × (1 + 边界调制 β₁/β₂)，M = T + W；
+• t 与 z 在 Sigmoid 层取训练条件均值基线（t₀ = 0.420, z₀ = 0.550，冻结口径值），由 GP 学习其残差。
+• 差分进化（DE）联合优化 7 个自由参数（α₁, α₂, β₁, β₂, γ, base_scale_v, base_scale_a），目标为预测与真实参数的 RMSE；边界设置见代码（sigmoid_calibration.py）。
+5.2.3 GP 残差层
+对 v_self、v_stranger、a、t、z 各训练一个独立 GP（核：ConstantKernel × RBF + WhiteKernel），学习目标 = 真实 HDDM 参数 − Sigmoid 预测；最终预测 = Sigmoid + GP 残差。
+5.2.4 验证策略
+• in-sample：训练条件上的 RMSE 与 Pearson r；
+• LOCV：Leave-One-Condition-Out（6 折，每折在 5 个条件上重训）；
+• 行为验证：用预测参数做试次级 Euler–Maruyama DDM 模拟（dt = 2 ms，deadline 判 omission），在身份×条件与条件层面对比模拟与真实的 ACC、omission 率、正确 RT 均值与 SPE_RT；
+• 候选点：25×25×25 (P,T,W) 网格上的 GP 预测不确定性 top-N，剔除靠近已有设计点的区域。
+• 复现：run_frozen6_20260902.py（seed = 42），产物目录 GP_Sigmoid_Frozen6/（与旧 8 条件产物 GP_Sigmoid_Cleaned/ 分开存放，避免混用）。
+5.3 结果
+5.3.1 Sigmoid 校准（表 5-2）
+冻结版（6 条件）最优参数：α₁ = 0.862、α₂ = 0.142、β₁ = +0.328、β₂ = −0.518、γ = 0.614、base_scale_v = 1.126、base_scale_a = 1.293；拟合 RMSE = 1.090，DE 收敛。
+⚠️【叙述要点（据冻结"叙述冲击"记录，重要）】早期基于含 G1/G2 的 8 条件版本曾报告 α₁≈0.20、β₁ 符号反转、base_scale_a 触上界等结果；这些结论在排除高遗漏组后不再成立，属低质量数据导致的伪影。冻结口径下：(1) β₁ 为正值（+0.33），方向与"时间压力→边界"假设 H3 一致；(2) base_scale_a 不再触界；(3) α₁ = 0.86 说明"自我相对增强"约为 +86%，仍低于初始默认假设（1.5 倍）——结果定位为对理论参数的实证校准。正文与讨论一律以冻结版为准。
+5.3.2 参数层拟合与交叉验证
+in-sample：v_self/v_stranger/z 的 r ≈ 1.00（插值拟合，仅说明 GP 能吸收残差），a 的 r = 0.36（RMSE 0.42）——边界参数的 Sigmoid 拟合较弱（表 5-3）。
+LOCV（6 折）：v_self r = −0.03、v_stranger = −0.13、a = −0.29、t = −0.17、z = −0.06、SPE_v = +0.26；v_self RMSE = 1.59（表 5-4，图 5-1 ⚠️）。参数层外推不成立：6 个设计点不足以支撑 GP 泛化——这是设计空间建模的公认小样本困境，也是"需要更多设计点/独立验证数据"的结构性论据。
+5.3.3 行为层重建（核心证据）
+身份层（12 格）：正确 RT 均值 r = .967（RMSE 61.6 ms）、ACC r = .904（RMSE .155）、omission r = .580（RMSE .155）；条件层（6 格）：ACC r = .902、SPE_RT r = .845（RMSE 19.7 ms）（表 5-5、图 5-2 ⚠️）。
+解读注意：(1) 相关性高主要由跨条件的大尺度趋势驱动，必须同时报告 RMSE 与逐格偏差（部分格子偏差可达 ±50–100 ms）；(2) 验证为 in-sample（在训练设计点上预测并模拟）；(3) omission 率相关在移除 G1/G2 后由 0.92 降至 0.58，反映短窗条件对 omission 相关的驱动作用——讨论中如实说明。
+5.3.4 候选设计点（探索性）
+top 候选集中于 T ≈ 480–500 ms、W ≈ 300–350 ms 区域（rank 1: P≈0–5, T=500, W=300, M=800；总不确定性 ≈3.26，主要来自 v 分量），但 top-20 不确定性几乎相同（第 3–4 位小数才分序）（表 5-6 ⚠️）。因此候选输出仅用于指示"当前数据覆盖最差的高不确定区域"，不作为对最优设计的强推荐；结合预期遗漏率/可行性准则的改进版推荐列于未来方向（RoadMap Phase 4 遗留）。
+5.4 讨论要点（据冻结口径重写，待扩写）
+1. 理论校准价值：排除低质量组后映射方向与假设一致（H1：练习提升 v；H3：时间压力降低 a），但幅度低于默认先验——Sigmoid 参数化是可检验的"理论仪器"，本研究给出其经验取值。
+2. 行为重建成功 = Sigmoid 理论先验提供了超出纯数据拟合的约束力（即使参数层 GP 泛化失败，行为层仍可复现）；
+3. 局限与改进：6 点小样本（LOCV 失败）、恒定边界 DDM（未含塌缩边界与跨试次变异）、行为验证 in-sample；改进路径 = 更多设计点 +（可选）独立验证实验（见总讨论 §7 与可选研究五）；
+4. 候选点与实验设计的衔接：本研究同时给出"何处信息最少"的量化指引，供下一轮实验设计参考（配合预期遗漏率约束，短 W 需谨慎，因为 W=300 区间在真实数据中与高遗漏相关）。
+第7章 研究三：Sigmoid 与高斯过程的混合生成模型：构建与验证
+版本：2026-09-02 ｜ 依据：大纲 v3 + 冻结规格书（全部统计量出自锁定表 S01–S12）
+用途：方法 + 结果初稿；讨论给出"要点清单"待扩写。图/表以 ⚠️【待补】占位。
+通用口径：主分析使用 G3–G8（6 条件）；G1/G2 因高遗漏率仅在敏感性/附录中报告。
+第 3 章 研究一：实验设计空间对 SPE 的系统性调控——行为与 DDM 参数层检验
+3.1 研究问题与预期
+• RQ0a：八个设计单元（G1–G8）之间，行为层 SPE（SPE_RT、SPE_ACC）是否存在差异？
+• RQ0b：P/T/W 的线性连续模型能否解释 SPE 的变异？（预期：不能——为非线性建模提供依据）
+• RQ0c：主口径（G3–G8）下，DDM 漂移率层面的 SPE（SPE_v）是否随设计单元变化？其稳健性如何？
+3.2 方法
+3.2.1 被试与实验设计
+88 名健康成年被试（每组 10–12 人，总计 8 组）完成 SMT。刺激为几何图形（方/圆）与身份标签（自我/陌生人），试次分匹配（Matching）与不匹配（NonMatching），反应有截止时限。8 组条件构成设计空间 Ω = (P, T, W)，各组人数、遗漏率与质量分档见表 3-1（⚠️【表 3-1】数据=冻结设计表；P0 组无练习试次，P>0 组含对应数量练习试次，正式试次每人 520 个 = 260 Matching + 260 NonMatching）。
+⚠️【数据声明，置于脚注或 3.2.1 末】行为数据由课题组前期采集（MATLAB + Psychtoolbox），作者负责全部数据处理与建模；数据使用已获授权。
+3.2.2 变量定义
+• 行为指标（正式试次、Matching 试次）：SPE_RT_ms = 正确试次下 Self 平均 RT − Stranger 平均 RT（个体水平）；SPE_ACC = Self 平均正确率 − Stranger 平均正确率，其中 omission 计为错误。
+• 参数指标：HDDM 层级拟合后被试级 SPE_v = v_self − v_stranger（个体后验均值）。
+• omission 口径：正式试次中 RT 缺失/超窗，文中凡报遗漏率均注明口径（本报告以"全部正式试次"为准；Matching 口径数值见附录）。
+3.2.3 分析计划
+单因素方差分析（ANOVA）＋η²；JZS 贝叶斯因子（组别哑变量回归形式，r = 0.5 与 1.0，实现与验证见 Rouder et al., 2009, 2012）；G*Power 敏感性分析（80% 功效下可检测最小 f）；多元线性回归 SPE_v ~ P + T + W 及其 JZS BF。全部结果由冻结脚本产出（Basic_Hypothesis/BF_freeze_20260902.py、ANOVA/run_spe_anova_freeze_20260902.py），数字见锁定表 S01–S05。
+3.3 结果
+3.3.1 行为层面：SPE_RT 与 SPE_ACC
+八个设计单元间 SPE_RT 存在显著差异，F(7, 80) = 2.792, p = .012, η² = .196；而 SPE_ACC 差异不显著，F(7, 80) = 1.489, p = .183（表 3-2）。主口径六单元下 SPE_RT 差异稳健，F(5, 59) = 3.096, p = .015, η² = .208。⚠️【表 3-2】含 8 单元与 6 单元两行 ANOVA 摘要。
+单元格均值显示（表 3-3 ⚠️）：SPE_RT 的组间差异主要由长时限、低遗漏的设计单元贡献——G5（P8, T100, W1100）为 −47.9 ms、G6（P120, T500, W1500）为 −65.9 ms，而短时限的 P0_T30_W300 单元 SPE_RT 为 +4.3 ms（方向反转）。即：SPE 的 RT 表现随设计参数呈非单调、强条件依赖的模式。⚠️【图 3-1】SPE_RT 单元格箱线/点图。
+3.3.2 DDM 参数层面：SPE_v 的主口径检验
+主口径（G3–G8）下 SPE_v 的组间差异显著：F(5, 59) = 2.948, p = .019, η² = .200（表 3-4），JZS BF₁₀ = 2.83（r = 0.5）/ 3.29（r = 1.0），证据强度处于"轶事级—实质性"之间；G*Power 显示 80% 功效下可检测的最小效应 f = .465，观察效应 f = .500，安全边际很窄。稳健子集检查（G5–G8）：F(3, 40) = 0.975, p = .414，不显著（观察 f = .270 < 可检测 f_min = .523，功效不足）——该结果表明"设计空间对 SPE_v 的效应"主要体现在跨更宽参数范围的条件比较中，高质量子集内部差异被个体间噪声稀释，须诚实报告。
+3.3.3 线性模型的检验
+以 P、T、W 为连续预测变量的线性回归对 SPE_v 几乎无解释力（R² = .051, BF₁₀ = 0.73，指向 H₀），且系数方向不稳定。该负结果与 §3.3.1/3.3.2 的显著组间差异形成对照，说明 (P, T, W) 对 SPE 的作用并非线性可加，支持引入非线性映射（Sigmoid + GP，见第 5 章）。⚠️【写作提示】回归系数字段请补入正文/附表；并说明 G7 坐标已按冻结口径（T=30）校正，此前的 R²=.055 为旧标注产物。
+3.4 讨论要点（待扩写）
+1. 效应存在但证据边际（BF≈3、G*Power 刚过线）——解释为中等组间效应被大幅个体差异稀释（组内 SD ≫ 组间差异）。
+2. SPE 主要出现在"足够知觉时间 + 充分练习/宽松窗口"的设计区；极短窗口导致反应僵化甚至方向反转——为实验设计提供直接的实践启示。
+3. 线性失败 → 非线性建模必要性论证（衔接第 5 章）。
+4. 稳健子集不显著的两种解读：效应依赖于宽参数范围 OR 功效不足——需在局限中讨论并关联"可选验证实验"（见总讨论）。
+第 4 章 研究二：Omission 处理方法对 DDM 参数估计的系统影响
+4.1 研究问题
+RQ1a：在真实 SMT 数据上，Censor 与 Drop 两种 omission 处理方案得到的 DDM 参数是否存在系统性差异？差异量级如何随遗漏率变化？
+RQ1b：是否存在可接受的遗漏率边界？（本数据为描述性探索）
+RQ1c（初步）：自研省略概率网络（OPN）能否近似 "参数→omission 概率" 映射，为显式 omission 建模铺路？
+4.2 方法
+4.2.1 Censor vs Drop 系统对比
+• 8 组 × 2 方案 = 16 次独立的 HDDM 层级拟合（Docker hcp4715/hddm；MCMC 3,000 draws / 500 burn-in）。
+• Censor：omission 试次 rt = deadline（T+W）、response = 0，作为带错误编码的观测参与拟合（p_outlier = 0）。
+• Drop：删除 omission 试次（p_outlier = 0.05）。
+• 比较指标：各参数（v_self, v_stranger, SPE_v, a, t, z）两种方案差异 Δ、95% CI 是否重叠、Cohen's d。
+• ⚠️【补跑项】收敛诊断（R-hat/ESS）待基于既有 trace 计算或重跑后回填。
+⚠️【措辞更正（写作时务必执行）】"Censor"在本实现中指"将 omission 编码为截止时刻的错误反应参与拟合"，并非严格的右截尾似然；论文中采用此准确表述，并把严格截尾建模列为未来方向（HSSM/OPN 路线）。
+4.2.2 自研 OPN（第一版）
+• 仿真器：带 deadline 的 DDM 试次生成器（Euler–Maruyama；批量版见 simulate_ddm_batch_vectorized）。
+• 训练数据：在参数空间与 deadline 网格采样 4,699 组 (v, a, t, z, deadline) → 由仿真统计 omission 比例作标签。
+• 网络：MLP（128-64-32，sklearn），输出 omission 概率；数据标准化。
+• ⚠️【注】本版为"快速（fast）模式"小样本概念验证；正式路线为复用 Leng et al. (2026) 官方 ddm_opn.onnx 接入 HSSM（见 4.4）。
+4.3 结果
+4.3.1 遗漏率与偏倚模式
+各组遗漏率（正式试次口径）：G1 71.6%、G2 54.0%、G3 38.0%、G4 39.2%、G5 11.0%、G6 5.3%、G7 15.2%、G8 15.5%（表 4-1）。偏倚集中于 v 的绝对水平：如 G1 的 v_self 在 Censor（−4.86）与 Drop（+1.95）间相差 Δ = 6.81 且 95% CI 不重叠；须注意该"符号反转"仅发生在 v 的绝对水平（v_self 与 v_stranger 同向），SPE_v 在两种方案下均接近 0，未发生方向反转（表 4-2、图 4-1 ⚠️）。95% CI 在遗漏率约 >35% 时普遍不重叠、约 <15% 时普遍重叠；介于 15%–35% 之间无数据组，故该边界为按 8 组事后归纳的描述性结论，不作为统计阈值推广。
+4.3.2 OPN 第一版
+模型在训练/测试集上 R² = .990/.986（测试 MAE = .017），预测的 omission 概率与仿真真值高度一致（图 4-2 ⚠️：预测精度与边缘效应图）。该结果说明"以小网络近似 (θ, deadline)→omission 概率"在本项目仿真器中可行，为第 4.4 的正式 OPN 路线提供了概念验证。
+4.4 讨论要点与展望
+1. Leng et al. (2026) 的偏倚机制在真实数据上得到印证——丢弃 omission 对 v 的绝对水平影响强烈，且影响随遗漏率增大而加剧。
+2. 数据清洗决策（G1/G2 排除、G3/G4 谨慎、G5–G8 核心）由此获得实证依据，支撑全文主口径。
+3. 自研 OPN 仅为【初步】；LAN+OPN 端到端建模为【展望】：官方 OPN（ddm_opn.onnx，Leng et al., 2026 开源仓库 github.com/Jasonleng/opn）+ HSSM 0.4.0 集成已有另一项目 synthetic 参数恢复的可行性验证（见 OPN_training_summary.md；注意 angle_opn 存在 θ 梯度冲突问题，本项目只用 ddm_opn）。触发条件：若时间允许（2026-11 前），补 synthetic 恢复小节；否则作为 future direction，并明确说明因工具成熟度与条件数限制而未实施（段落模板见 Omission_v2.md §8.2）。
+第 5 章 研究三：Sigmoid + 高斯过程的混合生成模型——参数预测与行为重建
+7.1 研究问题与定位
+RQ2：在六条件（G3–G8）上，(a) Sigmoid 理论映射能否经差分进化校准拟合真实 HDDM 参数？(b) 校准后的混合模型（Sigmoid + GP 残差）能否在行为层重建被试的 RT/ACC/omission/SPE？(c) GP 预测不确定性能否提供下一轮实验的候选点？
+定位声明：行为重建为模型有效性的核心证据；参数层外推（LOCV）受限于 6 个设计点，其结果作为"需更多设计点"的结构性证据，而非模型失败；候选点仅为探索性输出。
+7.2 方法
+7.2.1 建模输入
+主口径六条件（G3–G8）的 HDDM 群体后验均值（v_self、v_stranger、a、t、z），每个条件对应约 10–12 名被试、每身份约 1,300–1,560 个 Matching 试次（表 5-1 ⚠️，数值见表 S11）。
+7.2.2 Sigmoid 参数化
+• v(T, P, condition) = v_T(T) × v_P(P) × base_scale_v × (1 + 条件调制 α₁/α₂)，其中 v_T、v_P 均为 Sigmoid（拐点/陡度取心理物理固定值，T₀=100 ms 等）；
+• a(M) = Sigmoid(M; M₀=600) × base_scale_a × (1 + 边界调制 β₁/β₂)，M = T + W；
+• t 与 z 在 Sigmoid 层取训练条件均值基线（t₀ = 0.420, z₀ = 0.550，冻结口径值），由 GP 学习其残差。
+• 差分进化（DE）联合优化 7 个自由参数（α₁, α₂, β₁, β₂, γ, base_scale_v, base_scale_a），目标为预测与真实参数的 RMSE；边界设置见代码（sigmoid_calibration.py）。
+7.2.3 GP 残差层
+对 v_self、v_stranger、a、t、z 各训练一个独立 GP（核：ConstantKernel × RBF + WhiteKernel），学习目标 = 真实 HDDM 参数 − Sigmoid 预测；最终预测 = Sigmoid + GP 残差。
+7.2.4 验证策略
+• in-sample：训练条件上的 RMSE 与 Pearson r；
+• LOCV：Leave-One-Condition-Out（6 折，每折在 5 个条件上重训）；
+• 行为验证：用预测参数做试次级 Euler–Maruyama DDM 模拟（dt = 2 ms，deadline 判 omission），在身份×条件与条件层面对比模拟与真实的 ACC、omission 率、正确 RT 均值与 SPE_RT；
+• 候选点：25×25×25 (P,T,W) 网格上的 GP 预测不确定性 top-N，剔除靠近已有设计点的区域。
+• 复现：run_frozen6_20260902.py（seed = 42），产物目录 GP_Sigmoid_Frozen6/（与旧 8 条件产物 GP_Sigmoid_Cleaned/ 分开存放，避免混用）。
+7.3 结果
+7.3.1 Sigmoid 校准（表 5-2）
+冻结版（6 条件）最优参数：α₁ = 0.862、α₂ = 0.142、β₁ = +0.328、β₂ = −0.518、γ = 0.614、base_scale_v = 1.126、base_scale_a = 1.293；拟合 RMSE = 1.090，DE 收敛。
+⚠️【叙述要点（据冻结"叙述冲击"记录，重要）】早期基于含 G1/G2 的 8 条件版本曾报告 α₁≈0.20、β₁ 符号反转、base_scale_a 触上界等结果；这些结论在排除高遗漏组后不再成立，属低质量数据导致的伪影。冻结口径下：(1) β₁ 为正值（+0.33），方向与"时间压力→边界"假设 H3 一致；(2) base_scale_a 不再触界；(3) α₁ = 0.86 说明"自我相对增强"约为 +86%，仍低于初始默认假设（1.5 倍）——结果定位为对理论参数的实证校准。正文与讨论一律以冻结版为准。
+7.3.2 参数层拟合与交叉验证
+in-sample：v_self/v_stranger/z 的 r ≈ 1.00（插值拟合，仅说明 GP 能吸收残差），a 的 r = 0.36（RMSE 0.42）——边界参数的 Sigmoid 拟合较弱（表 5-3）。
+LOCV（6 折）：v_self r = −0.03、v_stranger = −0.13、a = −0.29、t = −0.17、z = −0.06、SPE_v = +0.26；v_self RMSE = 1.59（表 5-4，图 5-1 ⚠️）。参数层外推不成立：6 个设计点不足以支撑 GP 泛化——这是设计空间建模的公认小样本困境，也是"需要更多设计点/独立验证数据"的结构性论据。
+7.3.3 行为层重建（核心证据）
+身份层（12 格）：正确 RT 均值 r = .967（RMSE 61.6 ms）、ACC r = .904（RMSE .155）、omission r = .580（RMSE .155）；条件层（6 格）：ACC r = .902、SPE_RT r = .845（RMSE 19.7 ms）（表 5-5、图 5-2 ⚠️）。
+解读注意：(1) 相关性高主要由跨条件的大尺度趋势驱动，必须同时报告 RMSE 与逐格偏差（部分格子偏差可达 ±50–100 ms）；(2) 验证为 in-sample（在训练设计点上预测并模拟）；(3) omission 率相关在移除 G1/G2 后由 0.92 降至 0.58，反映短窗条件对 omission 相关的驱动作用——讨论中如实说明。
+7.3.4 候选设计点（探索性）
+top 候选集中于 T ≈ 480–500 ms、W ≈ 300–350 ms 区域（rank 1: P≈0–5, T=500, W=300, M=800；总不确定性 ≈3.26，主要来自 v 分量），但 top-20 不确定性几乎相同（第 3–4 位小数才分序）（表 5-6 ⚠️）。因此候选输出仅用于指示"当前数据覆盖最差的高不确定区域"，不作为对最优设计的强推荐；结合预期遗漏率/可行性准则的改进版推荐列于未来方向（RoadMap Phase 4 遗留）。
+7.4 讨论要点（据冻结口径重写，待扩写）
+1. 理论校准价值：排除低质量组后映射方向与假设一致（H1：练习提升 v；H3：时间压力降低 a），但幅度低于默认先验——Sigmoid 参数化是可检验的"理论仪器"，本研究给出其经验取值。
+2. 行为重建成功 = Sigmoid 理论先验提供了超出纯数据拟合的约束力（即使参数层 GP 泛化失败，行为层仍可复现）；
+3. 局限与改进：6 点小样本（LOCV 失败）、恒定边界 DDM（未含塌缩边界与跨试次变异）、行为验证 in-sample；改进路径 = 更多设计点 +（可选）独立验证实验（见总讨论 §7 与可选研究五）；
+4. 候选点与实验设计的衔接：本研究同时给出"何处信息最少"的量化指引，供下一轮实验设计参考（配合预期遗漏率约束，短 W 需谨慎，因为 W=300 区间在真实数据中与高遗漏相关）。
+第8章 研究四：SPE 数据库、CRF 与机制仿真的多源验证
+8.1 研究目的
+研究一至研究三的证据均来自课题组 88 人数据集。为考察"设计空间调控 SPE 及其参数化机制"这一结论的外部效度，本章将行为/参数层面的发现与更大范围的独立证据对照：一是课题组构建的 SPE 数据库（Cai et al., in prep），二是条件反应函数（CRF）分析与 Stim-Coding 机制仿真。
+⚠️【透明声明】SPE 数据库为课题组在研基础设施，全库自述规模为 44 篇文献、70 个数据集、3603 名被试；本章报告使用其中可获得的子集（63 个数据集文件、约 3,327 名被试，分析前经统一清洗并报告去重后试次数）。数据库的构建与标准化详见 Cai et al.（in prep）及课题组文档。
+8.2 方法
+SPE 数据库分析。 对纳入数据集统一提取匹配试次的 RT 与 ACC，按身份（自我 vs 陌生人）计算 SPE；在数据集层面考察 SPE 的整体分布，并探索 SPE 与刺激呈现时间、试次数等设计变量的关系（相关与自举置信区间）。
+CRF 与滑动窗口分析。 基于内部 88 人匹配试次（22,880 试次），计算条件反应函数（按 RT 分位考察正确率）以及"以匹配键为条件的自我—陌生人正确率差"随反应时间窗口的变化（窗口 100–400 ms 滑动，见 8.4 的注明）。
+Stim-Coding 机制仿真。 以起始点 z 模拟自我—陌生人偏向（neutral 0.50 / small 0.55 / medium 0.60 / large 0.65），分别用 Euler–Maruyama 数值积分与 HDDM 生成器（Wiecki et al., 2013）两套引擎，每条件 30 被试 × 150 试次（共 18,000×2 试次）生成仿真数据并计算 CRF；另按真实 RT 分布校准仿真参数。
+逆向推断可行性。 采用"最小化仿真 CRF 与实测 CRF 差异"的思路考察由实测 CRF 反推 DDM 参数 (v, a, t, z) 的可行性，并分析参数补偿（v–z、a–v）对可辨识性的影响。
+8.3 结果
+
+图8-1 内部数据滑动窗口分析：匹配键 SPE 正确率差随 RT 窗口变化
+结果说明：内部 88 人数据：自我—陌生人正确率差在约 234–780 ms 窗口内显著为正，峰值约 0.19（≈440 ms）——系内部数据证据，非跨研究结论。
+
+图8-3 起始点偏向（Stim-Coding）仿真的 CRF 曲线（双引擎）
+结果说明：起始点偏向越大，自我侧早期正确率优势越明显；两套引擎（Euler–Maruyama/HDDM）形态一致，支持“偏向机制→行为模式”的生成链解释（定性对照）。
+数据库层面。 SPE 的方向（自我更快/更准）在绝大多数数据集中得到重复，但其量级跨研究差异较大；刺激呈现时间与试次数与 SPE 的关系需结合任务结构的异质性谨慎解读（呈现时间调制方向在不同任务口径下存在不一致，见 8.4 讨论）。⚠️【待补】数据库子集精确样本量表与分析图（自举分布、设计变量散点）。
+CRF 与窗口分析。 内部数据的滑动窗口分析显示，自我—陌生人的匹配键正确率差在约 234–780 ms 的反应时间窗口内显著为正，峰值出现在约 434–459 ms（Δ≈0.18–0.21）。⚠️【写作提示】该发现基于内部 88 人数据（V4/SPE_reaction_window_analysis_20250608.md），文中不得表述为"大规模跨研究发现"。
+Stim-Coding 仿真。 两套引擎在四种 z 水平下均生成系统性的 CRF 模式变化：起始点偏向越大，自我侧的早期正确率优势越明显；该形态与真实数据中"长时限条件下 SPE 稳定出现"的格局定性一致，支持"自我—他人差异可由起始点/证据起始偏向机制产生"的解释。⚠️【待补】仿真 CRF 与真实 CRF 的叠加对比图。
+逆向推断。 初步可行性分析表明：4 参数对 CRF 形态具有部分可分离的影响（v→高度、a→陡峭度、z→偏移、t→平移），但 v 与 z、a 与 v 之间存在补偿效应，参数可辨识性有限（统计层面受限、定性层面有信息）。本章据此将逆向推断定位为"机制层面的可行性分析"，数值化参数恢复留待后续工作。
+8.4 讨论
+(1) SPE 的跨研究存在性得到数据库层面的支持，但效应量受设计参数与任务结构共同调制——这恰与本研究一/研究三的核心论断一致：SPE 不是固定不变的常数，而是设计空间的函数；(2) 呈现时间等变量与 SPE 的关系在不同口径下方向存在差异（内部数据 vs 数据库元回归），提示"任务结构异质性"必须被显式建模，也凸显了把实验设计形式化（本研究框架）的必要性；(3) CRF/Stim-Coding 为"偏向机制→行为模式"提供了生成式证据，但逆向推断的补偿效应要求以模型比较与先验约束（而非单纯反推）作为最终解释手段。
+第9章 总讨论
+9.1 核心发现回顾
+本研究以自我匹配任务为测试平台，回答了四个递进的问题：
+(1) 设计空间系统调控 SPE，且作用是非线性的。行为层面 SPE_RT 在 8 个设计单元间差异显著（F(7,80)=2.79, p=.012）而 SPE_ACC 不显著；DDM 参数层面（主口径 6 条件）SPE_v 差异显著（F(5,59)=2.95, p=.019），但效应主要来自长时限、低遗漏的设计单元，且 P/T/W 的线性模型几乎无解释力（R²=.05）。这表明"设计参数如何影响 SPE"不是一个线性可加的问题，需要把实验设计作为一阶变量进行非线性建模。
+(2) 遗漏试次的处理方式是一阶的方法学问题。Censor 与 Drop 在遗漏率超过约 35% 的条件（G1–G4）下给出显著不同的参数估计（Δ 最大达 6.81），仅在相对方向（SPE_v）上保持稳定；在遗漏率低于约 15% 时 Censor 足够可靠。这为数据质量准则提供了基于真实数据的量化依据，也印证了 Leng et al.（2026）基于仿真的核心结论。
+(3) Sigmoid+GP 混合模型具备"理论可校准、行为可重建"的性质。校准后边界参数方向与时间压力假设一致（β₁=+0.33），自我漂移率增益约 +86%；行为层重建精度高（正确 RT r=.97、ACC r=.90、SPE_RT r=.85），但参数层留一交叉验证表明 6 个设计点不足以支撑 GP 外推——这一"参数层受限、行为层稳健"的模式恰说明理论先验（Sigmoid）承担了关键的约束作用，同时也明确了扩大设计空间采样的必要性。
+(4) 结论具有多源证据的一致性。SPE 数据库跨研究分布、CRF/Stim-Coding 机制仿真与内部数据在"SPE 的方向性、条件依赖性"上总体一致，进一步支持把 SPE 视为"设计空间中的函数"的研究视角。
+9.2 理论贡献与方法论贡献
+理论层面：本研究将"自我优势是自动的、固定的加工优势"这一常见直觉，修正为"自我优势的表现形式与强度是实验设计参数的函数"，并给出了其在设计空间中的量化边界；通过经验校准，把"练习提升漂移率""时间压力降低决策边界"等经典假设落到 SMT 范式的具体参数取值上。
+方法层面：提出并验证了"Sigmoid 理论先验 + GP 残差学习"的混合生成框架——一种"理论引导、数据校准"的建模策略；为 DDM 应用中 omission 处理方案的选择提供了基于真实数据的量化证据与质量准则；建立了从 HDDM 拟合、Omission 敏感性、模型校准与交叉验证到行为重建与候选点推荐的完整、可复现工具链；并整合了 88 人内部实验、跨研究数据库与机制仿真构成的多源证据链。
+9.3 局限与未来方向
+(1) 设计点稀疏：主口径仅 6 个设计条件，P 只有 0/8/120 三个水平，制约了 GP 外推与理论参数的辨识（多个校准参数接近搜索边界，需以先验与敏感性分析约束解释）。未来应在高不确定区域（如 T≈500 ms、W≈300–350 ms，含中间 P 水平）补充设计点，并以独立前瞻实验验证模型预测（黄金标准）。⚠️【可选项】如需在答辩前纳入本人采集的新数据，此为最优切入点。
+(2) 模型形式：当前采用恒定边界 DDM，未纳入塌缩边界（ANGLE/WEIBULL）与跨试次变异；这些扩展在含 deadline 的任务中可能进一步改善拟合（Leng et al., 2026）。遗漏试次的严格截尾似然建模（HSSM+OPN 路线）可替代当前"截止处错误反应"的近似处理。
+(3) 数据归属：88 人数据为课题组前期采集，作者的独立贡献集中于全部建模、分析与验证（见第 4 章声明）；未来工作的数据采集可作为独立贡献补充。
+(4) 外部验证的深度：SPE 数据库分析目前依赖课题组自建库的可用子集，不同任务口径间的可比性有限；更严格的外部验证应在统一的任务结构与参数报告标准下开展。
+(5) NonMatching 试次：本文仅建模匹配试次，不匹配试次的决策机制可提供额外约束，留待后续研究。
+第10章 结论
+本研究以自我匹配任务中的自我优势效应为载体，将练习次数（P）、刺激呈现时间（T）与反应窗口（W）形式化为三维实验设计空间，并以漂移扩散模型参数为中介，系统回答了"实验设计参数如何通过潜在决策过程调控心理现象"这一核心问题。主要结论如下：
+第一，设计空间对 SPE 存在系统且非线性的调控：行为与 DDM 参数层面的 SPE 差异主要来自长时限、低遗漏的设计单元，P/T/W 的线性模型无法解释该变异，须借助非线性、生成式的建模。
+第二，遗漏试次的处理方法会实质影响 DDM 参数估计：在高遗漏条件下（>约 35%）丢弃遗漏会带来不可接受的参数偏倚，而在低遗漏条件下（<约 15%）Censor 方案足够可靠。据此确立的数据质量准则，保障了全文主口径分析的有效性。
+第三，Sigmoid+GP 混合生成模型实现了"理论可校准、行为可重建、不确定性可量化"：校准结果与理论假设方向一致，行为层重建精度高，模型还可在设计空间中标识信息量最大的实验区域；其参数层外推受限于设计点数量，这本身为更大规模的设计空间探索提供了必要性依据。
+第四，多源证据（内部实验、跨研究数据库、机制仿真）在 SPE 的条件依赖性上总体一致，支持将 SPE 视为"设计空间函数"的研究视角，也为实验设计的形式化与计算建模的结合提供了一个可扩展的范例。
+本研究构建的"实验设计—心理过程—行为表现"映射框架及其配套工具链，可为自我优势效应乃至更广泛的认知现象研究提供可复现、可预测的实验设计方法学基础。
+参考文献
+中文文献（按拼音排序）
+胡传鹏, 王非, 宋梦迪, 隋洁, 彭凯平. (2016). 心理学研究中的可重复性问题：从危机到契机. 心理科学进展, 24(9), 1504-1518.
+刘逸康, 胡传鹏. (2023). 证据积累模型的行为与认知神经证据. 科学通报, 69(8), 1068-1081.
+温佳慧. (2025). 实验设计的维度与空间：以自我匹配任务为例 [硕士学位论文]. 南京师范大学心理学院.
+英文文献（按字母排序）
+Brainard, D. H. (1997). The psychophysics toolbox. Spatial Vision, 10(4), 433–436.
+Cai, Z., Wang, Q., Liu, Z., Sui, J., & Hu, C.-P. (in prep). The self-prioritization effect database with standardized meta-data.
+Dutilh, G., Krypotos, A.-M., & Wagenmakers, E.-J. (2011). Task-related versus stimulus-specific practice: A diffusion model account. Experimental Psychology, 58(6), 434–442.
+Fengler, A., Govindarajan, L. N., Chen, T., & Frank, M. J. (2021). Likelihood approximation networks for fast inference of sampling models in cognitive neuroscience. [出处卷期页码待核]
+Leng, X., Fengler, A., Shenhav, A., & Frank, M. J. (2026). The perils of omitting omissions when modeling evidence accumulation. PLoS Computational Biology, 22(8), e1014667.
+Luce, R. D. (1986). Response times: Their role in inferring elementary mental organization. Oxford University Press.
+Matzke, D., & Wagenmakers, E.-J. (2009). Psychological interpretation of the ex-Gaussian and shifted Wald parameters: A diffusion model analysis. Psychonomic Bulletin & Review, 16(5), 798–817.
+Myung, J. I., Cavagnaro, D. R., & Pitt, M. A. (2013). A tutorial on adaptive design optimization. Journal of Mathematical Psychology, 57(3), 53–67.
+Ratcliff, R. (1978). A theory of memory retrieval. Psychological Review, 85(2), 59–108.
+Ratcliff, R., & McKoon, G. (2008). The diffusion decision model: Theory and data for two-choice decision tasks. Neural Computation, 20(4), 873–922.
+Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., & Iverson, G. (2009). Bayesian t tests for accepting and rejecting the null hypothesis. Psychonomic Bulletin & Review, 16(2), 225–237.
+Rouder, J. N., Morey, R. D., Speckman, P. L., & Province, J. M. (2012). Default Bayes factors for ANOVA designs. Journal of Mathematical Psychology, 56(5), 356–374.
+Schulz, E., Speekenbrink, M., & Krause, A. (2018). A tutorial on Gaussian process regression: Modelling, exploring, and exploiting functions. Journal of Mathematical Psychology, 85, 1–16.
+Sui, J., & Humphreys, G. W. (2015). The integrative self: How self-reference integrates perception and memory. Trends in Cognitive Sciences, 19(12), 719–728.
+Sui, J., He, X., & Humphreys, G. W. (2012). Perceptual effects of social salience: Evidence from self-prioritization effects on perceptual matching. Journal of Experimental Psychology: Human Perception and Performance, 38(5), 1105–1117.
+Tran, N. H., van Maanen, L., Heathcote, A., & Matzke, D. (2021). Systematic parameter reviews in cognitive modeling: Towards a robust and cumulative characterization of psychological processes in the diffusion decision model. Frontiers in Psychology, 11, 608287.
+Voss, A., Rothermund, K., & Voss, J. (2004). Interpreting the parameters of the diffusion model: An empirical validation. Memory & Cognition, 32(7), 1206–1220.
+Wiecki, T. V., Sofer, I., & Frank, M. J. (2013). HDDM: Hierarchical Bayesian estimation of the drift-diffusion model in Python. Frontiers in Neuroinformatics, 7, 14.
+附录A　冻结设计表与关键数字锁定表
+（依据《冻结规格书_v1_20260902.md》：8 组条件的权威设计参数、质量分档、以及论文所有统计量（S01–S12）的来源文件与运行日期登记表。本附录在定稿时以正式表格形式给出。）
+附录B　脚本与可复现性说明
+本文全部统计与建模结果均由以下冻结脚本产出（seed 固定、路径自动推导，见 1_Code/）：
+• BF/ANOVA 冻结版：1_Code/Python_for_Check/Basic_Hypothesis/BF_freeze_20260902.py
+• 行为 ANOVA 冻结版：1_Code/Python_for_Check/ANOVA/run_spe_anova_freeze_20260902.py
+• GP+Sigmoid 6 条件冻结版：1_Code/Python_HDDM/GP+Sigmoid/run_frozen6_20260902.py（产物 2_Data/Generate_Data/GP_Sigmoid_Frozen6/）
+• Omission 敏感性：1_Code/Python_for_Check/Omission/Omission_Sensitivity_Analysis.ipynb
+数据与图分别存放于 2_Data/ 与 3_Figures/；论文数据与代码在正式发表前将上传至 OSF/GitHub。
+致谢
+（致谢内容待补：感谢导师胡传鹏教授的指导；感谢课题组温佳慧等同学在数据采集与前期工作中的贡献；感谢参与实验的所有被试；感谢学院与评审专家。）
+致谢正文将在提交前补写完整。

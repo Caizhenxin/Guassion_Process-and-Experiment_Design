@@ -1,0 +1,46 @@
+{
+  "reps": 40,
+  "noise": "fitted",
+  "fixed_noise": 0.6,
+  "de_budget": {
+    "maxiter": 80,
+    "popsize": 8
+  },
+  "recovery_budget": {
+    "maxiter": 15,
+    "popsize": 5
+  },
+  "gp_restarts": 2,
+  "confusion_counts": {
+    "M1_Mean": {
+      "M1_Mean": 23,
+      "M2_Linear": 13,
+      "M3_Sigmoid": 7,
+      "M4_SigmoidGP": 0
+    },
+    "M2_Linear": {
+      "M1_Mean": 0,
+      "M2_Linear": 0,
+      "M3_Sigmoid": 0,
+      "M4_SigmoidGP": 0
+    },
+    "M3_Sigmoid": {
+      "M1_Mean": 14,
+      "M2_Linear": 24,
+      "M3_Sigmoid": 27,
+      "M4_SigmoidGP": 40
+    },
+    "M4_SigmoidGP": {
+      "M1_Mean": 3,
+      "M2_Linear": 3,
+      "M3_Sigmoid": 6,
+      "M4_SigmoidGP": 0
+    }
+  },
+  "diagonal_recovery_rate": {
+    "M1_Mean": 0.575,
+    "M2_Linear": 0.0,
+    "M3_Sigmoid": 0.675,
+    "M4_SigmoidGP": 0.0
+  }
+}

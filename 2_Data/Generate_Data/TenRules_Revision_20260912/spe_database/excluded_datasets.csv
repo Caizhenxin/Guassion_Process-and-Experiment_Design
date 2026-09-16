@@ -1,0 +1,20 @@
+file,reason
+Bukowski_2021_AP_Exp1_SP.csv,清洗后无有效试次
+Bukowski_2021_AP_Exp2_SP.csv,清洗后无有效试次
+Constable_2020_AP_Exp1_SP.csv,缺少标准化身份列
+Lee_2023_Cognition_Exp1_SP.csv,有效被试不足（0 < 10）
+Lee_2023_Cognition_Exp2_SP.csv,有效被试不足（0 < 10）
+Mcivor_2020_EJN_Exp1_SP.csv,有效被试不足（0 < 10）
+Navon_2021_Exp2_SP.csv,有效被试不足（0 < 10）
+Qian_2019_QJEP_Exp2_SP.csv,有效被试不足（0 < 10）
+Schaefer_2019_CP_Exp1_SP.csv,有效被试不足（0 < 10）
+Schaefer_2019_CP_Exp2_SP.csv,缺少标准化身份列
+Schaefer_2019_CP_Exp3_SP.csv,有效被试不足（0 < 10）
+Smith_2024_Cortex_Exp1_SP.csv,有效被试不足（0 < 10）
+Svensson_2021_PR_Exp1_SP.csv,清洗后无有效试次
+Svensson_2021_PR_Exp2_SP.csv,有效被试不足（0 < 10）
+Svensson_2021_PR_Exp3_SP.csv,有效被试不足（0 < 10）
+Svensson_2023_QJEP_Exp1_SP.csv,有效被试不足（0 < 10）
+Wozniak_2022_PR_Exp1_SP.csv,有效被试不足（0 < 10）
+Wozniak_2022_PR_Exp2_SP.csv,有效被试不足（0 < 10）
+Wozniak_2022_PR_Exp3_SP.csv,有效被试不足（0 < 10）
