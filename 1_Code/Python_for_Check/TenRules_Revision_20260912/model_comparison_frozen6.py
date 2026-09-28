@@ -69,9 +69,11 @@ def sigmoid_a(M, cp):
     return np.where(M > 600, a_0 * (1 + cp["beta1"]), a_0 * (1 + cp["beta2"]))
 
 
-def load_table(path: Path = FROZEN6_TABLE) -> pd.DataFrame:
+def load_table(path: Path = FROZEN6_TABLE, groups: list[int] | None = None) -> pd.DataFrame:
     df = pd.read_csv(path).sort_values("source_group_ids").reset_index(drop=True)
     df["group_id"] = df["source_group_ids"].astype(int)
+    if groups:
+        df = df[df["group_id"].isin(groups)].reset_index(drop=True)
     return df
 
 
@@ -269,10 +271,29 @@ def main():
     ap.add_argument("--rec-maxiter", type=int, default=15)
     ap.add_argument("--rec-popsize", type=int, default=5)
     ap.add_argument("--skip-recovery", action="store_true")
+    ap.add_argument("--table", default=None,
+                    help="条件冻结表路径（默认 GP_Sigmoid_Frozen6/input_conditions_g3g8.csv；"
+                         "传入重跑表可复算表7-2/表7-3）")
+    ap.add_argument("--out-dir", default=None, help="数据产物目录（默认 model_comparison）")
+    ap.add_argument("--fig-dir", default=None, help="图产物目录（默认 TenRules 图目录）")
+    ap.add_argument("--groups", default=None,
+                    help="限定组号，逗号分隔（如 3,4,5,6,7,8）；默认使用表中全部行。"
+                         "注意重跑表含 G1–G8，主口径必须传 3,4,5,6,7,8")
     args = ap.parse_args()
 
+    global MC_DIR, OUT_FIG_DIR
+    if args.table:
+        global FROZEN6_TABLE
+        FROZEN6_TABLE = Path(args.table)
+    if args.out_dir:
+        MC_DIR = Path(args.out_dir)
+    if args.fig_dir:
+        OUT_FIG_DIR = Path(args.fig_dir)
+
     MC_DIR.mkdir(parents=True, exist_ok=True)
-    df = load_table()
+    groups = [int(g) for g in args.groups.split(",")] if args.groups else None
+    df = load_table(FROZEN6_TABLE, groups=groups)
+    print(f"[model] 条件表 {FROZEN6_TABLE}", flush=True)
     print(f"[model] 条件数 {len(df)}：G{list(df.group_id)}", flush=True)
     print(f"[model] DE 预算 maxiter={args.maxiter}, popsize={args.popsize}, GP restarts={args.gp_restarts}", flush=True)
 

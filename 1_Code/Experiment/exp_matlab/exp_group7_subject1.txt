@@ -1,0 +1,12 @@
+groupID	subjectID	gender	age	handedness	stage	trialID	P	T	W	Shape	Label	CorrectKey	Response	RT	Correct
+7	1	2	24	2	practice	1	8	0.1	1.1	circle	self	f	f	0.434	1
+7	1	2	24	2	practice	2	8	0.1	1.1	square	self	j	j	0.561	1
+7	1	2	24	2	practice	3	8	0.1	1.1	circle	stranger	j	f	0.704	0
+7	1	2	24	2	practice	4	8	0.1	1.1	square	stranger	f	f	0.402	1
+7	1	2	24	2	practice	5	8	0.1	1.1	square	self	j	f	0.160	0
+7	1	2	24	2	practice	6	8	0.1	1.1	square	stranger	f	j	0.283	0
+7	1	2	24	2	practice	7	8	0.1	1.1	circle	self	f	j	0.385	0
+7	1	2	24	2	practice	8	8	0.1	1.1	circle	stranger	j	f	0.374	0
+7	1	2	24	2	formal	9	8	0.1	1.1	circle	stranger	j	j	0.455	1
+7	1	2	24	2	formal	10	8	0.1	1.1	circle	self	f	j	0.436	0
+7	1	2	24	2	formal	11	8	0.1	1.1	square	self	j	f	0.312	0

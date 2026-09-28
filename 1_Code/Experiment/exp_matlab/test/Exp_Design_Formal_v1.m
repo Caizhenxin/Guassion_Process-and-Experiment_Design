@@ -3,25 +3,12 @@
 % -----------------------------------------------------------------------------
 % 用途  ：9 个条件 × 每组 ≥20 名被试的正式采集（组间设计，每名被试只跑一个条件）
 %         组1-6、组8-9 = 8 个【有掩蔽】条件；组7 = 【无掩蔽】条件（组5参数去掉掩蔽）
-% 沿革（相对 experiment_formal_newcon.m 的改动，保留）：
-%   (1) conditions 表增加第 4 列 M（掩蔽开关）：M=1 呈现 200ms 掩蔽图；M=0 掩蔽段翻空白屏 200ms
-%   (2) 组7 由旧版"程序崩溃后接着做"应急行改为【无掩蔽组7】= P8/T100ms/W1100ms/M0
+% 相对旧版 experiment_formal_newcon.m 的改动：
+%   (1) conditions 表增加第 4 列 M（掩蔽开关）：M=1 呈现 200ms 掩蔽图（与原程序行为一致）
+%       M=0 掩蔽段翻空白屏 200ms（总时间轴/反应窗口/RT 口径不变，仅去掉掩蔽刺激）
+%   (2) 组7 由旧版"程序崩溃后接着做"应急行（P0/T100/W1100/掩蔽）改为【无掩蔽组7】
+%       = P8/T100ms/W1100ms/M0（与组5唯一差别是掩蔽，deadline 同为 T+W=1.2s）
 %   (3) 程序开头增加主试确认回显，防止填错组别/编号
-%
-% ★★ v3 本次两处修正（其余逻辑、条件表数值、试次数、平衡规则一律未改）★★
-%   (A) 按键采集范围：自【刺激 onset】起全程轮询键盘。
-%       旧版只在"掩蔽结束后的空白屏"里用 KbCheck 轮询，刺激呈现期(T)与掩蔽期(200ms)的按键
-%       根本不会被读取 → 被试在刺激还在时按键会整题丢失（表现为漏答或 RT 偏大）。
-%       本版在 刺激期 / 掩蔽期 / 反应窗口 三段都轮询，取最早的 f/j 按键作为反应。
-%   (B) W 的定义：W = 【从刺激 onset 起算】到最晚可反应时刻的时长，deadline = stimulusFlipTime + W
-%       （旧版误为 onset + T + W，相当于"从刺激结束起算"）。RT 口径不变 = 按键时刻 − 刺激 onset。
-%       单个试次时间轴：注视500 → 刺激 T(采集按键) → 掩蔽/空白 200(采集按键)
-%                       → 空白至 onset+W(采集按键) → 反馈 500
-%       约束：W 必须 > T + 200ms（已加启动自检），掩蔽之后真正可按键时长 = W − T − 200ms
-%   (C) 附带修正：漏答时 Correct 记为 NaN。旧版用 isempty(response) 判断，而 response 初值为
-%       NaN 时 isempty 恒为 false，于是漏答落到 strcmp 分支被误记成 0=错误；现改用 isnan(response)。
-%       （Response 列仍沿用旧版 char(NaN) 写法，缺失值在 CSV 中表现为空/NA，与旧数据一致）
-%
 % 组别-条件速查（P=练习试次数 | T=刺激呈现时间 | W=反应窗口 | M=1掩蔽/M=0无掩蔽）
 %   组1 P0  T30ms   W300ms  M1   组4 P120 T80ms   W600ms  M1   组7 P8  T100ms  W1100ms M0
 %   组2 P0  T30ms   W600ms  M1   组5 P8  T100ms  W1100ms M1   组8 P120 T30ms  W800ms  M1
@@ -31,11 +18,6 @@
 % 数据输出：程序当前文件夹下 EXP_data_group{组别}_{编号}.csv 和 exp_group{组别}_subject{编号}.txt
 % -----------------------------------------------------------------------------
 Screen('Preference', 'SkipSyncTests', 0);
-% ⚠ 切勿在此调用 KbName('UnifyKeyNames')！
-%   本机 PTB 3.0.19 实测：开启"统一键名"后，小写 'esc' 立刻变成无效键名（只认 'ESCAPE'/'escape'），
-%   而本程序通篇是按"未开启"的命名方案书写的（'esc' / 'return' / 'space'），于是会在第一个试次的
-%   checkEscape 处直接报错 "Key name "esc" not recognized" 并整场退出（v2 与 v0.7 都栽在这里）。
-%   反向查询 KbName(70)/KbName(74) 在两种方案下均返回 'f'/'j'，f/j 判定不受影响，故无需开启。
 InitializeMatlabOpenGL;
 
 %% 被试基础信息
@@ -193,16 +175,6 @@ W = currentCondition(3);
 
 % 掩蔽开关 M：1=有掩蔽，0=无掩蔽
 M = currentCondition(4);
-
-% 掩蔽/空白段固定时长（秒）—— 原为试次循环内的局部常量，提到此处以便自检 W
-maskDuration = 0.2;
-
-% ★ W 语义自检：新口径下 deadline = 刺激 onset + W，而掩蔽段结束于 onset + T + maskDuration，
-%   必须保证掩蔽段不被反应窗口截断（当前 9 组均满足，仅防后续改条件表时出错）
-if W <= T + maskDuration
-    error('条件设置错误：组%d 的 W=%.3f s 必须大于 T+掩蔽时长=%.3f s，否则掩蔽段会超出反应窗口。', ...
-        groupID, W, T + maskDuration);
-end
 
 %% 联结阶段
 % 指导语字体大小
@@ -449,30 +421,16 @@ for k = 1:loopCount  % 循环次数为 P/4
         % 刷新屏幕并记录刺激呈现时间
         stimulusFlipTime = Screen('Flip', window); % 显示注视点、形状和标签，并记录刺激呈现时间
         
-        % ★ 反应窗口自【刺激 onset】起算：截止 = stimulusFlipTime + W
-        %   response/responseTime 在此初始化，随后 刺激期/掩蔽期/空白 三段全程轮询键盘
-        response = NaN;       % 尚未反应时保持 NaN（漏答 → Response 缺失、Correct 记为 NaN）
-        responseTime = NaN;   % 反应时 = 按键时刻 − 刺激 onset（秒）
-
-        % 2a. 刺激呈现 T：全程轮询键盘（刺激期按键从此会被记录，不再丢失）
+        % 等待刺激呈现时间 T
         while GetSecs() - stimulusFlipTime < T
-            [keyIsDown, ~, keyCode] = KbCheck;
-            if keyIsDown
-                pressedKeys = find(keyCode);
-                if ~isempty(pressedKeys)
-                    pressedKey = KbName(pressedKeys(1));
-                    if isnan(responseTime) && ismember(pressedKey, {'f', 'j'})
-                        response = pressedKey;                        % 记录按键
-                        responseTime = GetSecs() - stimulusFlipTime;  % 反应时（自刺激 onset）
-                    end
-                end
-            end
+            % 等待持续时间
         end
 
         % 刺激呈现检查Esc键
         checkEscape(); 
 
-        % 3. 掩蔽/空白段 200 ms（M=1 显示掩蔽图；M=0 显示空白；时长 maskDuration 见文件开头）
+        % 3. 掩蔽/空白段 200 ms（M=1 显示掩蔽图；M=0 显示空白，总时间轴保持不变）
+        maskDuration = 0.2; % 掩蔽/空白段持续时间 (秒)
         if M == 1
             % 根据标签类别随机选择掩蔽图片并显示
             if strcmp(currentLabel, 'stranger')
@@ -499,33 +457,21 @@ for k = 1:loopCount  % 循环次数为 P/4
         else
             maskFlipTime = Screen('Flip', window); % 无掩蔽：翻到空白屏
         end
-        % 3b. 掩蔽期继续全程轮询键盘（掩蔽期按键同样会被记录）
         while GetSecs() - maskFlipTime < maskDuration
-            [keyIsDown, ~, keyCode] = KbCheck;
-            if keyIsDown
-                pressedKeys = find(keyCode);
-                if ~isempty(pressedKeys)
-                    pressedKey = KbName(pressedKeys(1));
-                    if isnan(responseTime) && ismember(pressedKey, {'f', 'j'})
-                        response = pressedKey;                        % 记录按键
-                        responseTime = GetSecs() - stimulusFlipTime;   % 反应时（自刺激 onset）
-                    end
-                end
-            end
+            % 等待 200 ms
         end
         % 掩蔽刺激呈现检查Esc键
         checkEscape(); 
     
-        % 4. 反应窗口剩余部分：空白屏，直到 stimulusFlipTime + W（刺激/掩蔽期已按键则立即进入反馈）
+        % 4. 显示空白屏，等待键盘反应，持续反应窗口 W - maskDuration
         % 显示空白屏并记录flip时间
         responseFlipTime = Screen('Flip', window); 
     
-        % 说明：response/responseTime 已在刺激 onset 处初始化，此处不得重置，
-        %       否则刺激期/掩蔽期记录到的按键会被清掉（漏答时 response 保持 NaN）
+        response = NaN;      % 初始化响应为NaN
+        responseTime = NaN;  % 初始化反应时间为空
         
-        % 循环等待按键输入或超时：截止 = 刺激 onset + W
-        % （若刺激期/掩蔽期已按键，isnan(responseTime) 为假，条件立即为假，直接进入反馈）
-        while GetSecs() < stimulusFlipTime + W && isnan(responseTime)
+        % 循环等待按键输入或超时
+        while GetSecs() - responseFlipTime < W - maskDuration
             % 在空白屏显示期间等待按键
             [keyIsDown, ~, keyCode] = KbCheck;
             
@@ -552,7 +498,7 @@ for k = 1:loopCount  % 循环次数为 P/4
         % 空白屏呈现检查Esc键
         checkEscape(); 
 
-        % 若无按键响应：response 保持 NaN、responseTime 保持 NaN，下方 Correct 记为 NaN
+        % 如果没有按键响应，则保持response为NaN（此时response默认是NaN，无需额外赋值）
 
         % 列:1.被试编号, 2.性别, 3.年龄, 4.利手, 5.实验阶段, 6.试次数, 7.试次形状, 8.试次标签, 9.正确的键, 10.被试按键, 11.反应时, 12.是否正确
         % 存储试次数据
@@ -573,7 +519,7 @@ for k = 1:loopCount  % 循环次数为 P/4
         data{trialIndex, 15} = responseTime; % 存储反应时（单位：秒）
     
         % 判断是否正确
-        if isnan(response)  % 如果没有响应（response 保持初值 NaN）
+        if isempty(response)  % 如果没有响应
             data{trialIndex, 16} = NaN; % 无反应
         elseif strcmp(response, correctKey)  % 如果响应正确
             data{trialIndex, 16} = 1; % 正确
@@ -742,30 +688,16 @@ for b = 1:block
             % 刷新屏幕并记录刺激呈现时间
             stimulusFlipTime = Screen('Flip', window); % 显示注视点、形状和标签，并记录刺激呈现时间
             
-            % ★ 反应窗口自【刺激 onset】起算：截止 = stimulusFlipTime + W
-            %   response/responseTime 在此初始化，随后 刺激期/掩蔽期/空白 三段全程轮询键盘
-            response = NaN;       % 尚未反应时保持 NaN（漏答 → Response 缺失、Correct 记为 NaN）
-            responseTime = NaN;   % 反应时 = 按键时刻 − 刺激 onset（秒）
-
-            % 2a. 刺激呈现 T：全程轮询键盘（刺激期按键从此会被记录，不再丢失）
+            % 等待刺激呈现时间 T
             while GetSecs() - stimulusFlipTime < T
-                [keyIsDown, ~, keyCode] = KbCheck;
-                if keyIsDown
-                    pressedKeys = find(keyCode);
-                    if ~isempty(pressedKeys)
-                        pressedKey = KbName(pressedKeys(1));
-                        if isnan(responseTime) && ismember(pressedKey, {'f', 'j'})
-                            response = pressedKey;                        % 记录按键
-                            responseTime = GetSecs() - stimulusFlipTime;   % 反应时（自刺激 onset）
-                        end
-                    end
-                end
+                % 等待持续时间
             end
 
             % 刺激呈现检查Esc键
             checkEscape(); 
 
-            % 3. 掩蔽/空白段 200 ms（M=1 显示掩蔽图；M=0 显示空白；时长 maskDuration 见文件开头）
+            % 3. 掩蔽/空白段 200 ms（M=1 显示掩蔽图；M=0 显示空白，总时间轴保持不变）
+            maskDuration = 0.2; % 掩蔽/空白段持续时间 (秒)
             if M == 1
                 % 根据标签类别随机选择掩蔽图片并显示
                 if strcmp(currentLabel, 'stranger')
@@ -792,33 +724,21 @@ for b = 1:block
             else
                 maskFlipTime = Screen('Flip', window); % 无掩蔽：翻到空白屏
             end
-            % 3b. 掩蔽期继续全程轮询键盘（掩蔽期按键同样会被记录）
             while GetSecs() - maskFlipTime < maskDuration
-                [keyIsDown, ~, keyCode] = KbCheck;
-                if keyIsDown
-                    pressedKeys = find(keyCode);
-                    if ~isempty(pressedKeys)
-                        pressedKey = KbName(pressedKeys(1));
-                        if isnan(responseTime) && ismember(pressedKey, {'f', 'j'})
-                            response = pressedKey;                        % 记录按键
-                            responseTime = GetSecs() - stimulusFlipTime;   % 反应时（自刺激 onset）
-                        end
-                    end
-                end
+                % 等待 200 ms
             end
             % 掩蔽刺激呈现检查Esc键
             checkEscape(); 
         
-            % 4. 反应窗口剩余部分：空白屏，直到 stimulusFlipTime + W（刺激/掩蔽期已按键则立即进入反馈）
+            % 4. 显示空白屏，等待键盘反应，持续反应窗口 W - maskDuration
             % 显示空白屏并记录flip时间
             responseFlipTime = Screen('Flip', window); 
         
-            % 说明：response/responseTime 已在刺激 onset 处初始化，此处不得重置，
-            %       否则刺激期/掩蔽期记录到的按键会被清掉（漏答时 response 保持 NaN）
+            response = NaN;      % 初始化响应为NaN
+            responseTime = NaN;  % 初始化反应时间为空
             
-            % 循环等待按键输入或超时：截止 = 刺激 onset + W
-            % （若刺激期/掩蔽期已按键，isnan(responseTime) 为假，条件立即为假，直接进入反馈）
-            while GetSecs() < stimulusFlipTime + W && isnan(responseTime)
+            % 循环等待按键输入或超时
+            while GetSecs() - responseFlipTime < W - maskDuration
                 % 在空白屏显示期间等待按键
                 [keyIsDown, ~, keyCode] = KbCheck;
                 
@@ -845,7 +765,7 @@ for b = 1:block
             % 空白屏呈现检查Esc键
             checkEscape(); 
     
-            % 若无按键响应：response 保持 NaN、responseTime 保持 NaN，下方 Correct 记为 NaN
+            % 如果没有按键响应，则保持response为NaN（此时response默认是NaN，无需额外赋值）
     
             % 列:1.被试组别, 2.编号, 2.性别, 3.年龄, 4.利手, 5.实验阶段, 6.试次数, 7.试次形状, 8.试次标签, 9.正确的键, 10.被试按键, 11.反应时, 12.是否正确
             % 存储试次数据
@@ -866,7 +786,7 @@ for b = 1:block
             data{trialIndex, 15} = responseTime; % 存储反应时（单位：秒）
         
             % 判断是否正确
-            if isnan(response)  % 如果没有响应（response 保持初值 NaN）
+            if isempty(response)  % 如果没有响应
                 data{trialIndex, 16} = NaN; % 无反应
             elseif strcmp(response, correctKey)  % 如果响应正确
                 data{trialIndex, 16} = 1; % 正确
@@ -1032,21 +952,10 @@ pixs = round(2*tan((degree/2)*pi/180) * vdist / pix);
 end
 
 function checkEscape()
-    % Esc 键码只解析一次；对"统一键名"开关的两种命名方案都兼容，避免整场实验因此崩溃
-    % （本机实测：未开启 UnifyKeyNames 时只认 'esc'；开启后只认 'ESCAPE'/'escape'）
-    persistent escKey
-    if isempty(escKey)
-        try
-            escKey = KbName('esc');        % 默认命名方案
-        catch
-            escKey = KbName('ESCAPE');     % UnifyKeyNames 生效时的命名方案
-        end
-    end
     [keyIsDown, ~, keyCode] = KbCheck;
-    if keyIsDown && keyCode(escKey)  % 如果按下Esc键
+    if keyIsDown && keyCode(KbName('esc'))  % 如果按下Esc键
         disp('实验结束！');
         sca;  % 关闭屏幕
-        error('实验已中止（按下了 Esc 键）。');  % 终止脚本，避免 sca 后继续执行导致后续 Screen 调用接连崩溃
     end
 end
 

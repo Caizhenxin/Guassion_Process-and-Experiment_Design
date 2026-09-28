@@ -5,3 +5,7 @@
 /2_Data/Real_Data/SPE_Database
 /1_Code/Python_for_Check/ddm_stim_coding
 __pycache__/
+
+# Manim 动画环境与渲染中间产物
+/.venv-manim/
+/1_Code/Animation_Manim/media/
