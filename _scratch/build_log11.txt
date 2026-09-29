@@ -1,5 +1,0 @@
-
-  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 22
-    from __future__ import annotations
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-SyntaxError: from __future__ imports must occur at the beginning of the file

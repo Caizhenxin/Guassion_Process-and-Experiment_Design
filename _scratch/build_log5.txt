@@ -1,5 +1,0 @@
-
-  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\5_Reference\�հ����ĸ�ʽ��Ҫ��\_build_docx_v3.py", line 275
-    "Ψ�� SPE_v �ﵽ 100%����Ϊ"���Բ���ˮƽ���ɽ��͡����ЧӦ�ɽ���"�Ľ����ṩ��ֱ��֤�ݡ�"),
-                                   ^
-SyntaxError: invalid character '��' (U+3001)
