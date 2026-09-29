@@ -9,3 +9,7 @@ __pycache__/
 # Manim 动画环境与渲染中间产物
 /.venv-manim/
 /1_Code/Animation_Manim/media/
+/.ipynb_checkpoints
+/.trae
+/_scratch
+/4_Reports/Reference
