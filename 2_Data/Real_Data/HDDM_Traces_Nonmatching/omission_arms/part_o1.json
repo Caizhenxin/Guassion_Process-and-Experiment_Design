@@ -1,0 +1,38 @@
+[
+  {
+    "arm": "omission",
+    "group_id": 1,
+    "model": "M3",
+    "stem": "omission_M3_1",
+    "draws": 4000,
+    "burn": 1000,
+    "chains": 1,
+    "n_trials": 1625,
+    "n_omission": 4095,
+    "deadline": 0.3299999999999999,
+    "rhat_max": null,
+    "n_rhat_gt_1.05": 0,
+    "n_rhat_nan": 0,
+    "n_params": 100,
+    "omission_cells": 44,
+    "logp_omission_final": -1546.8582665447977
+  },
+  {
+    "arm": "omission",
+    "group_id": 2,
+    "model": "M3",
+    "stem": "omission_M3_2",
+    "draws": 4000,
+    "burn": 1000,
+    "chains": 1,
+    "n_trials": 2711,
+    "n_omission": 3009,
+    "deadline": 0.63,
+    "rhat_max": null,
+    "n_rhat_gt_1.05": 0,
+    "n_rhat_nan": 0,
+    "n_params": 100,
+    "omission_cells": 44,
+    "logp_omission_final": -1725.0382002927008
+  }
+]

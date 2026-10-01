@@ -1,5 +1,10 @@
 # 原始实验数据说明 (UnExtact/raw)
 
+> ⚠️ **2026-09-30 更新：可用被试为 87 名（不是 88 名）。**
+> `EXP_data_group2_11.csv` 已剔除，移至 `../Excluded/`。剔除原因与恢复方式见
+> [`../Excluded/README.md`](../Excluded/README.md)：该被试中途实验卡死、重新进入后
+> 按键映射记录错误，导致 `CorrectKey` 100% 落在错误的映射模式上。
+
 ## 数据来源
 
 本目录存放来自 Self-Matching Task 实验的原始试次级数据，由 MATLAB + Psychtoolbox 采集（实验程序：`1_Code/Experiment/exp_matlab/experiment_formal_newcon.m`）。

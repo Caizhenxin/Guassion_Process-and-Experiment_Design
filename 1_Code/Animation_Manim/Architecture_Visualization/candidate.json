@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SPE 实验设计空间优化 · 运行时架构",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-spe-runtime-20260930-122446/spe-runtime.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Caizhenxin/Guassion_Process-and-Experiment_Design.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "6d78a93741258704f1e2d5168520f59ef6efccd7"
+    }
+  },
+  "components": [
+    {
+      "id": "participants",
+      "type": "external",
+      "label": "被试（人类）",
+      "sublabel": "组间设计 · 每组 ≥20 人",
+      "pos": [60, 300],
+      "size": [150, 72],
+      "sources": [
+        { "path": "1_Code/Experiment/exp_matlab/主试培训手册_Exp_Design_Formal.md", "line": 5, "end_line": 5, "label": "被试与数据目标" }
+      ]
+    },
+    {
+      "id": "ptb-exp",
+      "type": "external",
+      "label": "Psychtoolbox 实验程序",
+      "sublabel": "MATLAB R2023b · PTB 3.0.19",
+      "pos": [320, 300],
+      "size": [170, 72],
+      "sources": [
+        { "path": "1_Code/Experiment/exp_matlab/Exp_Design_Formal.m", "line": 183, "end_line": 183, "label": "按组别取条件" },
+        { "path": "1_Code/Experiment/exp_matlab/Exp_Design_Formal.m", "line": 975, "end_line": 980, "label": "试次表导出 CSV" }
+      ]
+    },
+    {
+      "id": "spe-db",
+      "type": "external",
+      "label": "SPE Database",
+      "sublabel": "第三方开放试次库",
+      "pos": [680, 84],
+      "size": [150, 68],
+      "sources": [
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/spe_database_analysis.py", "line": 11, "end_line": 11, "label": "读取 63 个数据集（标准列）" },
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/spe_database_analysis.py", "line": 64, "end_line": 64, "label": "数据库目录 SPE_Database" }
+      ]
+    },
+    {
+      "id": "real-data",
+      "type": "database",
+      "label": "真实行为数据",
+      "sublabel": "Real_Data · 88 人 · 8 条件",
+      "pos": [600, 300],
+      "size": [170, 72],
+      "sources": [
+        { "path": "2_Data/Real_Data/UnExtact/README.md", "line": 5, "end_line": 5, "label": "MATLAB + PTB 采集来源" },
+        { "path": "2_Data/Real_Data/UnExtact/README.md", "line": 11, "end_line": 22, "label": "D1–D4b 条件表" }
+      ]
+    },
+    {
+      "id": "hddm-prep",
+      "type": "backend",
+      "label": "HDDM 数据准备",
+      "sublabel": "step1_prepare_data.py",
+      "pos": [870, 300],
+      "size": [160, 72],
+      "sources": [
+        { "path": "1_Code/Python_HDDM/step1_prepare_data.py", "line": 35, "end_line": 48, "label": "Matching 试次筛选" },
+        { "path": "1_Code/Python_HDDM/step1_prepare_data.py", "line": 52, "end_line": 58, "label": "遗漏口径 RT = T+W" },
+        { "path": "1_Code/Python_HDDM/step1_prepare_data.py", "line": 80, "end_line": 80, "label": "输出 HDDM_Ready" }
+      ]
+    },
+    {
+      "id": "hddm-fit",
+      "type": "backend",
+      "label": "HDDM 层次贝叶斯拟合",
+      "sublabel": "dockerHDDM · hcp4715/hddm",
+      "pos": [1170, 300],
+      "size": [170, 72],
+      "sources": [
+        { "path": "1_Code/Python_HDDM/step2_hddm_fit.py", "line": 25, "end_line": 29, "label": "Docker 容器内运行" },
+        { "path": "1_Code/Python_HDDM/step2_hddm_fit.py", "line": 51, "end_line": 51, "label": "depends_on v = identity" }
+      ]
+    },
+    {
+      "id": "ddm-params",
+      "type": "database",
+      "label": "DDM 参数估计",
+      "sublabel": "all_groups_ddm_params.csv",
+      "pos": [1445, 300],
+      "size": [165, 72],
+      "sources": [
+        { "path": "1_Code/Python_HDDM/step3_extract_params.py", "line": 119, "end_line": 120, "label": "参数汇总输出" }
+      ]
+    },
+    {
+      "id": "gp-hybrid",
+      "type": "backend",
+      "label": "GP 残差代理模型",
+      "sublabel": "Sigmoid 先验 + GP 残差 · σ",
+      "pos": [1445, 505],
+      "size": [165, 72],
+      "sources": [
+        { "path": "1_Code/Python_HDDM/GP+Sigmoid/gp_sigmoid_hybrid_model.py", "line": 85, "end_line": 128, "label": "先验 + GP 残差拟合与预测" },
+        { "path": "1_Code/Python_HDDM/GP+Sigmoid/run_frozen6_canonical4_20260902.py", "line": 7, "end_line": 7, "label": "Sigmoid→GP→LOCV→候选点" }
+      ]
+    },
+    {
+      "id": "ddm-sim",
+      "type": "backend",
+      "label": "DDM 仿真引擎",
+      "sublabel": "Euler · deadline · 遗漏",
+      "pos": [1175, 505],
+      "size": [165, 72],
+      "sources": [
+        { "path": "automation/core/ddm_engine.py", "line": 53, "end_line": 112, "label": "带 deadline 的 Euler 仿真" },
+        { "path": "automation/core/ddm_engine.py", "line": 179, "end_line": 227, "label": "DDMSimulator 批量试次" }
+      ]
+    },
+    {
+      "id": "validation",
+      "type": "backend",
+      "label": "验证链",
+      "sublabel": "恢复 · DIC · PPC · R 复核",
+      "pos": [900, 505],
+      "size": [165, 72],
+      "sources": [
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/README.md", "line": 24, "end_line": 46, "label": "模型比较 / PPC / 参数恢复" },
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/param_recovery_frozen6.py", "line": 236, "end_line": 282, "label": "仿真数据容器内重拟合" },
+        { "path": "1_Code/R_for_Check/SPE_BF_MixedModel.Rmd", "line": 119, "end_line": 137, "label": "R 混合模型 BF 复核" }
+      ]
+    },
+    {
+      "id": "candidates",
+      "type": "database",
+      "label": "候选设计点",
+      "sublabel": "step6_candidate_design_points.csv",
+      "pos": [610, 505],
+      "size": [180, 72],
+      "sources": [
+        { "path": "1_Code/Python_HDDM/GP+Sigmoid/run_frozen6_canonical4_20260902.py", "line": 83, "end_line": 92, "label": "step6 候选点生成" },
+        { "path": "2_Data/Generate_Data/GP_Sigmoid_Canonical4/step6_candidate_design_points.csv", "line": 1, "end_line": 1, "label": "候选设计点产物" },
+        { "path": "2_Data/Generate_Data/GP_Sigmoid_Canonical4/canonical4_summary.json", "line": 1, "end_line": 1, "label": "top_candidates 摘要" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "实验采集环境 · 实验机（外部输入）",
+      "wraps": ["participants", "ptb-exp"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Docker 容器（dockerHDDM · 隔离执行）",
+      "wraps": ["hddm-fit"]
+    },
+    {
+      "kind": "region",
+      "label": "本地分析环境（受控）",
+      "wraps": ["real-data", "hddm-prep", "ddm-params", "gp-hybrid", "ddm-sim", "validation", "candidates"]
+    }
+  ],
+  "connections": [
+    { "id": "participant-task", "from": "participants", "to": "ptb-exp", "label": "SPE 匹配任务", "variant": "default" },
+    { "id": "exp-export", "from": "ptb-exp", "to": "real-data", "label": "试次数据导出", "variant": "emphasis" },
+    { "id": "spedb-import", "from": "spe-db", "to": "real-data", "label": "第三方子集导入", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "data-prep", "from": "real-data", "to": "hddm-prep", "label": "筛选与编码", "variant": "emphasis" },
+    { "id": "prep-fit", "from": "hddm-prep", "to": "hddm-fit", "label": "HDDM_Ready 试次表", "variant": "emphasis" },
+    { "id": "fit-params", "from": "hddm-fit", "to": "ddm-params", "label": "参数后验", "variant": "emphasis" },
+    { "id": "params-gp", "from": "ddm-params", "to": "gp-hybrid", "label": "训练目标 (v, a)", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "gp-sim", "from": "gp-hybrid", "to": "ddm-sim", "label": "预测 (v, a)", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "sim-val", "from": "ddm-sim", "to": "validation", "label": "合成试次行为", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "val-cand", "from": "validation", "to": "candidates", "label": "验证后优选", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "loop-next-round", "from": "candidates", "to": "ptb-exp", "label": "建议下一轮实验", "variant": "emphasis", "fromSide": "top", "toSide": "bottom", "via": [[700, 420], [405, 420]] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "主业务路径（加粗连线）",
+      "items": [
+        "被试完成匹配任务 → 试次 CSV 导出（Exp_Design_Formal.m）",
+        "HDDM 三步：筛选编码 → 容器内拟合 → 参数汇总",
+        "GP 混合代理：Sigmoid S2 先验 + GP 残差，输出 σ 不确定度",
+        "仿真 + 验证：DDM Euler 仿真 → LOCV / 行为验证 / 参数恢复",
+        "step6 候选设计点 → 建议下一轮实验（闭环）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "外部依赖与环境",
+      "items": [
+        "MATLAB R2023b + Psychtoolbox 3.0.19：实验机采集端",
+        "Docker + dockerHDDM（hcp4715/hddm）：隔离拟合环境",
+        "R / RStudio + BayesFactor：独立复核，knitr 手工运行",
+        "SPE Database：第三方开放数据（8 条件子集）",
+        "Python 主环境 3.14（numpy/pandas/scikit-learn/scipy）；.venv-manim（3.12 + Manim 0.21）"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "关键产物与一键复现",
+      "items": [
+        "step4_gp_sigmoid_model_canonical4.pkl：冻结的 GP+Sigmoid 模型",
+        "step6_candidate_design_points.csv + canonical4_summary.json",
+        "automation/cli.py --profile research：一键生成 → 效应分析 → 报告",
+        "落盘位置：automation/logs/{run_id}/ · 3_Figures/ · 4_Reports/"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "设计取舍",
+      "items": [
+        "GP 而非固定参数形式：非线性映射 + 不确定度量化 + 边界探索",
+        "Sigmoid S2 提供 (P,T,W)→(v,a) 理论先验，GP 只学残差 → 小样本稳健",
+        "dockerHDDM：层次贝叶斯拟合在容器内可复现",
+        "遗漏口径 RT = T+W 与采集程序一致；恢复验证复用同一拟合流程"
+      ]
+    }
+  ]
+}

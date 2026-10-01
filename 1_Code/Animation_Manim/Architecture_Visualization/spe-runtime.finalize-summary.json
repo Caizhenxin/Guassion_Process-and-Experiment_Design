@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\candidate.json",
+    "sha256": "50966eff53d761eea9c48df39c48f0c5b5d8a8d5eb4fdde0721bcf13e16b9634",
+    "bytes": 10249
+  },
+  "artifact": {
+    "path": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\spe-runtime.html",
+    "sha256": "42f371cb712b7398d4c858c19e9bc1b41d4dc5746004ee122ac23681bcfa24a2",
+    "bytes": 777110
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\spe-runtime.finalize.json",
+    "summaryReceipt": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\spe-runtime.finalize-summary.json",
+    "browserCheckReceipt": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\spe-runtime.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-09-30T04:26:31.382Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3457
+}

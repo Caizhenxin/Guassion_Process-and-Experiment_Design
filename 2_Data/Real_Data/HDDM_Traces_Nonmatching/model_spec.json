@@ -1,0 +1,258 @@
+[
+  {
+    "group_id": 1,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_1",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 11,
+    "n_trials": 1625,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 100,
+      "rhat_max_core": 1.0278841862224384,
+      "rhat_max_all": 1.0278841862224384,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 129.12589691925234,
+      "rhat_arviz_vs_manual_maxdiff": 0.02002601379556057
+    }
+  },
+  {
+    "group_id": 2,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_2",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 11,
+    "n_trials": 2711,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 100,
+      "rhat_max_core": 1.0009509638723078,
+      "rhat_max_all": 1.000989294307643,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 5430.06409783257,
+      "rhat_arviz_vs_manual_maxdiff": 0.0006280907022568893
+    }
+  },
+  {
+    "group_id": 3,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_3",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 10,
+    "n_trials": 3222,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 92,
+      "rhat_max_core": 1.0025313916306593,
+      "rhat_max_all": 1.0025313916306593,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 3850.4148457615247,
+      "rhat_arviz_vs_manual_maxdiff": 0.0019174709458302797
+    }
+  },
+  {
+    "group_id": 5,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_5",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 11,
+    "n_trials": 5089,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 100,
+      "rhat_max_core": 1.00077793526468,
+      "rhat_max_all": 1.000886028885178,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 6513.394711733409,
+      "rhat_arviz_vs_manual_maxdiff": 0.000680680459571148
+    }
+  },
+  {
+    "group_id": 4,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_4",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 11,
+    "n_trials": 3478,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 100,
+      "rhat_max_core": 1.0007180776975046,
+      "rhat_max_all": 1.0017902755791885,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 7121.832659365135,
+      "rhat_arviz_vs_manual_maxdiff": 0.001810744408872078
+    }
+  },
+  {
+    "group_id": 8,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_8",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 11,
+    "n_trials": 4834,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 100,
+      "rhat_max_core": 1.0002832192447684,
+      "rhat_max_all": 1.001824415830312,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 9632.849094939813,
+      "rhat_arviz_vs_manual_maxdiff": 0.000710158238085068
+    }
+  },
+  {
+    "group_id": 6,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_6",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 10,
+    "n_trials": 4927,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 92,
+      "rhat_max_core": 1.000700416873488,
+      "rhat_max_all": 1.0023260180900613,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 6256.008595243668,
+      "rhat_arviz_vs_manual_maxdiff": 0.001345352953136425
+    }
+  },
+  {
+    "group_id": 7,
+    "model": "M3",
+    "desc": "正确性编码 + v(identity) + z(cell) —— 主模型",
+    "stem": "modelM3_7",
+    "response_coding": "correct",
+    "depends_on": {
+      "v": "identity",
+      "z": "cell"
+    },
+    "p_outlier": 0.0,
+    "draws": 8000,
+    "burn": 2000,
+    "chains": 4,
+    "ntrace_per_chain": 6000,
+    "parallel": true,
+    "n_subjects": 12,
+    "n_trials": 5291,
+    "convergence": {
+      "chains": 4,
+      "ntrace_per_chain": 6000,
+      "ess_method": "arviz(rank-split R̂)",
+      "rhat_threshold": 1.05,
+      "n_params": 108,
+      "rhat_max_core": 1.0003127146149677,
+      "rhat_max_all": 1.0008273338246398,
+      "n_rhat_gt_thr": 0,
+      "n_rhat_nan": 0,
+      "ess_min_core": 9664.954940948532,
+      "rhat_arviz_vs_manual_maxdiff": 0.000572858526217912
+    }
+  }
+]

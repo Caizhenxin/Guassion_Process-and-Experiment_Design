@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5def8490-64ba-48f2-80d7-77d679fe9d13",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\candidate.json",
+  "output": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\.archify\\architecture-spe-runtime-20260930-122446\\spe-runtime.html",
+  "specification": {
+    "sha256": "50966eff53d761eea9c48df39c48f0c5b5d8a8d5eb4fdde0721bcf13e16b9634",
+    "bytes": 10249
+  },
+  "artifact": {
+    "sha256": "42f371cb712b7398d4c858c19e9bc1b41d4dc5746004ee122ac23681bcfa24a2",
+    "bytes": 777110
+  }
+}
