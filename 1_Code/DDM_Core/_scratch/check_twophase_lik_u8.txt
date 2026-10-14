@@ -1,0 +1,32 @@
+﻿design: 576 trials,  T=[np.float64(0.0333), np.float64(0.0833), np.float64(0.14999), np.float64(0.24998)],  W=[np.float64(0.79998), np.float64(1.1999), np.float64(1.7999)]
+
+[A] rho=1 嵌套一致性（单阶段数据）
+    ll_single      = -463.157868
+    ll_step(rho=1) = -463.157870   diff = -2.045e-06
+    max|Δ log 密度| = 6.238e-07   max 相对 = 2.029e-06
+    A_VERDICT = FAIL
+
+[B] Euler 生成器标定（rho=1 必须复现解析单阶段）
+    source                      omission  accuracy  meanRT(ms)  P(RT<T)
+    analytic single-phase         0.3138    0.8017      756.92        -
+    Euler rho=1                   0.3194    0.8323      757.64        -
+    |Δ| vs analytic: omission 0.0056  accuracy 0.0306  RT 0.7 ms
+    B_VERDICT = FAIL
+
+[C] rho 扫描（Euler 生成，每档 4 次重复的均值）
+       rho  omission  accuracy  meanRT(ms)  P(RT<T)
+      0.00    0.3911    0.5563      777.59   0.0556
+      0.25    0.3689    0.6518      767.22   0.0571
+      0.50    0.3694    0.7258      766.70   0.0574
+      0.75    0.3477    0.7847      756.37   0.0725
+      1.00    0.3199    0.8136      746.03   0.0637
+      1.25    0.2812    0.8334      744.59   0.0580
+      1.50    0.2639    0.8920      734.42   0.0543
+      2.00    0.2040    0.9232      711.78   0.0534
+
+[D] 计时：一次 M-T1 似然 129.5 ms   一次 M-T3 似然 1.14 ms   Euler 生成一名被试 0.25 s
+
+[E] ll 对 rho 的有限差分（其余参数固定在真值）
+    h=0.02  ll+=-463.1261  ll0=-463.1579  ll-=-463.2405  dll/drho=+2.8596  d2ll/drho2=-127.3
+    h=0.05  ll+=-463.1741  ll0=-463.1579  ll-=-463.4600  dll/drho=+2.8593  d2ll/drho2=-127.3
+    h=0.10  ll+=-463.5087  ll0=-463.1579  ll-=-464.0803  dll/drho=+2.8580  d2ll/drho2=-127.3

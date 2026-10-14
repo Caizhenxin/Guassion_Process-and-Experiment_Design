@@ -2,6 +2,38 @@
 
 ---
 
+## v0.18 (2026-10-13)
+
+**责任人**：蔡振辛
+
+### 新增功能
+- **《SPE–DDM 生成模型与设计空间建模》规格（v0.1）的运行时架构图 + 公式示意图**
+  （交付到 CV/申请材料的 PPT 目录，不在本仓库内，见文末）
+  - **架构图**：archify v3.0.1 生成 `SPE-DDM_runtime_architecture.html`（单文件 784 KB，可切深浅主题、可导出 PNG/SVG）
+  - **12 个组件**：Design Space → Trial Spec & Truth → Drift Magnitude Model → Boundary Policy Model → First-Passage Simulator → Observation Mapper → Simulated Trials → Bayesian DDM Fitter → Recovery & Model Comparison → Design-Space Optimizer（闭环回 Design Space），外加 Simulation Truth 与 Real SMT Data（external）
+  - **一条加粗主路径**（生成 → 观测 → 拟合 → 恢复 → 设计优选 → 下一轮，闭环）
+  - **4 个信任边界区**：Simulation zone（生成侧，真值分离）· Inference container（HDDM / PyDDM 容器）· Scoring zone（真值不得进入拟合器）· External data zone
+  - **5 张说明卡片**：主路径 / 公式清单 F1–F8（指向示意图）/ 外部依赖 / 信任规则 / 范围与未决项
+  - **公式示意图 8 张**：`figures/speddm_f01..f08`（Wiener 扩散过程、符号漂移编码 v=q·d、f_P/Q_T 饱和函数、d(P,T) 加性漂移面、W0/W1/W2 边界政策、deadline 与 timeout、G0–G3 嵌套族、恢复与设计优选闭环），脚本 `make_formula_figures.py`（沿用既有 PPT 配色，全英文标注）
+  - 证据引用绑定 revision `84572d25`，且全部为**已提交**文件（`sim_utils.py`、`生成模型编码约定审查_20260930.md`、`路线B模型规格与遗漏建模路线_20260930.md`、`AutoRA_SPE/*`、`automation/pipeline.py`、`param_recovery_frozen6.py`、`model_comparison_frozen6.py`、`ppc_frozen6.py`、`step2_hddm_fit.py`、`Dockerfile.hssm` 等）
+
+### 环境与工具链（本次踩坑，已解决）
+- **matplotlib 字体缺下标字形**：Arial 无 Unicode 下标（₀ ₚ ₜ ₛ）→ 渲染成方块；公式记法统一改 ASCII（d_0、f_P、β_P、A_min）
+- **archify 端点走向校验**：手写 `via` 的最后一段必须与目标的 `fromSide/toSide` 垂直，否则报 `clean-flow/endpoint-side-direction`；把关联节点对齐成同行/同列（共用中心线）可让折弯自动消失
+- **同一输出路径重跑被旧证据挡住**：报 `viewer/evidence-path-conflict`（旧 `*.browser-check.json` 属于上一版产物）→ 将旧产物与回执移入 `superseded/` 后重跑通过（替代法：`--out-dir review-2`）
+- **规格文档尚未入库**：`SPE_DDM_Generative_Model_Specification.md` 仍是未跟踪文件，其内容不能作为 archify 证据源，故改引已提交的同类文件
+
+### 验证
+- archify finalize 四道门全部通过（validate / deliver / check / browser-check），0 诊断，且不再报告绕行/交叉
+- visual-check 5 项全 pass，生成 4 张截图（1440×900、2048×1320 × 深浅）并已人工目视复核：主路径连贯、无交叉、无标签重叠
+- 8 张公式图逐张目视检查并修正越界/重叠（F4 图例与柱状图、F5 三面板越界、F6 文字区、F1 边界标签）
+
+### 文件变更（仓库外：Desktop/项目/我的项目/Curriculum Vitae/05_申请_实验室/_通用_项目介绍/PPT）
+- 新增: `make_formula_figures.py`、`figures/speddm_f01..f08.png`、`SPE-DDM_runtime_architecture.html`
+- 新增: `.archify/architecture-speddm-generative-20261013-101157/`（candidate.json、speddm-runtime.html、finalize/browser-check 回执、visual-check 截图、superseded/）
+
+---
+
 ## v0.17 (2026-10-01)
 
 **责任人**：蔡振辛
