@@ -343,7 +343,7 @@ stimulus_offset_actual == mask_onset_actual
 |---|---|---|
 | 启动打印的帧量化对照表 | 每个 T/W 偏离名义 < 1 帧 | |
 | 全部无刺激期按键试次的 `stimulus_frames` | 分别 = 2 / 5 / 9 / 15 | |
-| `max |stimulus_dur_actual − T| / FlipIntv` | < 1 | |
+| `max \|stimulus_dur_actual − T\| / FlipIntv` | < 1 | |
 | `stimulus_offset_actual − mask_onset_actual` 恒为 0 | ✅ | |
 | `mask_onset_actual − stimulus_onset_actual − stimulus_dur_actual` 恒为 0 | ✅ | |
 

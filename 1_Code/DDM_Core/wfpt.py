@@ -28,11 +28,21 @@ Stage 2 的核心数值模块。不依赖 pyddm / hddm（本机未安装），�
 ``validate_wfpt.py`` 用它检查 ∫f_upper dt 是否等于该值——这是一条与本公式
 相互独立的判据（推导路径不同），能抓住符号/系数错误。
 
-数值注意
---------
-正弦级数在 **t 很小** 时收敛慢（需要 k ≈ a/(π√t) 项）且存在相消。
-本模块只用于 τ ≥ 1e-3 s 的范围（RT ≥ t0 + 1 ms），此时 k_max ≈ 300 足够，
-float64 的相消损失仍在 2–3 个数量级以内。**不要用本模块算 t < 1e-4 的密度。**
+数值注意（2026-10-14 修正）
+--------------------------
+正弦级数在 **t 很小** 时不仅收敛慢（需要 k ≈ a/(π√t) 项），而且**灾难性相消**：
+级数各项幅值 O(k)，而 t→0 时真值指数级小 ⇒ 真值一旦落到相消地板（≈ kmax·eps）
+以下，返回值就是双精度噪声、**符号随机**（实测 −7.77e−14 / +6.01e−16 / −8.23e−15），
+而 `likelihood.per_trial_loglik` 的 `np.any(f <= 0)` 守卫会因此把**整份**数据判成 None。
+
+因此 `flux` 现在有**两条互为对偶**的级数，按 t 选分支：
+正弦级数（大 t）与**镜像/反射级数**（小 t，由同一特征函数展开经 Poisson 求和互换得到）。
+小 t 一侧现在是**正数且准确**的，不再需要绕开 t 的小值。
+
+⚠️ 仍然存在的两处"绕开小 t"的**遗留**工作区（本次未改，见 README §9 第 29 项）：
+`_T_FLOOR`（数值积分网格下端）与 `_S_FLOOR`（两阶段模型在 t ∈ (T, T+1e-3] 用阶段 1
+公式替代）。它们是在只有正弦级数时打的补丁，现在**具备了重新论证的条件**，
+但改动会影响已验收的两阶段/ρ 检验力结果，必须作为独立的、带回归验证的改动来做。
 """
 from __future__ import annotations
 
@@ -44,6 +54,10 @@ __all__ = ["flux", "density", "p_upper", "survival", "survival_series",
 
 _TOL = 1e-15
 _KMAX_HARD = 4000
+
+#: 镜像级数（`_flux_dual`）的指数截断：exp(−x) 在 x ≳ 700 时下溢为 0，
+#: 故只需保留满足 (d+2na)²/(2t) ≤ _LOG_CUT 的镜像项。
+_LOG_CUT = 700.0
 
 #: 数值积分网格的**最小时间**（秒）。正弦级数在 t→0 时收敛极慢
 #: （需要 k ≈ a/(π√t) 项），若网格从 t=0 起，`_k_max` 会直接撞上硬上限，
@@ -69,11 +83,69 @@ def _k_max(t_min: float, a: float, tol: float = _TOL) -> int:
     return int(min(max(k, 8), _KMAX_HARD))
 
 
+def _flux_series(d, v, a, t, tol: float = _TOL):
+    """正弦（特征函数）级数分支：``t`` 较大时快且准。见 `flux` 的说明。"""
+    a_safe = np.maximum(a, 1e-12)
+    kmax = _k_max(float(np.min(t)), float(np.max(a_safe)), tol)
+    lam = (np.pi / a_safe) ** 2 / 2.0
+
+    s = np.zeros_like(t)
+    for k in range(1, kmax + 1):
+        w = np.exp(-(k * k) * lam * t)
+        if not np.any(w > tol):
+            break
+        s += k * np.sin(k * np.pi * d / a_safe) * w
+
+    return (np.pi / a_safe**2) * np.exp(v * d - 0.5 * v * v * t) * s
+
+
+def _flux_dual(d, v, a, t):
+    """镜像（反射）级数分支：``t`` 很小时快且准。见 `flux` 的说明。"""
+    a_safe = np.maximum(a, 1e-12)
+    # 只需保留 |d + 2na| ≲ sqrt(2·t·_LOG_CUT) 的镜像项，其余 exp 下溢为 0。
+    span = np.sqrt(2.0 * t * _LOG_CUT)
+    n_max = int(np.max((span + a_safe) / (2.0 * a_safe))) + 1
+
+    s = np.zeros_like(t)
+    for n in range(-n_max, n_max + 1):
+        img = d + 2.0 * n * a_safe
+        e = np.exp(-(img * img) / (2.0 * t))
+        if not np.any(e > 0.0):
+            continue
+        s += img * e
+
+    pre = 1.0 / (np.sqrt(2.0) * np.sqrt(np.pi) * t**1.5)
+    return pre * np.exp(v * d - 0.5 * v * v * t) * s
+
+
 def flux(d, v, a, t, tol: float = _TOL):
     """单个吸收边界的首次通过密度：边界距起点 ``d``，漂移 ``v``，边界间距 ``a``。
 
     四个参数**均可广播**（``a`` 支持逐试次数组，Stage 3 的似然需要）。
     返回与广播形状一致的数组。
+
+    实现：同一个特征函数展开有**两条互为 Poisson 对偶**的级数，按 ``t`` 选分支 ——
+
+    * ``t ≥ a·d_min/π``（``d_min = min(d, 2a − d)``）→ 正弦级数 `_flux_series`
+    * ``t <  a·d_min/π``                            → 镜像级数 `_flux_dual`
+
+    交叉点取两条级数「首项衰减率相等」之处（``π²t/(2a²) = d_min²/(2t)``）：
+    两支在该点附近都只有几个有效项、且互相吻合到 ~1e-12
+    （`_scratch/check_flux_smallt.py` 的 V1/V2）。镜像级数由
+    ``Σ_{k≥1} k·sin(kx)·e^{−k²θ}`` 经 Poisson 求和（对 ``x`` 求导）得到：
+
+        f(t) = e^{v·d − v²t/2} / (√2·√π·t^{3/2}) · Σ_{n∈ℤ} (d + 2na)·e^{−(d+2na)²/(2t)}
+
+    它的独立校验是一条**解析积分恒等式**（``v > 0`` 时逐项积分合法；``v < 0`` 时把
+    漂移反号、等价于对另一条边界陈述，故不作逐项求和）：
+    ``∫_0^∞ f dt = e^{v·d}·Σ_n sgn(d+2na)·e^{−v|d+2na|} = (1 − e^{−2v(a−d)})/(1 − e^{−2va})``
+    （末一步是几何级数求和）``= p_upper(v, a, a−d)`` —— 与正弦级数的积分恒等式
+    推导路径不同，故互为独立判据。
+
+    ⚠️ 2026-10-14 修正：此前只有正弦级数一条分支，``t`` 小到真值落进相消地板
+    （≈ kmax·eps）以下时返回**符号随机**的双精度噪声（实测 −7.77e−14 /
+    +6.01e−16 / −8.23e−15），被 `likelihood.per_trial_loglik` 的
+    ``np.any(f <= 0)`` 守卫放大成「**整份**数据判 None」。
     """
     d = np.asarray(d, dtype=float)
     v = np.asarray(v, dtype=float)
@@ -90,19 +162,16 @@ def flux(d, v, a, t, tol: float = _TOL):
     if not np.any(pos):
         return out
 
-    t_b, d_b, v_b, a_b = t[pos], d[pos], v[pos], a[pos]
-    a_safe = np.maximum(a_b, 1e-12)
-    kmax = _k_max(float(np.min(t_b)), float(np.max(a_safe)), tol)
-    lam = (np.pi / a_safe) ** 2 / 2.0
+    a_safe = np.maximum(a, 1e-12)
+    d_min = np.minimum(np.abs(d), np.abs(2.0 * a_safe - d))
+    small = np.zeros(shape, dtype=bool)
+    small[pos] = t[pos] < (a_safe[pos] * d_min[pos] / np.pi)   # t 太小 ⇒ 镜像级数
 
-    s = np.zeros_like(t_b)
-    for k in range(1, kmax + 1):
-        w = np.exp(-(k * k) * lam * t_b)
-        if not np.any(w > tol):
-            break
-        s += k * np.sin(k * np.pi * d_b / a_safe) * w
-
-    out[pos] = (np.pi / a_safe**2) * np.exp(v_b * d_b - 0.5 * v_b**2 * t_b) * s
+    if np.any(small):
+        out[small] = _flux_dual(d[small], v[small], a[small], t[small])
+    big = pos & ~small
+    if np.any(big):
+        out[big] = _flux_series(d[big], v[big], a[big], t[big], tol)
     return out
 
 

@@ -34,8 +34,37 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 T_LEVELS = [2 / 60, 5 / 60, 9 / 60, 15 / 60]          # 秒（2/5/9/15 帧 @60 Hz）
 W_LEVELS = [48 / 60, 72 / 60, 108 / 60]
 FLIP = 1.0 / 60.0
-KINDS = [("circle", "self", "f"), ("square", "self", "j"),
-         ("circle", "stranger", "j"), ("square", "stranger", "f")]
+
+#: ⚠️ `CorrectKey` 由程序的 `getPairingRules`（`rules{mod(subjectID,4)+1}`）决定，**逐被试不同**。
+#: 本节是从 `Exp_Design_Formal.m` 的规则表**独立转录**的一张表（故意不 import 被测的
+#: `read_formal_data.py`：生成器必须独立于被测代码，否则被测代码的错会传播成"真值"）。
+#: 索引 = `subjectID % 4`，元素 = {(shape, label): correctKey}。
+PAIRING_RULES = {
+    0: {("square", "self"): "f", ("square", "stranger"): "j",
+        ("circle", "self"): "j", ("circle", "stranger"): "f"},
+    1: {("square", "self"): "j", ("square", "stranger"): "f",
+        ("circle", "self"): "f", ("circle", "stranger"): "j"},
+    2: {("square", "self"): "j", ("square", "stranger"): "f",
+        ("circle", "self"): "f", ("circle", "stranger"): "j"},
+    3: {("square", "self"): "f", ("square", "stranger"): "j",
+        ("circle", "self"): "j", ("circle", "stranger"): "f"},
+}
+_SHAPE_LABELS = (("circle", "self"), ("square", "self"),
+                 ("circle", "stranger"), ("square", "stranger"))
+
+
+def kinds_for(subject_id: int) -> list:
+    """该被试的 4 个 `(shape, label, correctKey)` 三元组。
+
+    ❗ 旧版这里是一张**对所有被试相同**的 `KINDS` 表，它只等于 `subjectID % 4 ∈ {1,2}`
+    那两档的规则 ⇒ 3/4 的被试写出来的 `CorrectKey` 与程序不符，`read_formal_data` 的两条
+    独立路径必然打架。这是**生成器的缺陷**（不是读取器的），而它会伪装成"读取器把好数据
+    判成了坏数据"⇒ 修掉，否则 >2 人的干跑无法进行。
+    """
+    rule = PAIRING_RULES[int(subject_id) % 4]
+    return [(sh, lb, rule[(sh, lb)]) for sh, lb in _SHAPE_LABELS]
+
+
 N_REP = 12
 HEADER = ("groupID\tsubjectID\tgender\tage\thandedness\tstage\ttrialID\tP\tT\tW\t"
           "Shape\tLabel\tCorrectKey\tResponse\tRT\tCorrect\t"
@@ -82,6 +111,9 @@ def main() -> int:
                     help="最大 T 档上「刺激内完成累计」的比例（RT ∈ [0.15, 0.98T)）；"
                          "用于驱动 S6-2c 的 Stage 8 分支")
     ap.add_argument("--timeout", type=float, default=0.08)
+    ap.add_argument("--n-rep", type=int, default=N_REP,
+                    help=f"每个 (T,W,类) 格重复次数（默认 {N_REP} = 正式设计；"
+                         f"调小只为**干跑**，如 3 ⇒ 每人 4+144 试次）")
     ap.add_argument("--defect-1f", action="store_true")
     ap.add_argument("--defect-mismatch", action="store_true")
     ap.add_argument("--defect-missing-t", action="store_true")
@@ -98,12 +130,13 @@ def main() -> int:
     for s in range(1, args.n_subjects + 1):
         lines = [HEADER]
         trial = 0
+        kinds = kinds_for(s)          # 逐被试的 (shape, label, correctKey)
         # 练习：n_practice 试次，T = 5 帧，W = 72 帧
         n_practice = P if P else 4
         for i in range(n_practice):
             trial += 1
             T, W = T_LEVELS[1], W_LEVELS[1]
-            shape, label, key = KINDS[i % 4]
+            shape, label, key = kinds[i % 4]
             t0 += 2.0
             rt = T + rng.lognormvariate(-0.5, 0.45) if rng.random() > args.timeout else None
             dur = T if (rt is None or rt >= T) else T
@@ -117,8 +150,8 @@ def main() -> int:
         # 正式：3 block × 4 T × 4 类 × 12 次
         for b, W in enumerate(W_LEVELS, start=1):
             for T in t_levels:
-                for shape, label, key in KINDS:
-                    for _ in range(N_REP):
+                for shape, label, key in kinds:
+                    for _ in range(args.n_rep):
                         trial += 1
                         t0 += 2.0
                         if rng.random() < args.timeout:
