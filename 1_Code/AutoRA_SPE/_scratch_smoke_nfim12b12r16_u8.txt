@@ -1,0 +1,265 @@
+﻿======================================================================
+Stage 9 优化循环（有限候选集 + 共享 CRN + 四路消融）
+冻结 Objective：spec=1.0 sha256=cf5b57e05bbe1ea3…
+======================================================================
+候选设计空间：174 个可行设计（另有 186 个被 C1/C3 否决）
+
+[噪声标定] 锚点设计在不同种子下重算…
+  [eval #2] r12 T=4档 W=3档  38.3s
+  锚点 'T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12'：A=0.3384 B=7.7075
+[噪声标定] J = ['10.2658', '9.0140', '10.2124', '10.6973', '9.7895', '10.5524', '10.2371', '10.0729', '10.8446', '9.9808', '10.4620', '10.1347', '9.5023', '11.0656', '9.8357', '10.7820']
+[噪声标定] sd_J = 0.5297 ⇒ alpha = 2.806e-01
+[噪声标定] sd_A = 0.0075、sd_B = 0.0493（D54 的判据用这两个）、sd_omission = 0.00426、sd_C = 0.5273
+
+[臂 grid] 预算 12…
+  [eval #18] r24 T=3档 W=2档  22.9s
+  [eval #19] r24 T=3档 W=2档  29.7s
+  [eval #20] r24 T=3档 W=2档  33.1s
+  [eval #21] r24 T=3档 W=2档  35.7s
+  [eval #22] r24 T=3档 W=2档  33.2s
+  [eval #23] r16 T=3档 W=3档  38.3s
+  [eval #24] r16 T=3档 W=3档  39.0s
+  [eval #25] r18 T=4档 W=2档  30.9s
+  [eval #26] r18 T=4档 W=2档  36.7s
+  [eval #27] r18 T=4档 W=2档  40.5s
+  [eval #28] r12 T=4档 W=3档  43.6s
+  [eval #29] r8 T=6档 W=3档  58.0s
+[臂 grid] 完成：可行 3/12、best A = 0.3874（参考 best J = 0.5802）（441.7s）
+
+[臂 random] 预算 12…
+  [eval #30] r24 T=3档 W=2档  37.0s
+  [eval #31] r18 T=4档 W=2档  32.4s
+  [eval #32] r12 T=4档 W=3档  47.3s
+  [eval #33] r16 T=3档 W=3档  40.1s
+  [eval #34] r12 T=4档 W=3档  45.2s
+  [eval #35] r12 T=6档 W=2档  43.8s
+  [eval #36] r18 T=4档 W=2档  36.5s
+  [eval #37] r18 T=4档 W=2档  31.4s
+  [eval #38] r24 T=3档 W=2档  28.5s
+  [eval #39] r24 T=3档 W=2档  28.9s
+  [eval #40] r12 T=4档 W=3档  40.7s
+[臂 random] 完成：可行 5/12、best A = 0.3801（参考 best J = 0.5505）（411.8s）
+
+[臂 manual] 预算 12…
+  [eval #41] r24 T=3档 W=2档  28.3s
+  [eval #42] r24 T=3档 W=2档  29.3s
+  [eval #43] r24 T=3档 W=2档  28.5s
+  [eval #44] r24 T=3档 W=2档  33.1s
+  [eval #45] r16 T=3档 W=3档  36.3s
+  [eval #46] r16 T=3档 W=3档  33.3s
+  [eval #47] r16 T=3档 W=3档  32.4s
+  [eval #48] r16 T=3档 W=3档  33.4s
+  [eval #49] r16 T=3档 W=3档  31.4s
+  [eval #50] r16 T=3档 W=3档  31.6s
+  [eval #51] r16 T=3档 W=3档  34.0s
+[臂 manual] 完成：可行 0/12、best A = inf（参考 best J = inf）（351.7s）
+
+[臂 bo] 预算 12…
+python : D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value foun
+d for dimension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and c
+alling fit again may find a better value.
+所在位置 行:1 字符: 129
++ ... ew($false); python -u 1_Code\AutoRA_SPE\stage9_loop.py --budget 12 -- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (D:\Conda\Lib\si...a better value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dim
+ension 4 of parameter k2__length_scale is close to the specified lower bound 0.01. Decreasing the bound and calling fit
+ again may find a better value.
+  warnings.warn(
+  [eval #52] r12 T=4档 W=3档  38.3s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dim
+ension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fi
+t again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dim
+ension 4 of parameter k2__length_scale is close to the specified lower bound 0.01. Decreasing the bound and calling fit
+ again may find a better value.
+  warnings.warn(
+  [eval #53] r12 T=4档 W=3档  39.1s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dim
+ension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fi
+t again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dim
+ension 4 of parameter k2__length_scale is close to the specified lower bound 0.01. Decreasing the bound and calling fit
+ again may find a better value.
+  warnings.warn(
+  [eval #54] r12 T=6档 W=2档  46.5s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dim
+ension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fi
+t again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dim
+ension 4 of parameter k2__length_scale is close to the specified lower bound 0.01. Decreasing the bound and calling fit
+ again may find a better value.
+  warnings.warn(
+[臂 bo] 完成：可行 4/12、best A = 0.4804（参考 best J = 0.8523）（124.4s）
+
+[前沿] 先补全候选空间（缓存里现有 38 个，候选共 174 个）—— 前沿与推荐点只在整个空间上才有意义…
+  [eval #55] r24 T=3档 W=2档  27.0s
+  [eval #56] r24 T=3档 W=2档  27.2s
+  [eval #57] r24 T=3档 W=2档  27.7s
+  [eval #58] r24 T=3档 W=2档  23.7s
+  [eval #59] r24 T=3档 W=2档  26.6s
+  [eval #60] r24 T=3档 W=2档  27.7s
+  [eval #61] r24 T=3档 W=2档  28.3s
+  [eval #62] r24 T=3档 W=2档  30.0s
+  [eval #63] r24 T=3档 W=2档  27.1s
+  [eval #64] r24 T=3档 W=2档  28.4s
+  [eval #65] r24 T=3档 W=2档  32.3s
+  [eval #66] r24 T=3档 W=2档  30.6s
+  [eval #67] r24 T=3档 W=2档  32.0s
+  [eval #68] r24 T=3档 W=2档  28.7s
+  [eval #69] r24 T=3档 W=2档  30.5s
+  [eval #70] r24 T=3档 W=2档  34.3s
+  [eval #71] r24 T=3档 W=2档  33.8s
+  [eval #72] r24 T=3档 W=2档  36.0s
+  [eval #73] r24 T=3档 W=2档  29.4s
+  [eval #74] r24 T=3档 W=2档  30.0s
+  [eval #75] r24 T=3档 W=2档  31.3s
+  [eval #76] r24 T=3档 W=2档  24.9s
+  [eval #77] r24 T=3档 W=2档  28.8s
+  [eval #78] r24 T=3档 W=2档  32.8s
+  [eval #79] r24 T=3档 W=2档  29.0s
+  [eval #80] r24 T=3档 W=2档  32.4s
+  [eval #81] r24 T=3档 W=2档  28.2s
+  [eval #82] r24 T=3档 W=2档  29.8s
+  [eval #83] r24 T=3档 W=2档  31.2s
+  [eval #84] r24 T=3档 W=2档  28.6s
+  [eval #85] r24 T=3档 W=2档  29.8s
+  [eval #86] r24 T=3档 W=2档  31.8s
+  [eval #87] r24 T=3档 W=2档  27.2s
+  [eval #88] r24 T=3档 W=2档  32.3s
+  [eval #89] r24 T=3档 W=2档  32.9s
+  [eval #90] r24 T=3档 W=2档  31.6s
+  [eval #91] r24 T=3档 W=2档  25.8s
+  [eval #92] r24 T=3档 W=2档  26.6s
+  [eval #93] r24 T=3档 W=2档  25.6s
+  [eval #94] r24 T=3档 W=2档  32.5s
+  [eval #95] r24 T=3档 W=2档  32.2s
+  [eval #96] r24 T=3档 W=2档  27.4s
+  [eval #97] r24 T=3档 W=2档  33.7s
+  [eval #98] r24 T=3档 W=2档  35.7s
+  [eval #99] r24 T=3档 W=2档  29.9s
+  [eval #100] r24 T=3档 W=2档  35.1s
+  [eval #101] r24 T=3档 W=2档  36.4s
+  [eval #102] r24 T=3档 W=2档  33.5s
+  [eval #103] r24 T=3档 W=2档  34.4s
+  [eval #104] r24 T=3档 W=2档  36.9s
+  [eval #105] r24 T=3档 W=2档  32.1s
+  [eval #106] r24 T=3档 W=2档  32.4s
+  [eval #107] r24 T=3档 W=2档  38.1s
+  [eval #108] r24 T=3档 W=2档  35.5s
+  [eval #109] r24 T=3档 W=2档  37.6s
+  [eval #110] r24 T=3档 W=2档  32.3s
+  [eval #111] r24 T=3档 W=2档  34.2s
+  [eval #112] r24 T=3档 W=2档  33.0s
+  [eval #113] r24 T=3档 W=2档  32.7s
+  [eval #114] r24 T=3档 W=2档  37.4s
+  [eval #115] r16 T=3档 W=3档  40.9s
+  [eval #116] r16 T=3档 W=3档  40.5s
+  [eval #117] r16 T=3档 W=3档  38.1s
+  [eval #118] r16 T=3档 W=3档  37.0s
+  [eval #119] r16 T=3档 W=3档  35.1s
+  [eval #120] r16 T=3档 W=3档  37.7s
+  [eval #121] r16 T=3档 W=3档  39.2s
+  [eval #122] r16 T=3档 W=3档  38.5s
+  [eval #123] r16 T=3档 W=3档  35.4s
+  [eval #124] r16 T=3档 W=3档  32.2s
+  [eval #125] r16 T=3档 W=3档  31.2s
+  [eval #126] r16 T=3档 W=3档  30.6s
+  [eval #127] r16 T=3档 W=3档  32.1s
+  [eval #128] r16 T=3档 W=3档  33.3s
+  [eval #129] r16 T=3档 W=3档  32.8s
+  [eval #130] r16 T=3档 W=3档  39.6s
+  [eval #131] r16 T=3档 W=3档  32.0s
+  [eval #132] r16 T=3档 W=3档  32.7s
+  [eval #133] r16 T=3档 W=3档  33.9s
+  [eval #134] r16 T=3档 W=3档  34.2s
+  [eval #135] r16 T=3档 W=3档  33.9s
+  [eval #136] r16 T=3档 W=3档  34.9s
+  [eval #137] r18 T=4档 W=2档  26.4s
+  [eval #138] r18 T=4档 W=2档  33.4s
+  [eval #139] r18 T=4档 W=2档  33.6s
+  [eval #140] r18 T=4档 W=2档  30.8s
+  [eval #141] r18 T=4档 W=2档  31.1s
+  [eval #142] r18 T=4档 W=2档  30.5s
+  [eval #143] r18 T=4档 W=2档  33.1s
+  [eval #144] r18 T=4档 W=2档  28.2s
+  [eval #145] r18 T=4档 W=2档  30.0s
+  [eval #146] r18 T=4档 W=2档  30.4s
+  [eval #147] r18 T=4档 W=2档  31.5s
+  [eval #148] r18 T=4档 W=2档  31.5s
+  [eval #149] r18 T=4档 W=2档  33.1s
+  [eval #150] r18 T=4档 W=2档  29.8s
+  [eval #151] r18 T=4档 W=2档  31.8s
+  [eval #152] r18 T=4档 W=2档  32.4s
+  [eval #153] r18 T=4档 W=2档  33.5s
+  [eval #154] r18 T=4档 W=2档  32.6s
+  [eval #155] r18 T=4档 W=2档  34.8s
+  [eval #156] r18 T=4档 W=2档  38.9s
+  [eval #157] r18 T=4档 W=2档  35.5s
+  [eval #158] r18 T=4档 W=2档  32.5s
+  [eval #159] r18 T=4档 W=2档  34.3s
+  [eval #160] r18 T=4档 W=2档  29.9s
+  [eval #161] r18 T=4档 W=2档  29.6s
+  [eval #162] r18 T=4档 W=2档  32.2s
+  [eval #163] r18 T=4档 W=2档  30.8s
+  [eval #164] r18 T=4档 W=2档  32.3s
+  [eval #165] r18 T=4档 W=2档  34.5s
+  [eval #166] r18 T=4档 W=2档  31.3s
+  [eval #167] r18 T=4档 W=2档  32.2s
+  [eval #168] r18 T=4档 W=2档  32.5s
+  [eval #169] r18 T=4档 W=2档  30.7s
+  [eval #170] r18 T=4档 W=2档  31.6s
+  [eval #171] r18 T=4档 W=2档  30.6s
+  [eval #172] r18 T=4档 W=2档  30.9s
+  [eval #173] r18 T=4档 W=2档  32.9s
+  [eval #174] r18 T=4档 W=2档  31.2s
+  [eval #175] r18 T=4档 W=2档  31.4s
+  [eval #176] r18 T=4档 W=2档  32.0s
+  [eval #177] r18 T=4档 W=2档  32.3s
+  [eval #178] r18 T=4档 W=2档  35.8s
+  [eval #179] r12 T=4档 W=3档  37.8s
+  [eval #180] r12 T=4档 W=3档  38.1s
+  [eval #181] r12 T=4档 W=3档  37.6s
+  [eval #182] r12 T=4档 W=3档  37.4s
+  [eval #183] r12 T=4档 W=3档  37.6s
+  [eval #184] r12 T=4档 W=3档  37.4s
+  [eval #185] r12 T=4档 W=3档  38.9s
+  [eval #186] r12 T=4档 W=3档  40.3s
+  [eval #187] r12 T=4档 W=3档  38.9s
+  [eval #188] r12 T=4档 W=3档  38.3s
+  [eval #189] r12 T=4档 W=3档  40.6s
+  [eval #190] r12 T=6档 W=2档  40.0s
+[前沿] 全空间评估完毕：缓存 174 个、累计 190 次内环评估、5815s
+
+======================================================================
+总评估次数 190、内环耗时 5815s、墙钟 6459s
+D54 遗漏率约束带 = [0.05, 0.2] ⇒ 缓存里被判不可行的 98 个、可行 30 个
+判据只建立在 (A,B) 上；噪声带 2·sd_A = 0.0149、2·sd_B = 0.0985（2·sd_J = 1.0594 仅参考）
+  random  A_best = 0.3801、B@A_best = 8.8270、可行  5、参考 best J = 0.5505
+            与次好臂 `grid` **在 (A) 上不可分辨**（ΔA = 0.0073 ≤ 带 0.0149），但**在 (B) 上更好**（ΔB = +0.6327 > 0.0985）⇒ 仍**不得宣称最好**：主判据 (A) 不可分辨（另有 1 条臂在本预算内没有可行点）
+  grid    A_best = 0.3874、B@A_best = 8.1943、可行  3、参考 best J = 0.5802
+            在 **(B) 上显著更差**（ΔB = -0.6327 < -0.0985），而 (A) 分量不可分辨（ΔA = 0.0073 ≤ 0.0149）⇒ **不是**「两者不可分辨」：B 上的差距是真的
+  bo      A_best = 0.4804、B@A_best = 8.7437、可行  4、参考 best J = 0.8523
+            在 **(A) 上显著更差**（ΔA = 0.1003 > 噪声带 0.0149），而 B 分量不可分辨（ΔB = -0.0833 落在 ±0.0985 内）⇒ **不是**「两者不可分辨」，只是差距落在 B 上看不出来
+  manual  A_best = —、B@A_best = —、可行  0、参考 best J = —
+            本预算下**可行集内没有任何设计**（`A = ∞`）⇒ 不参与排序。⚠️ 这**不是**「比谁更差」的证据，而是**这条臂没有取到可行点**；要区分「预算不足」与「该臂确实偏向不可行区」，得看它的 `picked` 里有几个点被 D54 带判为不可行
+
+推荐点（D54：(A) 最小）：A = 0.3762  B = 8.7359  遗漏 = 0.191  J(参考) = 0.5448
+  T[33.33/149.99/249.98/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+参考点（J 最小，受 (C) 支配）：A = 0.3762  J = 0.5448
+  T[33.33/149.99/249.98/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+锚点 D4：A = 0.3384  B = 7.7075  C = 9.5605  J = 10.0605  可行 = False（离推荐点 ΔA = -0.0378）
+Pareto 前沿 6 个点；前 5：
+  A=0.3762 B=8.7359 J=0.5448  T[33.33/149.99/249.98/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.3801 B=8.8270 J=0.5505  T[33.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.4462 B=8.9843 J=0.7356  T[33.33/249.98/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.5191 B=9.0119 J=0.9491  T[83.33/249.98/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.8962 B=9.0576 J=2.0603  T[149.99/249.98/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+
+已写出 1_Code\AutoRA_SPE\stage9_payload_nfim12_budget12.json

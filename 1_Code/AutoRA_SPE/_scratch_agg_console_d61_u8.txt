@@ -1,0 +1,46 @@
+==============================================================================
+Stage 9 汇总自测
+仓库根：D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design
+模式：全套、内环 n_fim = 2
+==============================================================================
+
+[W 组] 哈希与文件清单的漂移守卫
+✅ W1 冻结规格的哈希是**算出来的**（`SPEC_SHA256` == `compute_sha256()`）且 `assert_frozen()` 不抛 —— SPEC_SHA256 = cf5b57e05bbe1ea3…、重算 = cf5b57e05bbe1ea3…
+✅ W1b `assert_frozen()` 通过（事前登记未被事后篡改） —— 无异常
+✅ W2 7 个 Stage 9 文件都登记在 `1_Code/AutoRA_SPE/README.md` §7 的文件清单里 —— 7 个都在
+✅ W3 7 个 Stage 9 文件都登记在 `Stage9_设计空间优化与论文整合方案.md` 的 §9 工具表里 —— 7 个都在
+✅ W4 7 个文件都真的在磁盘上 —— 7/7
+
+[子自测] 逐个跑（输出重定向到文件）
+
+▶ check_timing_convention.py  →  _scratch_agg_timing_u8.txt
+  退出码 0、耗时 4.3s
+✅ S1 时序口径桥自测通过 —— 25/25 通过
+
+▶ stage9_objective.py  →  _scratch_agg_objective_u8.txt
+  退出码 0、耗时 0.5s
+✅ S2 冻结 Objective 的冒烟通过 —— (未解析到计数)
+
+▶ check_stage9_report.py  →  _scratch_agg_report_u8.txt
+  退出码 0、耗时 8.2s
+✅ S5 落盘报告生成器自测通过 —— 61/61 通过
+
+▶ check_stage9_inner.py 2 _scratch_agg_inner_results_u8.txt  →  _scratch_agg_inner_u8.txt
+  退出码 0、耗时 70.7s
+✅ S3 内环自测通过 —— 29/29 通过
+
+▶ check_stage9_loop.py 1 _scratch_agg_loop_results_u8.txt  →  _scratch_agg_loop_u8.txt
+  退出码 0、耗时 50.2s
+✅ S4 优化循环自测通过 —— 53/53 通过
+
+==============================================================================
+| 子自测 | 退出码 | 通过计数 |
+|---|---|---|
+| `check_timing_convention.py` | 0 | 25/25 通过 |
+| `stage9_objective.py` | 0 | (未解析到计数) |
+| `check_stage9_report.py` | 0 | 61/61 通过 |
+| `check_stage9_inner.py (n_fim=2)` | 0 | 29/29 通过 |
+| `check_stage9_loop.py (n_fim=1)` | 0 | 53/53 通过 |
+
+共 10 项，未通过 0 项；总耗时 134.1s
+✅ Stage 9 汇总自测全部通过

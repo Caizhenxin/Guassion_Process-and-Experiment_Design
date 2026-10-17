@@ -1,4 +1,4 @@
-﻿临时目录：C:\Users\蔡振辛\AppData\Local\Temp\ck_rfd_blojhm5_
+临时目录：C:\Users\蔡振辛\AppData\Local\Temp\ck_rfd_blojhm5_
 
 [A] 正向：一致的 v4.1 数据必须通过，且翻译成模型能吃的表
   ✅ A1 一致数据的 validate 返回空清单：[]

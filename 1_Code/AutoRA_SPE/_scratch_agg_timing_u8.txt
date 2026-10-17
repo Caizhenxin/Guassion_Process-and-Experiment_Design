@@ -1,0 +1,44 @@
+自测：spe_timing_convention.py（时序口径桥 v2 ⇄ v4.1）
+仓库根：D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design
+legacy 模块：1_Code\AutoRA_SPE\spe_design_model.py
+
+== A 换算恒等式与单一事实来源 ==
+[PASS] A1 掩蔽时长只有一处事实来源 — bridge=200.0 legacy=200.0
+[PASS] A2 双向换算恒等（往返误差 < 1e-12 ms） — max|Δ| = 0.000e+00
+[PASS] A3 v4.1 的窗口开启时刻 = 0（自 onset 即采集按键，对应程序 L14–17） — window_open = 0.0 ms
+[PASS] A4 同一对数字在两套口径下相差恰好 T — legacy=2000.0 current=1500.0 差=500.0（T=500）
+
+== B 历史 8 组：桥必须恢复 README 的 W 列并保物理量 ==
+[PASS] B1 桥恢复 README 的 W_legacy 列（8/8） — 不匹配 group=[]
+[PASS] B2 保物理量：v4.1 掩蔽后可按键时长 == README 的 W_legacy−200（8/8） — 不匹配 []
+[PASS] B3 误用会把'掩蔽后可按键时长'少算恰好 T — 最大偏离 500.0 ms（group 6）
+[PASS] B4 legacy 的 D2 下界 = T+200（v4.1 不存在此下界） — legacy floor = T+200 ms；v4.1 floor = 0
+[note] 实测（README §3） — max RT − (T+W) = +2.4/+2.8/+5.4/+3.6/−5.8/−24.8/+54.3/+4.3 ms；g7 是唯一大偏离（+54）
+
+== C v4.1 的 D4 设计点 ==
+[PASS] C1 D4 全部 12 个组合满足程序 L22 的 `W > T+200` — 违反 []
+[PASS] C2 固定 W 时，误用造成的相对误差随 T 严格单调增（3/3 列） — W=799.98:✓  W=1199.9:✓  W=1799.9:✓
+[PASS] C3 网格范围 = 1.85%–31.25%，最大误差落在**最短 deadline**（T=249.98, W=799.98） — 最小 1.852% @ (T=33.33, W=1799.9)；最大 31.248% @ (T=249.98, W=799.98)
+[note] C3 的作用域 — 『3%–31%』只在 W=799.98 这一列成立；换成 W=1799.9 就只剩 1.85%–13.89% —— 报范围必须连同它跨的是哪个网格一起报
+[PASS] C4 `design_to_params` 的 M_ms 同样多算 T（794 → 1049.96） — correct=799.98 legacy=1049.96
+
+== D ❗legacy 门控把刺激期内按键静默改写（可复现） ==
+[PASS] D1 legacy 门控 = 把 `rt < T+200` 抬到 `T+200`（不是删行） — floor=0.450s  gated=[0.45, 0.45, 0.45, 0.45, 0.7]
+[PASS] D2 刺激期内按键（RT < T）在门控后**不再可被识别** — 门控前 2 个 RT<T → 门控后 0 个
+[PASS] D3 门控人为复现 legacy 伪迹 `min RT == T + 200 ms` — min(gated)=0.450s = T+0.200s
+[PASS] D4 v4.1 门控 = 恒等（刺激期内按键原样保留） — current=[0.04, 0.12, 0.3, 0.449, 0.7]
+[PASS] D5 同一批数据：v4.1 门控下 RT<T 的试次全部保留（D5 想抓的就是它们） — 2/2
+
+== E 守卫有牙齿 ==
+[PASS] E1 拒绝：W == T+200（边界，必须拒绝：程序要求严格 >） — 违反 Exp_Design_Formal.m L22 的启动自检：需要 W > T + MASK = 449.98 ms，得到 W=449.
+[PASS] E2 拒绝：W < T+200 — 违反 Exp_Design_Formal.m L22 的启动自检：需要 W > T + MASK = 449.98 ms，得到 W=400.
+[PASS] E3 拒绝：T == 0 — T 必须为正（毫秒），得到 T=0.0
+[PASS] E4 拒绝：T < 0 — T 必须为正（毫秒），得到 T=-10.0
+[PASS] E5 合法点（W = T+200+ε）必须通过 — 返回 None，未抛错
+[PASS] E6 拒绝负 RT（自 onset 起算不可能为负） — 抛 ValueError
+
+== F 源码锚点（防引用漂移） ==
+[PASS] F1 程序里的六处锚点全部命中 — 缺失 []
+[PASS] F2 legacy 模块里的三处锚点全部命中 — 缺失 []
+
+===== 25/25 =====

@@ -1,0 +1,46 @@
+﻿======================================================================
+Stage 9 优化循环（有限候选集 + 共享 CRN + 四路消融）
+冻结 Objective：spec=1.0 sha256=cf5b57e05bbe1ea3…
+======================================================================
+候选设计空间：174 个可行设计（另有 186 个被 C1/C3 否决）
+
+[噪声标定] 锚点设计在不同种子下重算…
+  [eval #2] r12 T=4档 W=3档  41.2s
+  锚点 'T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12'：A=0.3384 B=7.7075
+[噪声标定] J = ['10.3116', '9.7379']
+[噪声标定] sd_J = 0.4056 ⇒ alpha = 1.645e-01
+[噪声标定] sd_A = 0.0082、sd_B = 0.0386（D54 的判据用这两个）、sd_omission = 0.00307、sd_C = 0.3789
+
+[臂 grid] 预算 1…
+  [eval #4] r24 T=3档 W=2档  23.3s
+[臂 grid] 完成：可行 0/1、best A = inf（参考 best J = inf）（23.3s）
+
+[臂 random] 预算 1…
+  [eval #5] r24 T=3档 W=2档  32.0s
+[臂 random] 完成：可行 0/1、best A = inf（参考 best J = inf）（32.0s）
+
+[臂 manual] 预算 1…
+  [eval #6] r24 T=3档 W=2档  26.6s
+[臂 manual] 完成：可行 0/1、best A = inf（参考 best J = inf）（26.6s）
+
+[臂 bo] 预算 1…
+  [eval #7] r18 T=4档 W=2档  26.6s
+python : Traceback (most recent call last):
+所在位置 行:1 字符: 227
++ ... NG="utf-8"; python -u "1_Code\AutoRA_SPE\stage9_loop.py" --budget 1 - ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\AutoRA_SPE\stage9_loop.py", line 821, in <m
+odule>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\AutoRA_SPE\stage9_loop.py", line 740, in ma
+in
+    histories = run_arms(ev, budget, seed=a.seed, noise=noise)
+  File "D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\AutoRA_SPE\stage9_loop.py", line 517, in ru
+n_arms
+    raise RuntimeError(f"臂 {arm} 用了 {len(names)} 次评估，预算 {budget} "
+                       "—— 四路消融必须同预算，否则结论无效")
+RuntimeError: 臂 bo 用了 2 次评估，预算 1 —— 四路消融必须同预算，否则结论无效

@@ -307,6 +307,14 @@ Exp_Design_Formal.m: 行数 = 1313
 
 > 本机无 MATLAB / Psychtoolbox，以下四条**必须在实验机跑**。建议做成 N=2–3 名"技术被试"（只看程序不看数据），并保留 MATLAB 命令行窗口的完整输出。
 
+> **先跑这条命令**（D67）：把实机产出的逐被试 `.txt` 直接喂给验收检查器，6-C/6-D 不必手算 ——
+>
+> ```
+> python -X utf8 -u 1_Code\Experiment\exp_Check\check_stage1_acceptance.py <被试1.txt> <被试2.txt> ...
+> ```
+>
+> 它逐条打印 `6-A`–`6-E` 的实测值（含 `stimulus_frames` 应有帧数、`max |ΔT| / FlipIntv`、`NA` 约定的违例行数、`0x00` 字节数、指定 T 档的 `T − max(RT)` 余量），末行给出「本机可判 4 项、需手测 2 项」。`6-A`（掩蔽纹理预加载）与 `6-E`（刺激内与刺激后按键的延时可比性）**不可机器判**，仍需人看。判据由 `1_Code/Experiment/exp_Check/check_stage1_acceptance.py::self_test` 的 6 个用例守住（干净数据 + 5 种人为缺陷，含「历史 16 列口径」被「0 口径」守卫拦住）。
+
 ### 6-A 掩蔽纹理预加载
 
 1. 启动程序，确认命令行出现 `掩蔽纹理预加载完成：self 5 张、stranger 5 张（Stage 1 修正 #1）`；
@@ -365,7 +373,7 @@ stimulus_offset_actual == mask_onset_actual
 2. **刺激期结束的粒度**：D5 下"刺激期内按键即结束刺激"，但真正离屏要等下一次 vsync，因此 `stimulus_dur_actual ≈ RT + (0~1) 帧`。这是显示硬件的物理限制，只能记录、不能消除。
 3. **`stimuliFrames` 预绘图循环**（L540 / L867）：把同一张刺激画 `round(T/FlipIntv)` 遍再 `Flip` 一次。实际控制时长的是 `GetSecs` 轮询而不是这个循环，所以它不产生错误，只是**多余**（每试次多若干次绘图调用）。为了让 diff 最小，本轮**未改动**；若实机发现 Flip 时机偏晚，这是第一个该动的地方。
 4. **`waitForSpace` 与 `checkEscape` 仍是 `KbCheck` 忙等**：这些路径与反应采集无关，不影响数据质量，故未改成队列。
-5. **实机证据空缺**：§6 的四张表全空。这是本文件目前唯一的缺口，也是 Stage 1 是否算"完成"的唯一判据。
+5. **实机证据空缺**：§6 的四张表全空。这是本文件目前唯一的缺口，也是 Stage 1 是否算"完成"的唯一判据。**已缩窄（D67）**：`6-B`–`6-D` 改由 `1_Code/Experiment/exp_Check/check_stage1_acceptance.py` 机器判定（自测 5/5），人手只剩 `6-A` 与 `6-E` 两行 —— 但**这两行不填，Stage 1 仍然不算完成**。
 
 ---
 

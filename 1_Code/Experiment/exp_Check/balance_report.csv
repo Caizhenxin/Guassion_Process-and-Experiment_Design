@@ -1,4 +1,4 @@
-﻿group,subject,match_key,link,link_from_data,link_ok,n_formal,key_mismatch,n_self_match,n_stranger_match
+group,subject,match_key,link,link_from_data,link_ok,n_formal,key_mismatch,n_self_match,n_stranger_match
 1,1,f,circle=self,circle=self,True,520,0,130,130
 1,2,j,square=self,square=self,True,520,0,130,130
 1,3,j,circle=self,circle=self,True,520,0,130,130

@@ -1,0 +1,35 @@
+[合成] -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\make_fake_pilot.py C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_6ccczhhp --n-subjects 4 --group 1 --seed 7 --n-rep 4
+============================================================================================
+Stage 8 全量运行器
+============================================================================================
+  ✅ exp_group1_subject1.txt：被试 1（组 1）187 试次、剔抢按 5、t0 上界 0.219
+  ✅ exp_group1_subject2.txt：被试 2（组 1）191 试次、剔抢按 1、t0 上界 0.244
+  ✅ exp_group1_subject3.txt：被试 3（组 1）188 试次、剔抢按 4、t0 上界 0.155
+  ✅ exp_group1_subject4.txt：被试 4（组 1）190 试次、剔抢按 2、t0 上界 0.162
+
+可用被试 4 名；被拒 0 份
+预估（实测标定：48 试次/人、`n_x=41`、单次似然 34 ms；本次人均 189 试次 ⇒ 单次评估 ×1.78）
+    人数 4、n_em 2、n_draws 32、模型 2 个、PPC 抽取 4、超参数法 analytic
+    层级拟合 ≈ 4.2 min（16 次冷启动众数搜索）
+    超参数 Hessian：**解析法（Louis）⇒ 0 次众数搜索**、只剩矩阵运算（主计划 D47）
+    LOO 矩阵 ≈ 35.7 min、PPC ≈ 0.3 min
+    ⇒ 合计 ≈ **0.67 h**
+
+============================================================================================
+组 1：4 人
+============================================================================================
+  [M-T1] rho_free=True 开始（4 人、n_em=2、n_draws=32、超参数法 analytic）…
+D:\Conda\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  [M-T1] 完成 4501.7s：ELPD -3526.254 ± 32.997；p_loo 2816.26；k_max 0.000；越界 0/4；不可用 0；失败 0；非有限 0
+  [M-T3] rho_free=False 开始（4 人、n_em=2、n_draws=32、超参数法 analytic）…
+  [M-T3] 完成 3554.2s：ELPD -3485.938 ± 30.423；p_loo 2816.26；k_max 0.000；越界 0/4；不可用 0；失败 0；非有限 0
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+
+============================================================================================
+报告已写出：
+  D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\_s8run_an4\stage8_report.md
+  D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\_s8run_an4\stage8_results.json
+总耗时 8109.8s
+（合成数据在临时目录 C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_6ccczhhp，可手动清理）

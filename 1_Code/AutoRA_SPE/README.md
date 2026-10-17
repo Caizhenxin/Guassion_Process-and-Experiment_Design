@@ -35,7 +35,47 @@ Objective（python）全部本地运行，无 LLM 调用。Token 只花在两处
 
 ---
 
-## 3. ⚠️ 权威时序口径：`deadline = T + W`（不是 `T + 200 + W`）
+## 3. ⚠️ 时序口径：`deadline = T + W`（**仅对 v2 成立**，见 §3.0）
+
+### 3.0 ❗作用域警告（2026-10-14）：本节口径只对 **v2** 成立
+
+本节全部证据、以及本目录的历史实现 `spe_design_model.py`，都建立在**旧程序**
+`Exp_Design_Formal_v2.m` 上。当前程序 `1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`
+**v4.1 改了 W 的定义**：
+
+| | v2（本目录历史实现） | v4.1（当前程序） |
+|---|---|---|
+| **W 的语义** | 掩蔽**之后**的反应窗口长度 | **自刺激 onset 起算的截止时刻** |
+| **deadline** | `T + W_legacy` | `onset + W`（程序 L18 原文） |
+| **窗口何时打开** | `T + 200 ms`（`window_open_ms`） | **onset 即开**（L14–17：刺激期也采集按键） |
+| **掩蔽后可按键时长** | `W_legacy − 200` | `W − T − 200`（程序 L22） |
+| **同一物理量** | `T + W_legacy` | `= W` ✅ |
+
+**换算：`W_current = T + W_legacy`，`W_legacy = W_current − T`。**
+
+❗ 直接把 v4.1 的设计点喂进本目录历史函数会**静默出错**：
+
+1. `deadline_ms` / `design_to_params` 的 `deadline_s`、`M_ms`、`boundary_a(M_ms)`
+   **全部多算 `T`**。D4 网格（T = 33.33–249.98 ms、W = 799.98–1799.9 ms）上相对误差
+   **1.85%–31.25%**，**最大误差落在最短 deadline（T=249.98, W=799.98）**，
+   且**固定 W 时随 T 单调增** ⇒ 一个纯口径错误会伪装成 **T 的主效应**。
+2. ⚠️ `apply_window_gate` **不是删行，而是把早反应"抬"到窗口开启时刻**
+   （`rt[mask_ok] = np.maximum(rt[mask_ok], floor)`、`floor = T + 0.2 s`，L326–330）：
+   任何 `rt < T + 200 ms` 的 v4.1 反应被**静默改写成 `T + 200 ms`**，刺激期内按键
+   （D5 存在的全部理由：实际呈现时长 = min(T, RT)）**不再可被识别**，并人为复现出
+   legacy 的"最小 RT ≈ T + 203 ms"伪迹 ⇒ **在 v4.1 数据上不得施加该门控**。
+3. legacy 的 D2 闸门（§4：`min RT − T` = 202.8–203.1 ms、intercept 203.0）只是 v2 在
+   `T + 200` 才开窗口的产物，**在 v4.1 数据上不存在**，不得当作验收判据。
+
+**桥与守卫**：`spe_timing_convention.py` —— 口径标签（`LEGACY`/`CURRENT`）、
+双向换算（`legacy_to_current_W`/`current_to_legacy_W`）、
+`current_postmask_pressable_ms`、程序 L22 启动自检的同款守卫 `assert_current_design`、
+误用失真记账 `misuse_distortion`、以及 v4.1 的**恒等**门控 `apply_current_window_gate`。
+自测 `check_timing_convention.py` **25/25**，含上面两条失真的可复现证据与**源码锚点**
+（程序 6 处 + 本目录 3 处字句必须仍存在，防引用漂移）。
+
+**本节历史结论一律保留、不修改** —— `deadline = T + W` 与 8 组实测证据是**旧数据诊断的证据**，
+改动会让证据失效；口径差异由桥显式承担。
 
 ### 证据一：实验源码直接写明
 
@@ -215,10 +255,22 @@ W 有 5 个水平、有效窗口时长也有 5 个水平（100/400/600/900/1300�
 
 | 文件 | 作用 |
 |---|---|
-| `spe_design_model.py` | 设计 → DDM 参数映射（修正版）+ **唯一权威时序口径** |
+| `spe_design_model.py` | 设计 → DDM 参数映射（修正版）+ 时序口径（**v2 口径**，见 §3.0） |
 | `spe_runner.py` | 合成 Experiment Runner（虚拟被试，含 lapse 接口，默认关闭） |
 | `check_simulator.py` | 验收：D1 设计结构 / D2 RT 下界 / D3 截尾伪影 / D4 验收 / D5 deadline 回归 / D6 sv / D7 lapse |
 | `diag_observed_rt.py` | 观测 RT 分布诊断（定位 deadline 口径的决定性证据） |
+| `spe_timing_convention.py` | **时序口径桥** v2 ⇄ v4.1：换算 + L22 守卫 + 误用失真记账 + v4.1 恒等门控 |
+| `check_timing_convention.py` | 桥的自测（25/25）：含误用失真与门控损害的可复现证据 + 源码锚点 |
+| `stage9_inner.py` | **Stage 9 内环评估器**（M-T3 / M-T1 双分支 + CRN 预计算表）：`inner_eval(T, W, n_rep, …)` 一次给出 `se` / `se_rho` / `se_sd` / `cond` / `n_bad` / 遗漏率 / 正确率 / `rt_ms`。**收秒**（毫秒→秒只在调用方的 `levels_sec()` 里换算） |
+| `check_stage9_inner.py` | 内环自测（A–F 六组，**两档都 29/29**）：M-T3 对 `design_fim.design_se` 逐位复现、M-T1 对 `1_Code/DDM_Core/_scratch/check_mt1_fim.py` 逐位复现、`rho = 1` 在同一批试次上与 M-T3 一致；B1b/B1c/B1d 把 `cond` / `n_bad` 钉在与 `design_fim` 同源的 `likelihood.fim_diagnostics` 上 |
+| `stage9_objective.py` | **冻结 Objective**（事前登记 + `sha256` 哈希锁定）：`FROZEN`（含 `A_bands`、`rho_mu` / `rho_sigma`、遗漏带 `[0.05, 0.20]`、四道闸门）、`assert_frozen()`、`component_A/B/C`、`evaluate()`、`pareto_front()`。`SPEC_SHA256 = cf5b57e0…` |
+| `stage9_loop.py` | **优化循环**（**917 行**；D58 起 `arm_bo` 的 `n_init` 下限为 1；D59 起标定种子由 `{名称}#noise{k}` 导出（独立重抽）并落盘 `seeds`/`family`，且落盘件自报裁决规则版本（`VERDICT_LOGIC` / `payload["verdict_logic"]`），预算 ≤ `n_init` 时自报「退化为随机采样」）：174 个可行设计的有限候选集 + 按需 CRN 缓存 + 四路消融（grid / random / manual / bo）+ Pareto 前沿 + 噪声标定。CRN 种子由**设计内容**（名字的 sha256）导出。**D54/D55 起**：`OMISSION_BAND`（与 `FROZEN["omission_band"]` 同源）把遗漏率带当**可行域约束**执行，`CRITERION = ("A","B")` —— 裁决只建立在 `(A)/(B)` 上 ❗ **D57**：`compare_arms` 在 `A_best = inf` 时**不再参与排序**（`has_feasible_point` + 三分支；旧码会把「没有数据」印成「大幅领先」），`main()` 非有限值印 `—`；键名 `B_at_best_A` → **`B_at_A_best`** D60 起判据带宽 = `2·√2·sd`（`DIFF_BAND_FACTOR`，旧值偏宽松 1.41 倍） |
+| `check_stage9_loop.py` | 循环自测（A–H 八组，**53/53**）：含"毫秒当秒"的回归钉（B2）、CRN 与候选表下标无关、四臂同预算有牙齿、**E/E′ 组的裁决纪律**（不可分辨 / 被支配 / 权衡 / 反向对照 + D54 约束的正反例 + 锚点是否落在带内的硬读数） ❗ **D57** 新增 **E8 组**（1 有 + 3 无 ⇒ 头名不得写「最好」；`inf` 臂 ⇒「不参与排序」；四臂全无 ⇒「没有数据」；回归件 = 真对照时仍写「(A,B) 上最好」并注明几条臂无点）与 **H4**（同一量只能有一个键名）⇒ **465 行、41/41、exit 0、44.1 s**；❗ **D58** 再加 **E 组·续**（预算 1/2/3 的取点数必须逐字相等）与 **H5/H5b**（`n_init` 下限与退化提示的静态钉子）；❗ **D59** 再加 **E10a–E10d**（`ΔA` 在带内但 `ΔB` 超带）、**H6/H6b**（标定种子独立重抽与 `seeds`/`family`）、**H7**（裁决规则版本） D60 新增 E11/E11a/E11b/E11c + H8（带宽必须是 `2·√2·sd`） |
+| `check_stage9.py` | **Stage 9 汇总自测**（**202 行**）：先把 W1–W4（规格哈希、`assert_frozen()`、**七个文件**在两份文档里都登记、文件在磁盘上）与 S1–S5 五个子自测跑一遍，**以子进程退出码为权威**；`--quick` 只跑 W 组 ❗ **D57**：`STAGE9_FILES` 由五个改**七个**（新增 `stage9_report.py`、`check_stage9_report.py`），新增 **S5**（报告生成器自测，`quick` 与全套**都跑**，因为它是交付件的唯一守卫）；并修掉 `parse_counts()` 的第二个正则（`共\s*(\d+)\s*项，未通过` 认不出「共 42 项**判据**，未通过 0 项」，聚合表计数列因此长期显示 `(未解析到计数)` —— 空计数看起来像 0 项）⇒ **202 行**、`--quick` 跑 W 组 5/5、计数列现显示 `42/42 通过` |
+| `stage9_report.py` | **Stage 9 落盘报告生成器**（**554 行**）：`build(payload_path) -> str`；D59 起 §2 印出标定种子与 `n_repeats`、§7 的「几倍带子」自带限制句、§5 印落盘件自报的裁决规则版本（缺失 ⇒ 先警） + CLI；头部写 payload 的路径/字节数/`sha256[:16]`；`_f()` 把 `inf`/`nan`/缺失一律印 `—`；八节（运行设置与作用域 / 噪声标定 / 可行域构成 / 四路曲线 / 四臂裁决 / Pareto 前沿 / 推荐点与「D4 离最优多远」/ 四条局限）。**报告必须由落盘件生成**，不得手写 D60 起 §5 **自己重算判词**并与转印比对、§7 新增选择偏差段 D61 起 §7 新增「身份是否唯一」段（可行集铺开度 + 不可分辨计数） D62 起 §3/§8 把「病态比例是 `n_fim` 的产物」改为「结构性质」、§7 补锚点种子均值实测 |
+| `_probe_crn_pairing.py` | 「共享流 CRN 配对」收益实测（D69）：同一份 12 个种子下 3 个可行设计 + 锚点（`n_fim = 12`）⇒ `ρ` **+0.122 … +0.783**、实测系数 **1.316 … 2.650** ⇒ 判据带只收窄 **1.07×–2.15×**，故 `2·√2·sd` 不升格 |
+| `check_stage9_report.py` | 报告生成器自测（R1–R5 五组，**466 行、63/63、exit 0**）：真实落盘件端到端 + 合成 payload 覆盖同一路径 + `_f`/`_dominates` 单元 + 作用域 ⚠️ 分支 + `inf` 臂渲染 + CLI 退出码；**D57 后自查补两条牙齿**：**R1l** 交付件 `stage9_report.md` 与生成器现输出逐字相同、**R2i** payload 路径渲染与调用方式无关（`_canonical()`）；❗ **D58** 再加 **R1m**（全文不得把 `n_bad` 说成「坏试次」）、**R2j/R2j-2**（分类必须同时认 `cond` 与 `n_bad` 两段闸门文本，正例 + 反向对照）、**R1p-h/R1p-i**（`n_repeats < 4` 时报告必须先警 `sd` 自身的不确定度）⇒ **47/47**；❗ **D59** 再加 **R1p-j/k/l**（标定种子的缺失/存在/限制句）与 **R1p-m/R1p-n**（裁决规则版本） D60 新增 R1p-o/p/q/r/r2 D61 新增 R1p-s/s2/s3 与 R1p-r3 D62 新增 R1p-t 并改写 R1p-r2；D64 新增 R1p-u（同方差的实测支持） |
+| `stage9_report.md` | **落盘报告**（**133 行**，由 `stage9_report.py` 从 `stage9_payload_nfim1_budget12.json`（346512 字节）生成）：含 payload 哈希、预算与作用域、四路曲线、四臂裁决、Pareto 前沿、「D4 离最优多远」 |
 | `README.md` | 本文件 |
 
 **输出**：`2_Data/Generate_Data/AutoRA_SPE/d1…d8*.csv`

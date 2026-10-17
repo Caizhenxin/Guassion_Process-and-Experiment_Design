@@ -142,7 +142,7 @@ def main() -> int:
             dur = T if (rt is None or rt >= T) else T
             cols = [args.group, s, 2, 24, 2, "practice", trial, P, T, W, shape, label, key,
                     None if rt is None else key, None if rt is None else round(rt, 3),
-                    0 if rt is None else (1 if rng.random() < 0.75 else 0),
+                    None if rt is None else (1 if rng.random() < 0.75 else 0),
                     0, 0, 1 if rt is None else 0, 1 if rt is not None else 0,
                     round(t0, 6), round(t0 + dur, 6), round(t0 + dur, 6),
                     round(dur, 6), round(dur / FLIP)]

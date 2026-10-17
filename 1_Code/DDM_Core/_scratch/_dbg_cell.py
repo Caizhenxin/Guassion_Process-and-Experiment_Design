@@ -1,4 +1,4 @@
-﻿import sys, os, numpy as np
+import sys, os, numpy as np
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, os.path.join(os.getcwd(), "_scratch"))
 import cellmean as cm

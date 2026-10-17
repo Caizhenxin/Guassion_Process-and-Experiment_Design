@@ -1,0 +1,46 @@
+[合成] -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\make_fake_pilot.py C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_s_yguq76 --n-subjects 2 --group 1 --seed 7 --n-rep 2
+============================================================================================
+Stage 8 全量运行器
+============================================================================================
+  ✅ exp_group1_subject1.txt：被试 1（组 1）94 试次、剔抢按 2、t0 上界 0.241
+  ✅ exp_group1_subject2.txt：被试 2（组 1）94 试次、剔抢按 2、t0 上界 0.219
+
+可用被试 2 名；被拒 0 份
+预估（实测标定：48 试次/人、`n_x=41`、单次似然 34 ms；本次人均 94 试次 ⇒ 单次评估 ×1.33）
+    人数 2、n_em 2、n_draws 8、模型 2 个、PPC 抽取 4、超参数法 analytic
+    层级拟合 ≈ 1.6 min（8 次冷启动众数搜索）
+    超参数 Hessian：**解析法（Louis）⇒ 0 次众数搜索**、只剩矩阵运算（主计划 D47）
+    LOO 矩阵 ≈ 3.3 min、PPC ≈ 0.1 min
+    ⇒ 合计 ≈ **0.08 h**
+
+============================================================================================
+组 1：2 人
+============================================================================================
+  [M-T1] rho_free=True 开始（2 人、n_em=2、n_draws=8、超参数法 analytic）…
+python : D:\Conda\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtra
+ct
+所在位置 行:1 字符: 160
++ ... NG="utf-8"; python -u 1_Code\DDM_Core\stage8_run.py --synthetic 2 --s ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (D:\Conda\Lib\si...red in subtract:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  df = [f_eval - f0 for f_eval in f_evals]
+  [M-T1] 完成 317.5s：ELPD 0.000 ± nan；p_loo -706.37；k_max nan；越界 0/2；不可用 0；失败 2
+  [M-T3] rho_free=False 开始（2 人、n_em=2、n_draws=8、超参数法 analytic）…
+  [M-T3] 完成 208.2s：ELPD 0.000 ± nan；p_loo -2900.54；k_max nan；越界 0/2；不可用 0；失败 2
+D:\Conda\Lib\site-packages\numpy\_core\fromnumeric.py:4268: RuntimeWarning: Degrees of freedom <= 0 for slice
+  return _methods._var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+D:\Conda\Lib\site-packages\numpy\_core\_methods.py:180: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+D:\Conda\Lib\site-packages\numpy\_core\_methods.py:214: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+
+============================================================================================
+报告已写出：
+  D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\_s8run_an\stage8_report.md
+  D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\_s8run_an\stage8_results.json
+总耗时 532.9s
+（合成数据在临时目录 C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_s_yguq76，可手动清理）

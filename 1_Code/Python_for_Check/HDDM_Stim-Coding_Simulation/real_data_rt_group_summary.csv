@@ -1,4 +1,4 @@
-﻿groupID,label,n_subjects,rt_mean_mean,rt_mean_std,rt_median_median,rt_std_median,rt_5pct_median,rt_95pct_median,rt_min_of_max,T,W,TW_max
+groupID,label,n_subjects,rt_mean_mean,rt_mean_std,rt_median_median,rt_std_median,rt_5pct_median,rt_95pct_median,rt_min_of_max,T,W,TW_max
 1,D1,11,259.3,8.1,246.7,31.1,233.2,324.7,333.7,0.0,0.3,0.3
 2,D2,12,435.0,88.8,439.0,97.1,233.8,619.0,645.9,0.0,0.6,0.6
 3,D3a,10,405.6,84.3,409.5,115.0,234.2,604.8,635.4,0.0,0.6,0.6

@@ -1,4 +1,4 @@
-﻿P,T_ms,W_ms,M_ms,is_existing,pred_spe_rt_ms,uncertainty,utility_uncertainty_plus_abs_pred
+P,T_ms,W_ms,M_ms,is_existing,pred_spe_rt_ms,uncertainty,utility_uncertainty_plus_abs_pred
 0,30,1500,1530,False,65.60545802492342,13.857637255477034,30.25900176170789
 0,80,1500,1580,False,65.6055053031748,13.857565681604164,30.258942007397863
 0,100,1500,1600,False,65.60552257636988,13.857539774266103,30.25892041835857

@@ -1,4 +1,4 @@
-﻿import sys, numpy as np
+import sys, numpy as np
 sys.path.insert(0, ".")
 sys.path.insert(0, "../Experiment")
 import likelihood as L, read_formal_data as R

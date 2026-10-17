@@ -1,4 +1,4 @@
-﻿design: 576 trials,  T=[np.float64(0.0333), np.float64(0.0833), np.float64(0.14999), np.float64(0.24998)],  W=[np.float64(0.79998), np.float64(1.1999), np.float64(1.7999)]
+design: 576 trials,  T=[np.float64(0.0333), np.float64(0.0833), np.float64(0.14999), np.float64(0.24998)],  W=[np.float64(0.79998), np.float64(1.1999), np.float64(1.7999)]
 
 [A] rho=1 嵌套一致性（单阶段数据）
     ll_single      = -463.157868

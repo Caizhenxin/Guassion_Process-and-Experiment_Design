@@ -1,4 +1,4 @@
-﻿generator               omission  accuracy   meanRT  P(tau<T)   P(RT<T)    sec
+generator               omission  accuracy   meanRT  P(tau<T)   P(RT<T)    sec
 ------------------------------------------------------------------------------
 analytic (exact)          0.3197    0.8254   759.17    0.0524    0.0000  70.48
 Euler dt=0.0002           0.3186    0.8080   753.11    0.0523    0.0000   1.57   |dacc|=0.0174 dom=0.0012 dRT=6.1ms

@@ -1,0 +1,230 @@
+======================================================================
+Stage 9 优化循环（有限候选集 + 共享 CRN + 四路消融）
+冻结 Objective：spec=1.0 sha256=cf5b57e05bbe1ea3…
+======================================================================
+候选设计空间：174 个可行设计（另有 186 个被 C1/C3 否决）
+
+[噪声标定] 锚点设计在不同种子下重算…
+  [eval #2] r12 T=4档 W=3档  5.4s
+  锚点 'T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12'：A=0.3858 B=7.4824
+[噪声标定] J = ['9.5112', '13.6474']
+[噪声标定] sd_J = 2.9247 ⇒ alpha = 8.554e+00
+[噪声标定] sd_A = 0.0025、sd_B = 0.1332（D54 的判据用这两个）、sd_omission = 0.02210、sd_C = 2.9401
+
+[臂 grid] 预算 12…
+  [eval #4] r24 T=3档 W=2档  3.3s
+  [eval #5] r24 T=3档 W=2档  4.4s
+  [eval #6] r24 T=3档 W=2档  5.1s
+  [eval #7] r24 T=3档 W=2档  5.3s
+  [eval #8] r24 T=3档 W=2档  4.6s
+  [eval #9] r16 T=3档 W=3档  5.0s
+  [eval #10] r16 T=3档 W=3档  5.4s
+  [eval #11] r18 T=4档 W=2档  4.6s
+  [eval #12] r18 T=4档 W=2档  5.7s
+  [eval #13] r18 T=4档 W=2档  5.3s
+  [eval #14] r12 T=4档 W=3档  5.1s
+  [eval #15] r8 T=6档 W=3档  6.4s
+[臂 grid] 完成：可行 3/12、best A = 0.3897（参考 best J = 0.4306）（60.3s）
+
+[臂 random] 预算 12…
+  [eval #16] r24 T=3档 W=2档  4.7s
+  [eval #17] r18 T=4档 W=2档  4.1s
+  [eval #18] r12 T=4档 W=3档  6.3s
+  [eval #19] r16 T=3档 W=3档  5.4s
+  [eval #20] r12 T=4档 W=3档  5.2s
+  [eval #21] r12 T=6档 W=2档  5.1s
+  [eval #22] r18 T=4档 W=2档  4.9s
+  [eval #23] r18 T=4档 W=2档  4.6s
+  [eval #24] r24 T=3档 W=2档  5.0s
+  [eval #25] r24 T=3档 W=2档  3.9s
+  [eval #26] r12 T=4档 W=3档  5.8s
+[臂 random] 完成：可行 5/12、best A = 0.3881（参考 best J = 0.4203）（55.0s）
+
+[臂 manual] 预算 12…
+  [eval #27] r24 T=3档 W=2档  3.5s
+  [eval #28] r24 T=3档 W=2档  4.2s
+  [eval #29] r24 T=3档 W=2档  4.6s
+  [eval #30] r24 T=3档 W=2档  4.7s
+  [eval #31] r16 T=3档 W=3档  4.8s
+  [eval #32] r16 T=3档 W=3档  4.4s
+  [eval #33] r16 T=3档 W=3档  4.2s
+  [eval #34] r16 T=3档 W=3档  4.7s
+  [eval #35] r16 T=3档 W=3档  4.7s
+  [eval #36] r16 T=3档 W=3档  5.0s
+  [eval #37] r16 T=3档 W=3档  5.7s
+[臂 manual] 完成：可行 2/12、best A = 0.3989（参考 best J = 0.5077）（50.5s）
+
+[臂 bo] 预算 12…
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dimension 0 of parameter k1__constant_value is close to the specified lower bound 0.001. Decreasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dimension 0 of parameter k1__constant_value is close to the specified lower bound 0.001. Decreasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dimension 0 of parameter k1__constant_value is close to the specified lower bound 0.001. Decreasing the bound and calling fit again may find a better value.
+  warnings.warn(
+  [eval #38] r24 T=3档 W=2档  3.8s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dimension 0 of parameter k1__constant_value is close to the specified lower bound 0.001. Decreasing the bound and calling fit again may find a better value.
+  warnings.warn(
+[臂 bo] 完成：可行 4/12、best A = 0.5113（参考 best J = 0.7363）（4.4s）
+  [eval #39] r24 T=3档 W=2档  3.5s
+  [eval #40] r24 T=3档 W=2档  3.9s
+  [eval #41] r24 T=3档 W=2档  3.3s
+  [eval #42] r24 T=3档 W=2档  3.7s
+  [eval #43] r24 T=3档 W=2档  3.5s
+  [eval #44] r24 T=3档 W=2档  5.1s
+  [eval #45] r24 T=3档 W=2档  4.7s
+  [eval #46] r24 T=3档 W=2档  3.7s
+  [eval #47] r24 T=3档 W=2档  4.1s
+  [eval #48] r24 T=3档 W=2档  4.7s
+  [eval #49] r24 T=3档 W=2档  3.9s
+  [eval #50] r24 T=3档 W=2档  3.9s
+  [eval #51] r24 T=3档 W=2档  3.3s
+  [eval #52] r24 T=3档 W=2档  4.3s
+  [eval #53] r24 T=3档 W=2档  3.8s
+  [eval #54] r24 T=3档 W=2档  4.6s
+  [eval #55] r24 T=3档 W=2档  5.1s
+  [eval #56] r24 T=3档 W=2档  3.7s
+  [eval #57] r24 T=3档 W=2档  4.3s
+  [eval #58] r24 T=3档 W=2档  5.0s
+  [eval #59] r24 T=3档 W=2档  4.4s
+  [eval #60] r24 T=3档 W=2档  4.3s
+  [eval #61] r24 T=3档 W=2档  5.1s
+  [eval #62] r24 T=3档 W=2档  3.9s
+  [eval #63] r24 T=3档 W=2档  4.7s
+  [eval #64] r24 T=3档 W=2档  3.9s
+  [eval #65] r24 T=3档 W=2档  5.1s
+  [eval #66] r24 T=3档 W=2档  4.7s
+  [eval #67] r24 T=3档 W=2档  4.2s
+  [eval #68] r24 T=3档 W=2档  4.3s
+  [eval #69] r24 T=3档 W=2档  4.2s
+  [eval #70] r24 T=3档 W=2档  3.4s
+  [eval #71] r24 T=3档 W=2档  3.8s
+  [eval #72] r24 T=3档 W=2档  4.7s
+  [eval #73] r24 T=3档 W=2档  5.1s
+  [eval #74] r24 T=3档 W=2档  4.0s
+  [eval #75] r24 T=3档 W=2档  4.0s
+  [eval #76] r24 T=3档 W=2档  3.8s
+  [eval #77] r24 T=3档 W=2档  3.8s
+  [eval #78] r24 T=3档 W=2档  3.8s
+  [eval #79] r24 T=3档 W=2档  4.3s
+  [eval #80] r24 T=3档 W=2档  4.8s
+  [eval #81] r24 T=3档 W=2档  4.7s
+  [eval #82] r24 T=3档 W=2档  4.0s
+  [eval #83] r24 T=3档 W=2档  4.9s
+  [eval #84] r24 T=3档 W=2档  4.1s
+  [eval #85] r24 T=3档 W=2档  4.0s
+  [eval #86] r24 T=3档 W=2档  4.9s
+  [eval #87] r24 T=3档 W=2档  4.5s
+  [eval #88] r24 T=3档 W=2档  3.9s
+  [eval #89] r24 T=3档 W=2档  4.3s
+  [eval #90] r24 T=3档 W=2档  4.5s
+  [eval #91] r24 T=3档 W=2档  3.8s
+  [eval #92] r24 T=3档 W=2档  4.9s
+  [eval #93] r24 T=3档 W=2档  4.6s
+  [eval #94] r24 T=3档 W=2档  4.8s
+  [eval #95] r24 T=3档 W=2档  4.0s
+  [eval #96] r24 T=3档 W=2档  3.9s
+  [eval #97] r24 T=3档 W=2档  4.5s
+  [eval #98] r16 T=3档 W=3档  5.0s
+  [eval #99] r16 T=3档 W=3档  4.8s
+  [eval #100] r16 T=3档 W=3档  5.0s
+  [eval #101] r16 T=3档 W=3档  4.6s
+  [eval #102] r16 T=3档 W=3档  4.4s
+  [eval #103] r16 T=3档 W=3档  4.8s
+  [eval #104] r16 T=3档 W=3档  5.1s
+  [eval #105] r16 T=3档 W=3档  4.6s
+  [eval #106] r16 T=3档 W=3档  5.6s
+  [eval #107] r16 T=3档 W=3档  5.1s
+  [eval #108] r16 T=3档 W=3档  4.5s
+  [eval #109] r16 T=3档 W=3档  5.2s
+  [eval #110] r16 T=3档 W=3档  5.1s
+  [eval #111] r16 T=3档 W=3档  4.5s
+  [eval #112] r16 T=3档 W=3档  5.3s
+  [eval #113] r16 T=3档 W=3档  5.3s
+  [eval #114] r16 T=3档 W=3档  4.7s
+  [eval #115] r16 T=3档 W=3档  5.2s
+  [eval #116] r16 T=3档 W=3档  5.1s
+  [eval #117] r16 T=3档 W=3档  5.0s
+  [eval #118] r16 T=3档 W=3档  5.9s
+  [eval #119] r16 T=3档 W=3档  4.7s
+  [eval #120] r18 T=4档 W=2档  4.0s
+  [eval #121] r18 T=4档 W=2档  4.6s
+  [eval #122] r18 T=4档 W=2档  4.4s
+  [eval #123] r18 T=4档 W=2档  4.4s
+  [eval #124] r18 T=4档 W=2档  4.7s
+  [eval #125] r18 T=4档 W=2档  4.9s
+  [eval #126] r18 T=4档 W=2档  4.7s
+  [eval #127] r18 T=4档 W=2档  4.2s
+  [eval #128] r18 T=4档 W=2档  4.3s
+  [eval #129] r18 T=4档 W=2档  4.6s
+  [eval #130] r18 T=4档 W=2档  3.9s
+  [eval #131] r18 T=4档 W=2档  4.8s
+  [eval #132] r18 T=4档 W=2档  5.1s
+  [eval #133] r18 T=4档 W=2档  4.1s
+  [eval #134] r18 T=4档 W=2档  4.3s
+  [eval #135] r18 T=4档 W=2档  4.8s
+  [eval #136] r18 T=4档 W=2档  3.8s
+  [eval #137] r18 T=4档 W=2档  4.2s
+  [eval #138] r18 T=4档 W=2档  5.2s
+  [eval #139] r18 T=4档 W=2档  5.0s
+  [eval #140] r18 T=4档 W=2档  3.7s
+  [eval #141] r18 T=4档 W=2档  4.4s
+  [eval #142] r18 T=4档 W=2档  4.2s
+  [eval #143] r18 T=4档 W=2档  3.8s
+  [eval #144] r18 T=4档 W=2档  4.8s
+  [eval #145] r18 T=4档 W=2档  5.2s
+  [eval #146] r18 T=4档 W=2档  3.9s
+  [eval #147] r18 T=4档 W=2档  4.5s
+  [eval #148] r18 T=4档 W=2档  5.0s
+  [eval #149] r18 T=4档 W=2档  3.9s
+  [eval #150] r18 T=4档 W=2档  4.2s
+  [eval #151] r18 T=4档 W=2档  6.0s
+  [eval #152] r18 T=4档 W=2档  4.4s
+  [eval #153] r18 T=4档 W=2档  4.4s
+  [eval #154] r18 T=4档 W=2档  4.1s
+  [eval #155] r18 T=4档 W=2档  4.5s
+  [eval #156] r18 T=4档 W=2档  4.7s
+  [eval #157] r18 T=4档 W=2档  4.5s
+  [eval #158] r18 T=4档 W=2档  5.2s
+  [eval #159] r18 T=4档 W=2档  4.7s
+  [eval #160] r18 T=4档 W=2档  4.7s
+  [eval #161] r18 T=4档 W=2档  4.9s
+  [eval #162] r12 T=4档 W=3档  5.4s
+  [eval #163] r12 T=4档 W=3档  5.6s
+  [eval #164] r12 T=4档 W=3档  6.0s
+  [eval #165] r12 T=4档 W=3档  5.2s
+  [eval #166] r12 T=4档 W=3档  5.1s
+  [eval #167] r12 T=4档 W=3档  5.6s
+  [eval #168] r12 T=4档 W=3档  5.6s
+  [eval #169] r12 T=4档 W=3档  5.9s
+  [eval #170] r12 T=4档 W=3档  5.6s
+  [eval #171] r12 T=4档 W=3档  5.2s
+  [eval #172] r12 T=4档 W=3档  6.0s
+  [eval #173] r12 T=4档 W=3档  5.7s
+  [eval #174] r12 T=4档 W=3档  5.8s
+  [eval #175] r12 T=6档 W=2档  5.4s
+  [eval #176] r12 T=6档 W=2档  5.2s
+
+======================================================================
+总评估次数 176、内环耗时 808s、墙钟 819s
+D54 遗漏率约束带 = [0.05, 0.2] ⇒ 缓存里被判不可行的 22 个、可行 27 个
+判据只建立在 (A,B) 上；噪声带 2·sd_A = 0.0050、2·sd_B = 0.2665（2·sd_J = 5.8494 仅参考）
+  random  A_best = 0.3881、B@A_best = 8.7653、可行  5、参考 best J = 0.4203
+            与次好臂 `grid` **不可分辨**（ΔA = 0.0016 ≤ 噪声带 0.0050）⇒ 不得宣称最好
+  grid    A_best = 0.3897、B@A_best = 8.6711、可行  3、参考 best J = 0.4306
+            与最好臂**不可分辨**（ΔA = 0.0016 ≤ 噪声带 0.0050）
+  manual  A_best = 0.3989、B@A_best = 7.8768、可行  2、参考 best J = 0.5077
+            被 `random` **支配**（ΔA = 0.0108 > 0.0050、ΔB = -0.8885 < -0.2665）
+  bo      A_best = 0.5113、B@A_best = 8.8142、可行  4、参考 best J = 0.7363
+            在 **(A) 上显著更差**（ΔA = 0.1232 > 噪声带 0.0050），而 B 分量不可分辨（ΔB = 0.0489 落在 ±0.2665 内）⇒ **不是**「两者不可分辨」，只是差距落在 B 上看不出来
+
+推荐点（D54：(A) 最小）：A = 0.3881  B = 8.7653  遗漏 = 0.168  J(参考) = 0.4203
+  T[33.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+参考点（J 最小，受 (C) 支配）：A = 0.3881  J = 0.4203
+  T[33.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+锚点 D4：A = 0.3858  B = 7.4824  C = 10.3827  J = 10.8827  可行 = False（离推荐点 ΔA = -0.0023）
+Pareto 前沿 3 个点；前 5：
+  A=0.3881 B=8.7653 J=0.4203  T[33.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.5113 B=8.8142 J=0.7363  T[83.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.6777 B=8.9425 J=1.1589  T[33.33/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r16
+
+已写出 _scratch_stage9_loop_smoke12_d54.json

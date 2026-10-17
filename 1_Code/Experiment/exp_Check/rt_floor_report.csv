@@ -1,4 +1,4 @@
-﻿folder_group,in_group,n_subj,P,T_ms,W_ms,deadline_ms,n_formal,n_rt,omission_pct,min_rt_ms,p1_ms,median_ms,max_rt_ms,lt_T,lt_floor,near_floor,gt_deadline,gt_deadline_plus60,pct_near_floor
+folder_group,in_group,n_subj,P,T_ms,W_ms,deadline_ms,n_formal,n_rt,omission_pct,min_rt_ms,p1_ms,median_ms,max_rt_ms,lt_T,lt_floor,near_floor,gt_deadline,gt_deadline_plus60,pct_near_floor
 1,1,11,0,30,300,329,5720,1625,71.6,232.5,232.9,247.7,333.7,0,0,1191,31,0,73.3
 2,2,12,0,30,600,630,6240,2868,54.0,232.9,233.1,442.7,645.9,0,0,712,11,0,24.8
 3,3,10,120,30,600,630,5200,3222,38.0,232.5,233.0,362.0,635.4,0,0,1098,23,0,34.1

@@ -1,0 +1,71 @@
+﻿======================================================================
+Stage 9 优化循环（有限候选集 + 共享 CRN + 四路消融）
+冻结 Objective：spec=1.0 sha256=cf5b57e05bbe1ea3…
+======================================================================
+候选设计空间：174 个可行设计（另有 186 个被 C1/C3 否决）
+
+[噪声标定] 锚点设计在不同种子下重算…
+  [eval #2] r12 T=4档 W=3档  41.2s
+  锚点 'T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12'：A=0.3384 B=7.7075
+[噪声标定] J = ['10.3116', '9.7379', '9.8545', '11.4774', '10.1554', '10.0739']
+[噪声标定] sd_J = 0.6272 ⇒ alpha = 3.934e-01
+[噪声标定] sd_A = 0.0086、sd_B = 0.0509（D54 的判据用这两个）、sd_omission = 0.00504、sd_C = 0.6430
+
+[臂 grid] 预算 12…
+  [eval #8] r24 T=3档 W=2档  25.6s
+  [eval #9] r24 T=3档 W=2档  28.1s
+  [eval #10] r24 T=3档 W=2档  29.4s
+  [eval #11] r24 T=3档 W=2档  31.1s
+  [eval #12] r24 T=3档 W=2档  28.3s
+  [eval #13] r16 T=3档 W=3档  38.6s
+  [eval #14] r16 T=3档 W=3档  42.6s
+  [eval #15] r18 T=4档 W=2档  33.6s
+  [eval #16] r18 T=4档 W=2档  36.1s
+  [eval #17] r18 T=4档 W=2档  38.0s
+  [eval #18] r12 T=4档 W=3档  39.5s
+  [eval #19] r8 T=6档 W=3档  53.9s
+[臂 grid] 完成：可行 3/12、best A = 0.3874（参考 best J = 0.5802）（424.8s）
+
+[臂 random] 预算 12…
+  [eval #20] r24 T=3档 W=2档  38.9s
+  [eval #21] r18 T=4档 W=2档  31.5s
+  [eval #22] r12 T=4档 W=3档  39.6s
+  [eval #23] r16 T=3档 W=3档  37.5s
+  [eval #24] r12 T=4档 W=3档  45.2s
+  [eval #25] r12 T=6档 W=2档  42.5s
+  [eval #26] r18 T=4档 W=2档  36.0s
+  [eval #27] r18 T=4档 W=2档  30.4s
+  [eval #28] r24 T=3档 W=2档  27.7s
+  [eval #29] r24 T=3档 W=2档  29.4s
+  [eval #30] r12 T=4档 W=3档  40.3s
+[臂 random] 完成：可行 5/12、best A = 0.3801（参考 best J = 0.5505）（399.2s）
+
+[臂 manual] 预算 12…
+  [eval #31] r24 T=3档 W=2档  25.3s
+  [eval #32] r24 T=3档 W=2档  25.9s
+  [eval #33] r24 T=3档 W=2档  27.3s
+  [eval #34] r24 T=3档 W=2档  28.1s
+  [eval #35] r16 T=3档 W=3档  31.0s
+  [eval #36] r16 T=3档 W=3档  34.5s
+  [eval #37] r16 T=3档 W=3档  35.9s
+  [eval #38] r16 T=3档 W=3档  32.7s
+  [eval #39] r16 T=3档 W=3档  32.8s
+  [eval #40] r16 T=3档 W=3档  35.0s
+  [eval #41] r16 T=3档 W=3档  34.1s
+[臂 manual] 完成：可行 0/12、best A = inf（参考 best J = inf）（342.6s）
+
+[臂 bo] 预算 12…
+python : D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value foun
+d for dimension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and c
+alling fit again may find a better value.
+所在位置 行:1 字符: 227
++ ... NG="utf-8"; python -u "1_Code\AutoRA_SPE\stage9_loop.py" --budget 12  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (D:\Conda\Lib\si...a better value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:440: ConvergenceWarning: The optimal value found for dim
+ension 4 of parameter k2__length_scale is close to the specified lower bound 0.01. Decreasing the bound and calling fit
+ again may find a better value.
+  warnings.warn(

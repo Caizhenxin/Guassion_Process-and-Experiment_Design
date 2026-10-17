@@ -1,4 +1,4 @@
-﻿file,folder_group,folder_subject,in_group,in_subject,T_ms,W_ms,n_formal,rule_pattern_observed,rule_pattern_expected,pattern_ok,match_key,link,acc_match,acc_nonmatch,inverted_flag,group_number_mismatch
+file,folder_group,folder_subject,in_group,in_subject,T_ms,W_ms,n_formal,rule_pattern_observed,rule_pattern_expected,pattern_ok,match_key,link,acc_match,acc_nonmatch,inverted_flag,group_number_mismatch
 EXP_data_group1_1.csv,1,1,1,1,30,300,520,"P2(mod4∈{1,2})","P2(mod4∈{1,2})",True,f,circle=self,0.115,0.073,False,False
 EXP_data_group1_10.csv,1,10,1,10,30,300,520,"P2(mod4∈{1,2})","P2(mod4∈{1,2})",True,j,square=self,0.177,0.177,False,False
 EXP_data_group1_11.csv,1,11,1,11,30,300,520,"P1(mod4∈{0,3})","P1(mod4∈{0,3})",True,j,circle=self,0.215,0.208,False,False

@@ -1,0 +1,110 @@
+======================================================================
+Stage 9 优化循环（有限候选集 + 共享 CRN + 四路消融）
+冻结 Objective：spec=1.0 sha256=cf5b57e05bbe1ea3…
+======================================================================
+候选设计空间：174 个可行设计（另有 186 个被 C1/C3 否决）
+
+[噪声标定] 锚点设计在不同种子下重算…
+  [eval #2] r12 T=4档 W=3档  4.0s
+  锚点 'T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12'：A=0.3851 B=7.4007
+[噪声标定] J = ['11.6679', '11.7725']
+[噪声标定] sd_J = 0.0740 ⇒ alpha = 5.477e-03
+
+[臂 grid] 预算 12…
+  [eval #4] r24 T=3档 W=2档  2.7s
+  [eval #5] r24 T=3档 W=2档  3.7s
+  [eval #6] r24 T=3档 W=2档  4.2s
+  [eval #7] r24 T=3档 W=2档  4.1s
+  [eval #8] r24 T=3档 W=2档  3.8s
+  [eval #9] r16 T=3档 W=3档  5.0s
+  [eval #10] r16 T=3档 W=3档  4.9s
+  [eval #11] r18 T=4档 W=2档  4.5s
+  [eval #12] r18 T=4档 W=2档  5.5s
+  [eval #13] r18 T=4档 W=2档  5.5s
+  [eval #14] r12 T=4档 W=3档  5.8s
+  [eval #15] r8 T=6档 W=3档  6.6s
+[臂 grid] 完成：best J = 0.4673（56.1s）
+
+[臂 random] 预算 12…
+  [eval #16] r24 T=3档 W=2档  4.9s
+  [eval #17] r18 T=4档 W=2档  4.2s
+  [eval #18] r12 T=4档 W=3档  6.3s
+  [eval #19] r16 T=3档 W=3档  5.4s
+  [eval #20] r12 T=4档 W=3档  5.7s
+  [eval #21] r12 T=6档 W=2档  5.6s
+  [eval #22] r18 T=4档 W=2档  5.1s
+  [eval #23] r18 T=4档 W=2档  5.1s
+  [eval #24] r24 T=3档 W=2档  4.9s
+  [eval #25] r24 T=3档 W=2档  3.9s
+  [eval #26] r12 T=4档 W=3档  5.5s
+[臂 random] 完成：best J = 0.5405（56.6s）
+
+[臂 manual] 预算 12…
+  [eval #27] r24 T=3档 W=2档  4.0s
+  [eval #28] r24 T=3档 W=2档  4.2s
+  [eval #29] r24 T=3档 W=2档  4.8s
+  [eval #30] r24 T=3档 W=2档  4.8s
+  [eval #31] r16 T=3档 W=3档  4.9s
+  [eval #32] r16 T=3档 W=3档  4.5s
+  [eval #33] r16 T=3档 W=3档  4.8s
+  [eval #34] r16 T=3档 W=3档  4.9s
+  [eval #35] r16 T=3档 W=3档  4.4s
+  [eval #36] r16 T=3档 W=3档  5.4s
+  [eval #37] r16 T=3档 W=3档  5.3s
+[臂 manual] 完成：best J = 0.5112（52.1s）
+
+[臂 bo] 预算 12…
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 1 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 3 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 4 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+  [eval #38] r16 T=3档 W=3档  4.0s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 1 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 3 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 4 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 1 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 3 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 4 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+  [eval #39] r24 T=3档 W=2档  4.4s
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 0 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 1 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 3 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+D:\Conda\Lib\site-packages\sklearn\gaussian_process\kernels.py:450: ConvergenceWarning: The optimal value found for dimension 4 of parameter k2__length_scale is close to the specified upper bound 100.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+  [eval #40] r18 T=4档 W=2档  5.0s
+[臂 bo] 完成：best J = 0.6382（14.4s）
+
+======================================================================
+总评估次数 40、内环耗时 182s、墙钟 190s
+噪声带（2·sd_J）= 0.1480
+  grid    best J = 0.4673  与次好臂**不可分辨**（差 0.0439 ≤ 噪声带 0.1480）⇒ 不得宣称最好
+  manual  best J = 0.5112  与最好臂**不可分辨**（差 0.0439 ≤ 噪声带 0.1480）
+  random  best J = 0.5405  与最好臂**不可分辨**（差 0.0731 ≤ 噪声带 0.1480）
+  bo      best J = 0.6382  差于最好臂（差 0.1709 > 噪声带 0.1480）
+
+最好设计：J = 0.4673  A = 0.3934  B = 8.2035  C = 0.0000
+  T[33.33/83.33/149.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+锚点 D4：J = 10.4400（离最好设计 9.9727）
+Pareto 前沿 7 个点；前 5：
+  A=0.3198 B=6.7729 J=5.9149  T[33.33/83.33/149.99]ms x W[799.98/1199.90/2399.80]ms x r16
+  A=0.3324 B=7.9303 J=6.3708  T[33.33/83.33/249.98]ms x W[799.98/1199.90/2399.80]ms x r16
+  A=0.3934 B=8.2035 J=0.4673  T[33.33/83.33/149.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+  A=0.4209 B=8.6961 J=0.5053  T[33.33/83.33/149.99/249.98/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r8
+  A=0.4354 B=8.7337 J=0.5405  T[33.33/149.99/349.99/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12
+
+已写出 _scratch_stage9_loop_smoke12.json

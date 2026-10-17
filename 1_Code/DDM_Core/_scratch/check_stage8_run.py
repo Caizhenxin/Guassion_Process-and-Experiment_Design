@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 import json
 import sys
 from pathlib import Path
@@ -37,6 +38,7 @@ import read_formal_data as RF                      # noqa: E402
 import simulate                                    # noqa: E402
 import stage8 as S8                                # noqa: E402
 import stage8_run as SR                            # noqa: E402
+from loo import psis_loo                           # noqa: E402
 from mapping import MappingParams                  # noqa: E402
 
 FAILS: list[str] = []
@@ -81,19 +83,32 @@ def modes_for(people, names):
     return out
 
 
-def make_results(people, k_max: float = 0.5, seed: int = 1):
+def names_of(rho_free: bool) -> list:
+    return SR.WITHIN_FREE_LIN + (["rho"] if rho_free else [])
+
+
+def make_results(people, k_max: float | None = None, seed: int = 1):
+    """伪造 ``fit_group`` 的产物。
+
+    ❗ ``loo`` 一律由**真实的** `loo.psis_loo` 产生，**不手写字典**：曾经这里手写成
+    ``{"n_bad": 0, "n": N}``，而 `psis_loo` 实际返回的是 ``n_k_gt_bad`` / ``n_obs``
+    ⇒ 自测 13/13 全绿，真实运行却在 `stage8_run.fit_group` 上 `KeyError: 'n_bad'`。
+    **手写的 fixture 用与代码相同的错误键名时，测的是我的虚构，不是接口。**
+    """
     rng = np.random.default_rng(seed)
     res = {}
     for name, rho_free in SR.MODELS.items():
-        names = SR.WITHIN_FREE_LIN + (["rho"] if rho_free else [])
         S, N = 30, len(people)
+        L = rng.normal(-3.0, 0.3, size=(S, N))
+        lk = psis_loo(L)                      # ← 真实产物；键名不可能与代码漂移
+        if k_max is not None:
+            lk = {**lk, "k_max": float(k_max)}   # 只覆盖被测判据的输入
+        lk = {**lk, "elpd_loo": -100.0 + (0.0 if name == "M-T1" else -50.0)}
         res[name] = {
-            "loo": {"elpd_loo": -100.0 + (0.0 if name == "M-T1" else -50.0),
-                    "se": 3.0, "p_loo": 5.0, "k_max": k_max,
-                    "n_bad": 0, "n": N, "n_failed": 0},
+            "loo": lk,
             "seconds": 1.0, "rho_free": rho_free,
-            "fit": {"modes": modes_for(people, names)},
-            "log_lik": rng.normal(-3.0, 0.3, size=(S, N)),
+            "fit": {"modes": modes_for(people, names_of(rho_free))},
+            "log_lik": L,
         }
     return res
 
@@ -109,6 +124,22 @@ def main() -> int:
     print(f"\n[准备] 造出 {len(people)} 名被试；"
           f"逐人 t0 上界 = {[round(p['t0_hi'], 4) for p in people]}；"
           f"逐人试次 = {[len(p['tr']['rt']) for p in people]}")
+
+    # ---- A0：接口守卫 —— 从**源码本身**抽出 `stage8_run` 读的 loo 键，断言它们
+    #          真实存在于 `loo.psis_loo` 的返回里。这条判据是本轮抓到的真 bug 的直接
+    #          守卫：代码曾读 `lk["n_bad"]` / `lk["n"]`，而 psis_loo 返回的是
+    #          `n_k_gt_bad` / `n_obs` ⇒ 真实运行 KeyError，自测却全绿（因为 fixture
+    #          手写成了同样的错键名）。**必须用正则从源码抽，不能靠字面串匹配**：
+    #          代码里单引号与双引号混用，字面匹配会漏掉一半。
+    _real = psis_loo(np.random.default_rng(0).normal(-3.0, 0.3, size=(30, 3)))
+    _src = inspect.getsource(SR)
+    _read = set(re.findall(r"""lk\[\s*['"](\w+)['"]""", _src))
+    _read |= set(re.findall(r"""lk\.get\(\s*['"](\w+)['"]""", _src))
+    _missing = sorted(_read - set(_real))
+    check("A0 接口守卫：`stage8_run` 从源码里读的 loo 键都真实存在",
+          not _missing and len(_read) >= 5,
+          f"源码中读到 {sorted(_read)}；`loo.psis_loo` 实际提供 "
+          f"{sorted(_real)}；缺失 = {_missing or '无'}")
 
     # ---- A1：逐人 bounds 确实不同（否则 A5 是盲的）----
     his = [p["t0_hi"] for p in people]
@@ -198,6 +229,68 @@ def main() -> int:
           and "降级为提示性" in verdicts[0.9]
           and "不构成证据" in verdicts[1.4])
 
+    # ---- A7b：❗ `nan` 不是最差挡位。端到端干跑实测暴露：`k_max = nan` 时
+    #           `nan <= 0.7` 与 `nan <= 1.0` 都是 False ⇒ 会掉进「k > 1.0」那一档，
+    #           把"k 不可用"误报成"k 超界"。必须分开。
+    r_nan = make_results(people, k_max=float("nan"))
+    for v in r_nan.values():
+        v["loo"] = {**v["loo"], "n_failed": v["loo"]["n_obs"]}
+    t_nan = "\n".join(SR.render_group(r_nan, people, tag="1", n_draws=4, seed=0))
+    check("A7b `k_max = nan` 必须报「LOO 无效」，不得误报成「k > 1.0 不构成证据」",
+          "LOO 无效" in t_nan and "k > 1.0" not in t_nan,
+          "命中「LOO 无效」" if "LOO 无效" in t_nan else "未命中「LOO 无效」")
+
+    # ---- A7c/A7d：❗ 决策 D52 —— `k_max` 单独**没有分辨力**。N=4 analytic 干跑实测：
+    #           `k_max = 0.000`、`n_failed = 0`（A7 的两条判据全过），而
+    #           `p_loo = 2816.26` 对 `n_obs = 4`（LOO 单位 = 被试）⇒ 有效参数数是
+    #           观测数的 704 倍。同一个 `k_max = 0.000` 在**健康**矩阵上也会出现
+    #           （实测 `rng.normal(-3.0, 0.3, size=(30, 3))` 的另一次抽样：
+    #           `p_loo = 0.222`、`k_max = 0.0`）⇒ 必须再看 `p_loo` 是否落在
+    #           `[0, n_obs]`。
+    r_ploo = make_results(people, k_max=0.0)
+    for v in r_ploo.values():
+        v["loo"] = {**v["loo"], "p_loo": 704.0 * v["loo"]["n_obs"]}   # 复刻干跑比值
+    t_ploo = "\n".join(SR.render_group(r_ploo, people, tag="1", n_draws=4, seed=0))
+    check("A7c `k_max = 0` 且 `n_failed = 0`、但 `p_loo` 越界 ⇒ 必须报「LOO 无效」",
+          "LOO 无效" in t_ploo and "p_loo" in t_ploo,
+          "命中「LOO 无效」" if "LOO 无效" in t_ploo else "未命中「LOO 无效」")
+    r_neg = make_results(people, k_max=0.0)
+    for v in r_neg.values():
+        v["loo"] = {**v["loo"], "p_loo": -353.0}      # N=2 干跑实测 −706.37/−2900.54 同型
+    t_neg = "\n".join(SR.render_group(r_neg, people, tag="1", n_draws=4, seed=0))
+    check("A7d 负 `p_loo`（留一比拟合内还准）⇒ 也必须报「LOO 无效」",
+          "LOO 无效" in t_neg)
+    # 反向对照（防"一刀切"）：健康的 `p_loo` 必须仍然给出正常档位
+    r_ok = make_results(people, k_max=0.5)
+    for v in r_ok.values():
+        v["loo"] = {**v["loo"], "p_loo": 0.05 * v["loo"]["n_obs"]}
+    t_ok = "\n".join(SR.render_group(r_ok, people, tag="1", n_draws=4, seed=0))
+    check("A7e 健康 `p_loo`（0 < p_loo/n_obs < 1）不得被 D52 闸门误伤",
+          "LOO 无效" not in t_ok and "可报 ΔELPD" in t_ok)
+
+    # ---- A7f（D74）：**「换到试次层」不是充分条件**。同一份代码的两个实测对照：
+    #      3 人/n_em=2/n_x=21/S=20（Hessian 正定、`n_flipped`=0）⇒ 试次层 `p_loo/n_obs`=0.138；
+    #      2 人/n_em=1/n_x=11/S=15（2 个负特征值、θ 逐维 SD 达 134）⇒ 试次层 8.57 / 12.7。
+    #      所以 `p_loo` 即便落在健康区间，只要超参数 Hessian 非正定就必须一并拒绝。
+    r_pd = make_results(people, k_max=0.5)
+    for v in r_pd.values():
+        v["loo"] = {**v["loo"], "p_loo": 0.05 * v["loo"]["n_obs"]}   # p_loo 健康
+        v["hyper"] = {"eigval": [-0.9, 1.0, 2.0], "n_flipped": 1}
+        v["loo_level"] = "trial"
+    t_pd = "\n".join(SR.render_group(r_pd, people, tag="1", n_draws=4, seed=0))
+    check("A7f `p_loo` 健康但超参数 Hessian 非正定 ⇒ 仍必须判「LOO 无效」（D74）",
+          "LOO 无效" in t_pd and "非正定" in t_pd and "D74" in t_pd,
+          "命中" if "LOO 无效" in t_pd else "未命中「LOO 无效」")
+    # 反向对照：Hessian 正定 + 健康 p_loo ⇒ 不得被 D74 误伤
+    r_pd_ok = make_results(people, k_max=0.5)
+    for v in r_pd_ok.values():
+        v["loo"] = {**v["loo"], "p_loo": 0.05 * v["loo"]["n_obs"]}
+        v["hyper"] = {"eigval": [0.03, 1.0, 2.0], "n_flipped": 0}
+        v["loo_level"] = "trial"
+    t_pd_ok = "\n".join(SR.render_group(r_pd_ok, people, tag="1", n_draws=4, seed=0))
+    check("A7g Hessian 正定 ⇒ 健康的 `p_loo` 照旧给「可报 ΔELPD」（D74 不误伤）",
+          "LOO 无效" not in t_pd_ok and "可报 ΔELPD" in t_pd_ok)
+
     # ---- A8：剥离矩阵必须在**渲染之后** ----
     src = inspect.getsource(SR.run_group)
     i_render, i_strip = src.find("render_group("), src.find("strip_matrices(")
@@ -239,6 +332,209 @@ def main() -> int:
     except ValueError as exc:                                   # noqa: BLE001
         ok10b, det10b = True, str(exc)[:70]
     check("A10b 非有限 x_init 显式报 ValueError", ok10b, det10b)
+
+    # ---- A11/A12（D68）：超参数 Hessian 不正定 ⇒ 报告必须写清「σ 不得解读」 ----
+    # 为什么这两条必须有：`hier.subject_map_laplace` 会把非正特征值抬到
+    # `floor = max(1e-8·max|λ|, 1e-12)` 再取逆 ⇒ 该方向方差 ≈ 1/floor（可到 1e5），
+    # 而层级 σ² = mean[(x − μ)² + Cov_kk] ⇒ 一个被抬过的方向就能把 σ 撑到没有意义。
+    # 报告若只写「n_flipped = 1」而不写后果，读者会以为「记一笔就行」。
+    r_np = make_results(people)
+    for v in r_np.values():
+        v["hyper"] = {"eigval": np.array([1e-2, 0.5, -2.3725, 3.0]),
+                      "n_flipped": 1}
+    t_np = "\n".join(SR.render_group(r_np, people, tag="1", n_draws=4, seed=0))
+    check("A11 超参数 Hessian 有非正特征值 ⇒ 报告写明「σ 不得解读」",
+          "n_flipped` = **1/4**" in t_np and "不得解读" in t_np
+          and "1/floor" in t_np
+          # 只禁止**无条件**说「正定」：D74 起同一份报告里会出现「非正定 ⇒ p_loo 不可解读」
+          # 这句短语，它本身不是误报（`replace` 两版都剥掉，否则 D74 的判词会假阳）
+          and "正定" not in t_np.replace("不正定", "").replace("非正定", ""),
+          f"含 n_flipped = 1/4 = {'1/4' in t_np}、含「不得解读」= {'不得解读' in t_np}")
+    r_pd = make_results(people)
+    for v in r_pd.values():
+        v["hyper"] = {"eigval": np.array([1e-2, 0.5, 2.0, 3.0]), "n_flipped": 0}
+    t_pd = "\n".join(SR.render_group(r_pd, people, tag="1", n_draws=4, seed=0))
+    check("A12 超参数 Hessian 正定 ⇒ 报「正定」、不得误报「不得解读」",
+          "**正定**" in t_pd and "不得解读" not in t_pd,
+          f"含「正定」= {'**正定**' in t_pd}、含「不得解读」= {'不得解读' in t_pd}")
+
+    # ---- A13/A13b（D75）：`n_flipped` 是符号判据，必须与「抽样跑了多远」并列 ----
+    # 实测（n_em=2、n_x=21、S=2、seed=7、~46 试次/人）：正定拟合 max|θ| ≤ 7.3，
+    # 非正定拟合 33.6 / 62.8 / 97.9（2 人 S=15 那次 303）⇒ 两者分离 5–40 倍。
+    r_ma = make_results(people)
+    for v in r_ma.values():
+        v["hyper"] = {"eigval": np.array([1e-2, 0.5, 2.0, 3.0]), "n_flipped": 0,
+                      "max_abs_theta": 97.9}
+    t_ma = "\n".join(SR.render_group(r_ma, people, tag="1", n_draws=4, seed=0))
+    check("A13 报告必须印本次抽样的 `|θ|` 最大值（与 `n_flipped` 并列）",
+          "97.9" in t_ma and "最大" in t_ma,
+          f"含 97.9 = {'97.9' in t_ma}")
+    r_ma2 = make_results(people)
+    for v in r_ma2.values():
+        v["hyper"] = {"eigval": np.array([1e-2, 0.5, 2.0, 3.0]), "n_flipped": 0}
+    t_ma2 = "\n".join(SR.render_group(r_ma2, people, tag="1", n_draws=4, seed=0))
+    check("A13b 缺 `max_abs_theta` 时必须写「未记录」（不得静默省略这一栏）",
+          "未记录" in t_ma2, f"含「未记录」= {'未记录' in t_ma2}")
+    # A14：退化拟合（无 `sigma` 字段）时不得印出 `****` 空粗体（D75 实跑踩到）
+    check("A14 无 `sigma` 字段时不得印出空粗体 `****`",
+          "****" not in t_ma2 and "****" not in t_ma,
+          f"t_ma2 含 **** = {'****' in t_ma2}、t_ma 含 **** = {'****' in t_ma}")
+
+    # ---- E 组（D66）：输入契约——不该吃的输入必须在入口点名拒绝 ----
+    # ❗ 历史行为：把 `2_Data/Real_Data/EXP_data_combined.csv` 当 `--data` 喂进来，
+    #    运行器一路走到 `RF.to_trials(rec)` 才抛**未捕获的 `KeyError: 'matchKey'`**
+    #    （裸 traceback、exit 1）——而真实原因是"这个文件根本没有那 9 列"。
+    csv = REPO / "2_Data" / "Real_Data" / "EXP_data_combined.csv"
+    reason = SR._non_txt_reason(csv)
+    expect_missing = ["block", "premature_press", "timeout",
+                      "responded_by_deadline", "stimulus_onset_actual",
+                      "stimulus_offset_actual", "mask_onset_actual",
+                      "stimulus_dur_actual", "stimulus_frames"]
+    n_missing = sum(1 for c in expect_missing if f"`{c}`" in reason)
+    check("E1 非 txt 输入的拒绝理由点了 v4.1 契约、并列全缺列",
+          ("v4.1" in reason and "HEADER25" in reason and n_missing == 9),
+          f"点名缺列 {n_missing}/9；理由 {len(reason)} 字")
+    try:
+        SR.collect([csv], None, MappingParams(shape_model="lin"))
+        ok_e2, det_e2 = False, "未抛 SystemExit"
+    except SystemExit as exc:                                   # noqa: PERF203
+        ok_e2, det_e2 = (exc.code == 2), f"exit code = {exc.code}"
+    check("E2 喂 CSV ⇒ SystemExit(2)（不是裸 KeyError）", ok_e2, det_e2)
+    try:
+        SR.collect([REPO / "2_Data" / "Real_Data" / "HDDM_Traces"], None,
+                   MappingParams(shape_model="lin"))
+        ok_e3, det_e3 = False, "未抛 SystemExit"
+    except SystemExit as exc:                                   # noqa: PERF203
+        ok_e3, det_e3 = (exc.code == 2), f"exit code = {exc.code}"
+    check("E3 目录里没有 *.txt ⇒ SystemExit(2) 且点名目录", ok_e3, det_e3)
+    src = inspect.getsource(SR)
+    ok_e4 = ("if not rec:" in src and "校验异常" in src
+             and "_no_inputs_message" in src and "if not files:" in src)
+    check("E4 静态：入口有 not rec / 校验异常 / 无输入三条守卫", ok_e4)
+
+    # 正路不能因为新守卫而坏掉：合成 1 人仍应被收下
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        SR._synthetic(1, 7, 1, Path(td), n_rep=2)
+        ppl, rej = SR.collect([Path(td)], None, MappingParams(shape_model="lin"))
+        ok_e5 = (len(ppl) == 1 and not rej)
+        check("E5 正路未被误伤：合成 1 人仍被收下", ok_e5,
+
+              f"people={len(ppl)}、rejected={len(rej)}")
+        check("E6 静态：报告表头的「来源」不再硬编码成「正式数据」（对照运行里那是错的标签）",
+              "'--data '" in src and "if args.synthetic else '正式数据'" not in src)
+
+    # ---- E13/E14（D72）：组级缓存 + `--resume` —— 真实 N 下跑几十小时，
+    #      中途崩掉不能把已完成的组一起丢掉；同时"命中缓存"必须在日志里看得见。
+    import contextlib
+    import io as _io
+
+    calls: list[str] = []
+    real_run_group = SR.run_group
+
+    def fake_run_group(plist, tag, *a, **kw):        # noqa: ANN001
+        calls.append(str(tag))
+        return {"lines": [f"FAKE-GROUP-{tag}"], "results": {"n": len(plist)}}
+
+    with tempfile.TemporaryDirectory() as td:
+        outd = Path(td) / "out"
+        argv = ["--synthetic", "2", "--synth-n-rep", "2", "--n-em", "1",
+                "--n-draws", "1", "--n-x", "11", "--out", str(outd)]
+        SR.run_group = fake_run_group
+        try:
+            buf1 = _io.StringIO()
+            with contextlib.redirect_stdout(buf1):
+                rc1 = SR.main(argv)
+            gf = SR._group_file(outd, 1)
+            ok13a = (rc1 == 0 and calls == ["1"] and gf.exists())
+            payload = json.loads(gf.read_text(encoding="utf-8"))
+            ok13b = (payload.get("tag") == "1" and payload.get("lines") == ["FAKE-GROUP-1"]
+                     and payload.get("results") == {"n": 2})
+            rep = (outd / "stage8_report.md").read_text(encoding="utf-8")
+            ok13c = "FAKE-GROUP-1" in rep and "命中缓存" not in buf1.getvalue()
+            ok13d = not list(outd.glob("*.tmp"))
+            calls_first = list(calls)
+            config_before = gf.read_text(encoding="utf-8")
+            calls.clear()
+            buf2 = _io.StringIO()
+            with contextlib.redirect_stdout(buf2):
+                rc2 = SR.main(argv + ["--resume"])
+            calls_second = list(calls)
+            rep2 = (outd / "stage8_report.md").read_text(encoding="utf-8")
+            ok14 = (rc2 == 0 and calls_second == [] and "命中缓存" in buf2.getvalue()
+                    and "FAKE-GROUP-1" in rep2
+                    and "复用缓存" in rep2
+                    and gf.read_text(encoding="utf-8") == config_before)
+        finally:
+            SR.run_group = real_run_group
+        check("E13 每组拟合完立刻落盘 `stage8_group_<组>.json`（长跑崩溃只丢当前组）",
+              ok13a and ok13b and ok13c and ok13d,
+              f"exit={rc1}、run_group 调用={calls_first}、缓存存在={gf.exists()}")
+        check("E14 `--resume` 命中缓存 ⇒ 不再拟合、日志写明「命中缓存」、缓存不被改写",
+              ok14, f"exit={rc2}、run_group 调用={calls_second}")
+        # E15：缓存必须绑定配置 —— 换 `n_em` 再 `--resume` 必须报错（不许混配置）
+        try:
+            with contextlib.redirect_stdout(_io.StringIO()):
+                SR.main(argv + ["--resume", "--n-em", "2"])
+            ok15, det15 = False, "未报错"
+        except ValueError as exc:
+            ok15, det15 = ("配置" in str(exc)), str(exc)[:80]
+        check("E15 换 `n_em` 再 `--resume` ⇒ 报配置不一致（不许静默混配置）", ok15, det15)
+        # E14b：缓存损坏 ⇒ 大声失败（不静默重算）
+        gf.write_text("{ not json", encoding="utf-8")
+        try:
+            with contextlib.redirect_stdout(_io.StringIO()):
+                SR.main(argv + ["--resume"])
+            ok14b, det14b = False, "未报错"
+        except ValueError as exc:
+            ok14b, det14b = True, str(exc)[:70]
+        check("E14b 缓存损坏 ⇒ 报 ValueError（不静默重拟合）", ok14b, det14b)
+
+    # E16（D72 加固）：缓存必须**原子**落盘 —— `Path.write_text` 写到一半被杀会留下
+    # 半截 JSON，`--resume` 就会把它当损坏缓存（用户得手工删）；原子写让「存在」=「完整」。
+    src2 = inspect.getsource(SR)
+    ok16 = ("_write_json_atomic" in src2 and "os.replace(tmp, path)" in src2
+            and "gf.write_text(" not in src2 and "import os" in src2)
+    check("E16 静态：单组缓存走 `*.tmp` + `os.replace`（原子写，半截文件不冒充完整缓存）", ok16)
+
+    # E17（D73）：`--loo-level` 必须**透传到拟合**、进报告头、并进缓存配置键 ——
+    # 后者是硬要求：同一个 `--out` 目录先用 participant 跑完、再用 trial `--resume`，
+    # 若配置键里没有口径，就会静默复用**另一层**的矩阵去算 ΔELPD。
+    with tempfile.TemporaryDirectory() as td2:
+        outd2 = Path(td2) / "out"
+        kw_seen: list[dict] = []
+
+        def fake_run_group2(plist, tag, *a, **kw):     # noqa: ANN001
+            kw_seen.append(dict(kw))
+            return {"lines": [f"FAKE-GROUP-{tag}"], "results": {"n": len(plist)}}
+
+        argv2 = ["--synthetic", "2", "--synth-n-rep", "2", "--n-em", "1",
+                 "--n-draws", "1", "--n-x", "11", "--out", str(outd2)]
+        SR.run_group = fake_run_group2
+        try:
+            with contextlib.redirect_stdout(_io.StringIO()):
+                rc3 = SR.main(argv2 + ["--loo-level", "trial"])
+            rep3 = (outd2 / "stage8_report.md").read_text(encoding="utf-8")
+            # 同口径 resume 必须命中缓存、不报错
+            with contextlib.redirect_stdout(_io.StringIO()):
+                rc4 = SR.main(argv2 + ["--loo-level", "trial", "--resume"])
+            kw_after_resume = list(kw_seen)
+            # 换回 participant 再 resume ⇒ 必须报配置不一致
+            try:
+                with contextlib.redirect_stdout(_io.StringIO()):
+                    SR.main(argv2 + ["--resume"])
+                ok17c, det17c = False, "未报错"
+            except ValueError as exc:
+                ok17c, det17c = ("配置" in str(exc)), str(exc)[:90]
+        finally:
+            SR.run_group = real_run_group
+        ok17a = bool(kw_seen) and kw_seen[0].get("loo_level") == "trial"
+        ok17b = "LOO 口径 = `trial`" in rep3
+        check("E17 `--loo-level` 透传到拟合 + 写进报告头 + 进缓存配置键（D73）",
+              rc3 == 0 and ok17a and ok17b and len(kw_after_resume) == 1 and ok17c,
+              f"exit={rc3}、拟合收到 loo_level={kw_seen[0].get('loo_level') if kw_seen else None}、"
+              f"报告头含口径={ok17b}、同口径 resume 未重拟合="
+              f"{len(kw_after_resume) == 1}、换口径报错={det17c}")
 
     print("\n" + "=" * 88)
     print(f"共 {N_OK + len(FAILS)} 项，未通过 {len(FAILS)} 项"

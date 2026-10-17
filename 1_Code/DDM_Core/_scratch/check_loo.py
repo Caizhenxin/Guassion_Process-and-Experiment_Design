@@ -27,13 +27,15 @@ Pareto k 诊断）」）。自己实现的估计量若没有**解析基准**或*
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
 import numpy as np
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE.parent))
 
 from loo import K_BAD, loo_compare, psis_loo, waic  # noqa: E402
 
@@ -160,6 +162,172 @@ def case_c() -> None:
 
 
 # --------------------------------------------------------------------------- #
+# D. 外部交叉复核（D63）：本机装了 ArviZ 的那个解释器跑出来的对照记录
+# --------------------------------------------------------------------------- #
+def case_d() -> None:
+    """`loo.py` 是**手写** PSIS，最大的风险是「自己对自己一致」。D63 用本机
+    `D:\\Conda\\envs\\hssm\\python.exe`（pymc 5.28.5 + arviz 0.23.4）在同一份逐点
+    对数似然矩阵上跑 `arviz.loo` 做独立复核 —— 但那条路线**不能**进本自测（自测跑在
+    零依赖解释器上）。所以这里守的是**证据可追溯**：探针记录必须在场、且自报一致。
+
+    ⚠️ 这条判据**不**重算 ArviZ 的结果（没有 arviz 就不可能有），它只保证「文档里那句
+    『ArviZ 复核一致』指得到的文件确实存在、且里面确实是那个结论」—— 反过来说，删掉
+    探针日志会让文档里的声明失去依据，这正是它要防的。
+    """
+    print("\n[D] 外部交叉复核记录（ArviZ，D63）")
+    log = _HERE / "_probe_bayes_stack_u8.txt"
+    if not log.is_file():
+        check("D1 交叉复核日志必须存在（文档里的「ArviZ 一致」要指得到它）", False, "缺 %s" % log.name)
+        return
+    txt = log.read_text(encoding="utf-8")
+    check("D1 交叉复核日志必须存在且自报一致", "✓ 两套 PSIS 在同一矩阵上一致" in txt,
+          "含一致行" if "✓ 两套 PSIS 在同一矩阵上一致" in txt else "未自报一致")
+    m = re.search(r"相对 ([+-][0-9.eE+-]+)", txt)
+    rel = abs(float(m.group(1))) if m else float("nan")
+    check("D2 相对差必须 < 1e-3（手写 PSIS 与 ArviZ 在同一矩阵上）",
+          rel == rel and rel < 1e-3, "相对差 = %.2e" % rel)
+    check("D3 日志必须记下 pymc 版本与「采样能否用」这两件事（D63 的结论就建立在这两点上）",
+          "pymc" in txt and ("pm.sample 可用" in txt or "pm.sample 失败" in txt),
+          "pymc=%s、采样=%s" % ("有" if "pymc" in txt else "缺",
+                                "可用" if "pm.sample 可用" in txt else "失败"))
+
+
+# --------------------------------------------------------------------------- #
+# E. 病态抽样的**存活**（D73）：单个 (抽取, 被试) 的 Hessian 非有限
+# --------------------------------------------------------------------------- #
+def case_e() -> None:
+    """长跑里最贵的死法：40 小时的作业在第 39 小时被**一个**病态超参数抽样杀掉。
+
+    `subject_map_laplace` 在众数处 `∂²g` 非有限时会抛 `ValueError`。若 `loo_matrix`
+    不接住它，整个 Stage 8 运行就崩在这一格上（实测发生过：`_probe_loo_draws.py`
+    用 S=30 的 `analytic` 抽样时就撞到了，报「在众数处 ∂²g 非有限（28/64 个元素）」）。
+
+    判据：(1) 不抛异常；(2) 该格记 −inf；(3) 计入 `n_hessian_fail`；
+    (4) 该列被 `psis_loo` 记为失败（`n_failed ≥ 1`），而不是把全表算成 nan 或崩掉。
+    """
+    print("\n[E] 病态抽样不许中断整轮（D73）")
+    import hier
+
+    calls = {"n": 0}
+
+    def fake_smap(sub, x0, mu, ls, maxiter=None, **kw):       # noqa: ANN001
+        calls["n"] += 1
+        if sub.get("boom"):
+            raise ValueError("在众数处 ∂²g 非有限（假）")
+        return {"mode": np.asarray(x0, float), "log_marginal": 5.0,
+                "fell_back": False, "n_nonfinite_g": 0,
+                "cov": np.eye(2), "converged": True}
+
+    subs = [{"id": "ok"}, {"id": "bad", "boom": True}]
+    hyper = {"theta": np.zeros((3, 4))}
+    real = hier.subject_map_laplace
+    stats: dict = {}
+    try:
+        hier.subject_map_laplace = fake_smap
+        L = hier.loo_matrix(subs, hyper, mode_warm=[np.zeros(2), np.zeros(2)],
+                            stats=stats)
+        err = None
+    except Exception as exc:                                   # noqa: BLE001
+        L, err = None, f"{type(exc).__name__}: {exc}"
+    finally:
+        hier.subject_map_laplace = real
+
+    check("E1 Hessian 非有限**不再**中断整轮", err is None, err or "未抛异常")
+    if L is None:
+        return
+    check("E2 病态格记 −inf（而不是 NaN 冒充数值）",
+          np.all(np.isneginf(L[:, 1])) and np.all(L[:, 0] == 5.0),
+          "第 2 列全 −inf = %s、第 1 列全 5.0 = %s"
+          % (bool(np.all(np.isneginf(L[:, 1]))), bool(np.all(L[:, 0] == 5.0))))
+    check("E3 退化计数 `n_hessian_fail` 逐格累加", stats.get("n_hessian_fail") == 3,
+          "n_hessian_fail = %s（应为 3 = 3 次抽取 × 1 名病态被试）"
+          % stats.get("n_hessian_fail"))
+    out = psis_loo(L)
+    check("E4 该列被 PSIS 记为失败（`n_failed ≥ 1`），不污染其他列",
+          out["n_failed"] >= 1 and np.isfinite(out["elpd_loo"]),
+          "n_failed = %d、elpd_loo = %.3f" % (out["n_failed"], out["elpd_loo"]))
+
+
+# --------------------------------------------------------------------------- #
+# F. 试次层矩阵（D73）：`loo_matrix_trials` 的形状 / 摊薄 / 失败语义
+# --------------------------------------------------------------------------- #
+def case_f() -> None:
+    """D73 的落地口径：**PSIS 放试次层**。这里只量「矩阵怎么构造」这一层语义。
+
+    真值证据在 `_scratch/_probe_loo_level.txt`（同一批抽取下被试层 `p_loo/n_obs = 496`
+    vs 试次层 `0.138`）与 `_probe_trials_sum.txt`（逐试次之和 == 整人似然，误差 0）。
+    本 case 保证：形状 = ``(S, Σ n_s)``、缺 `ll_trials_x` 的对象**报错不降级**、
+    逐试次似然非有限的被试块记 −inf 并计数 —— 三条都属于「静默错位就会毁掉一篇论文」
+    的那种错。
+    """
+    print("\n[F] 试次层 LOO 矩阵（D73）")
+    import hier
+
+    def fake_smap(sub, x0, mu, ls, maxiter=None, **kw):       # noqa: ANN001
+        return {"mode": np.asarray(x0, float), "log_marginal": 5.0,
+                "fell_back": False, "n_nonfinite_g": 0,
+                "cov": np.eye(2), "converged": True}
+
+    def mk(n, offset, fail=False):                            # noqa: ANN001
+        def ll(mode, n=n, offset=offset, fail=fail):          # noqa: ANN001
+            if fail:
+                return None
+            return np.full(n, -1.0) + offset
+        return {"kind": "ddm", "ll_trials_x": ll,
+                "tr": {"rt": np.zeros(n)}, "lo": np.zeros(2), "hi": np.ones(2),
+                "names": ["a", "b"]}
+
+    subs = [mk(4, 0.0), mk(3, 10.0)]
+    hyper = {"theta": np.zeros((2, 4))}
+    stats: dict = {}
+    real = hier.subject_map_laplace
+    try:
+        hier.subject_map_laplace = fake_smap
+        L = hier.loo_matrix_trials(subs, hyper, mode_warm=[np.zeros(2)] * 2,
+                                   stats=stats)
+    finally:
+        hier.subject_map_laplace = real
+    check("F1 形状 = (抽取数, 总试次)", L.shape == (2, 7), "shape = %s" % (L.shape,))
+    check("F2 每个被试的贡献落在自己的列块里（块内常数 = 该被试的值）",
+          np.all(L[:, :4] == -1.0) and np.all(L[:, 4:] == 9.0),
+          "前 4 列全 −1.0 = %s、后 3 列全 9.0 = %s"
+          % (bool(np.all(L[:, :4] == -1.0)), bool(np.all(L[:, 4:] == 9.0))))
+    check("F3 `n_trial_ll_fail` / `n_hessian_fail` 在健康输入上为 0",
+          stats.get("n_trial_ll_fail") == 0 and stats.get("n_hessian_fail") == 0,
+          "stats = %s" % (stats,))
+
+    # F4：逐试次似然非有限 ⇒ 该块 −inf，计数 +1/抽取，不中断
+    st2: dict = {}
+    try:
+        hier.subject_map_laplace = fake_smap
+        L2 = hier.loo_matrix_trials([mk(4, 0.0), mk(3, 0.0, fail=True)], hyper,
+                                    mode_warm=[np.zeros(2)] * 2, stats=st2)
+        err = None
+    except Exception as exc:                                   # noqa: BLE001
+        L2, err = None, f"{type(exc).__name__}: {exc}"
+    finally:
+        hier.subject_map_laplace = real
+    check("F4 逐试次似然非有限 ⇒ 该块记 −inf 并计数（不中断整轮）",
+          err is None and L2 is not None and np.all(np.isneginf(L2[:, 4:]))
+          and st2.get("n_trial_ll_fail") == 2,
+          err or "第 2 块全 −inf = %s、n_trial_ll_fail = %s"
+          % (bool(L2 is not None and np.all(np.isneginf(L2[:, 4:]))),
+             st2.get("n_trial_ll_fail")))
+
+    # F5：解析基准对象（无 ll_trials_x）必须报错，不许静默降级到被试层
+    sub0 = hier.make_subject(lambda x: -0.5 * float(np.sum(np.asarray(x) ** 2)),
+                             np.zeros(2), np.ones(2), ["a", "b"])
+    try:
+        hier.loo_matrix_trials([sub0, sub0], hyper)
+    except ValueError as exc:
+        check("F5 不支持逐试次似然的对象**报错**（不静默降级）",
+              "ll_trials_x" in str(exc), "报错信息：%s" % str(exc)[:60])
+    else:
+        check("F5 不支持逐试次似然的对象**报错**（不静默降级）", False,
+              "竟然接受了 make_subject 构造的对象")
+
+
+# --------------------------------------------------------------------------- #
 def main() -> int:
     print("=" * 72)
     print("loo.py 自测（PSIS-LOO / Pareto k / WAIC / loo_compare）")
@@ -167,6 +335,9 @@ def main() -> int:
     case_a()
     case_b()
     case_c()
+    case_d()
+    case_e()
+    case_f()
     n_ok = sum(1 for _, ok, _ in RESULTS if ok)
     n_all = len(RESULTS)
     print("\n" + "=" * 72)

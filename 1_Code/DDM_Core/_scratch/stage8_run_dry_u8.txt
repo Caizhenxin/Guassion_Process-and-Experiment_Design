@@ -1,4 +1,4 @@
-﻿[合成] -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\make_fake_pilot.py C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_3jj8o60c --n-subjects 3 --group 1 --seed 7 --n-rep 3
+[合成] -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\make_fake_pilot.py C:\Users\蔡振辛\AppData\Local\Temp\stage8_syn_3jj8o60c --n-subjects 3 --group 1 --seed 7 --n-rep 3
 ============================================================================================
 Stage 8 全量运行器
 ============================================================================================

@@ -1,0 +1,27 @@
+已装的记录器：
+  hier.minimize is so.minimize                     → True
+  stage8_run 模块已加载 = True
+============================================================================================
+探针 v2：`_numdiff` 警告的出处（全量 minimize 覆盖 + 完整 fit_and_loo）
+============================================================================================
+[合成] -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\DDM_Core\_scratch\make_fake_pilot.py C:\Users\蔡振辛\AppData\Local\Temp\probe_nonfinite_6ghlvri0 --n-subjects 4 --group 1 --seed 7 --n-rep 4
+  ✅ exp_group1_subject1.txt：被试 1（组 1）187 试次、剔抢按 5、t0 上界 0.219
+  ✅ exp_group1_subject2.txt：被试 2（组 1）191 试次、剔抢按 1、t0 上界 0.244
+  ✅ exp_group1_subject3.txt：被试 3（组 1）188 试次、剔抢按 4、t0 上界 0.155
+  ✅ exp_group1_subject4.txt：被试 4（组 1）190 试次、剔抢按 2、t0 上界 0.162
+
+可用被试 4 名；被拒 0 份
+模型表 = {'M-T1': True, 'M-T3': False}（True ⇒ rho 自由 = M-T1）
+
+--------------------------------------------------------------------------------------------
+[M-T1] rho_free=True：fit_and_loo（n_em=2、n_draws=4、analytic）
+--------------------------------------------------------------------------------------------
+      ⛔ 非有限目标 #1   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #2   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #3   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #4   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #5   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #6   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #7   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #8   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]
+      ⛔ 非有限目标 #9   v=+inf method=L-BFGS-B caller=hier.py:189 x=[-1.075, -0.362, -0.107, -0.354, -2.259, -1.123, 0.939, 0.342]

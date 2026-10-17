@@ -2301,8 +2301,9 @@ PPC           ≈ 2667 min
 * `1_Code/DDM_Core/stage8_run.py --synthetic 3 --synth-n-rep 3 …`：数据读取
   **3 人、141–143 试次/人、被拒 0 份**（证实生成器修复有效），逐人剔抢按 2 / 1 / 3、
   `t0` 上界 0.291 / 0.287 / 0.259。
-* `1_Code/DDM_Core/_scratch/check_stage8_run.py` **13/13、exit 0**（**不拟合层级模型**：
-  伪造 `results`，只验证渲染链路、k 挡位、剥离顺序、JSON 与两处守卫）。日志
+* `1_Code/DDM_Core/_scratch/check_stage8_run.py` **15/15、exit 0**（**不拟合层级模型**：
+  伪造 `results`，只验证渲染链路、k 挡位、剥离顺序、JSON 与三处守卫；⚠️ 当时是 13/13，
+  而 A0 接口守卫与 A7b NaN 守卫是 §8.26 第 5/6 节补的）。日志
   `1_Code/DDM_Core/_scratch/check_stage8_run_u8.txt`。
 * `1_Code/DDM_Core/_scratch/_probe_warm_mode.py` **exit 0**：温启动众数搜索
   2.800 / **4.435** / 6.245 s（M-T3，16/48/144 试次）与 3.492 / **5.948** / 8.530 s
@@ -2320,6 +2321,1306 @@ PPC           ≈ 2667 min
   的 W4/W5、`check_twophase.py`、`check_twophase_lik.py` 一并重新验收并记录判据变化。
 
 ---
+
+## 8.26 解析超参数 Hessian（Louis 恒等式）：把正式规模从不可行变成可行（2026-10-14，D47）
+
+§8.25 第 4 节的结论是「现行 `hier.hyper_hessian` 让 4 组 × ~40 人的正式运行不可行
+（256 h/组 ≈ 6 周）」，并点名要换更省的做法。本节把这个待办做掉：**主导项归零**。
+
+### 1. 为什么有限差分是主导项
+
+`hier.hyper_hessian(subjects, mu, log_sigma, x_warm, step)` 对 `nh = 2K` 维做中心差分，
+需要 `4·nh(nh+1)/2` 次目标评估；而每次评估都对**全部 N 名被试**各做一次温启动众数搜索：
+
+| 模型 | K | nh | `4·nh(nh+1)/2` | × N |
+|---|---|---|---|---|
+| M-T3（ρ=1） | 7 | 14 | 420 | **420·N** |
+| M-T1（ρ 自由） | 8 | 16 | 544 | **544·N** |
+
+合计 **964·N** 次温启动众数搜索 —— 40 人/组就是 **38 560 次**，完全不随 `n_em` /
+`n_draws` 变小。这才是两次干跑都在 M-T1 上远超预估的原因。
+
+### 2. 解法：Louis 恒等式的解析 Hessian（零次众数搜索）
+
+`hier.hyper_hessian_analytic(modes, covs, mu, log_sigma, with_prior=True)`。
+边际 `φ(θ) = log ∫ exp(g(x,θ)) dx` 的二阶导用 Louis 的「缺失信息」恒等式：
+
+```
+∂²φ/∂θ² = E[ ∂²logN/∂θ² | y ] + Cov[ ∂logN/∂θ, ∂logN/∂θ | y ]
+```
+
+把 `x ~ N(x*, Cov_s)`（E 步**已经算好**的众数与众数处协方差）代进去，令
+`A_k = (x_k−mu_k)/sigma_k`、`B_k = A_k²`、`m_k = E[A_k]`、
+`s_kl = Cov[A_k,A_l] = C_kl/(sigma_k sigma_l)`、`E[B_k] = s_kk + m_k²`，得到闭式：
+
+```
+∂²φ/∂mu_k∂mu_l = −δ_kl/sigma_k² + s_kl/(sigma_k sigma_l)
+∂²φ/∂mu_k∂ls_l = −2δ_kl m_k/sigma_k + 2 m_l s_kl/sigma_k
+∂²φ/∂ls_k∂ls_l = −2δ_kl E[B_k] + 4 m_k m_l s_kl + 2 s_kl²
+```
+
+⇒ **只做矩阵运算，`n_evals = 0`**。
+
+❗ **我第一版漏了 `4 m_k m_l s_kl`**（错把 `Cov[B_k,B_l]` 当成 `2s_kl²`）⇒ `ls` 块
+相对误差 **23%**，被 A1 判据当场抓到。四阶矩交叉项**只在 `m = 0`**（众数恰落在 `mu` 上）
+时才消失，而这在真实数据里从不成立。
+
+### 3. 独立验证：`1_Code/DDM_Core/_scratch/check_hyper_hess.py`（A/B/C 三组，全绿）
+
+独立参考量是**闭式高斯层级**（`y ~ N(x, 1)`、`x ~ N(mu, sigma²)` ⇒ 真边际
+`y ~ N(mu, diag(sigma²+1))`）。此处内层拉普拉斯**精确**，所以解析式必须与对**闭式函数**
+另做的中心差分逐元素吻合：
+
+| 判据 | 结论 | 关键数字 |
+|---|---|---|
+| A0 | 闭式基准自洽 | `max\|Δmode\| = 1.022e-08`；`C_00 = 0.26470588` 与闭式一致 |
+| A1 | **解析 == 闭式差分** | max 相对差 **1.881e-08**（最差 `H[1,3]`，`max\|H_true\| = 3.576403`） |
+| A2 | 差分版与闭式真边际的残差随步长下降 | 步长 0.05 → **3.132e-04**、0.005 → **3.168e-05**；实测幂律 ≈1.0（⇒ 是**离散/优化残差**，不是定义差异） |
+| A4 | 代价 | 解析 `n_evals = 0`（**0.26 ms**）vs 差分 40 次（0.238 s） |
+| A5 | 判据有牙齿 | `C×1.6 ⇒ 2.756e+00`、`x*+0.30 ⇒ 9.248e-01` |
+| A6 | 形状守卫 | `modes` 维数 / `covs` 个数 / `cov` 形状不符，三条各抛 `ValueError` |
+| B1 | 真实 DDM 上解析版**正定** | min eig **+9.013e-02**；后验 SD = 0.9764 / 0.6971 / 3.1912 / 0.9117 |
+| B2 | 差分版失真必须被**如实报告** | `hyper_draws(method="fd")` 报 `n_flipped = 1`，等于该 Hessian 的非正特征值个数 |
+| B5 | 代价（真实 DDM） | 解析 **0.3 ms** vs 差分 **96.4 s** ⇒ **加速 354 647×** |
+| C1–C4 | `hyper_draws(method=…)` 接线 | `(200,4)` 形状；`cov` 与 `inv(A)` 一致到 **4.361e-17**；200 次抽取经验 SD 比值 1.013 / 1.047 / 1.004 / 0.925；非法 `method` 抛 `ValueError` |
+
+### 4. ❗ 顺带实测出的真缺陷：差分版在真实 DDM 点上**不正定**
+
+在 N=2、48 试次/人的构造上，差分版三个步长**全部**不正定：
+
+| step | min eig | 非正个数 | 墙钟 | 后验 SD（`mu_d_ref`/`mu_beta_T`/`ls_d_ref`/`ls_beta_T`） |
+|---|---|---|---|---|
+| 0.05（= `HYPER_STEP`） | −1.382e-01 | 1 | 99.8 s | 58.51 / 1.67 / 196.4 / 0.9182 |
+| 0.02 | −1.347e-01 | 1 | 91.5 s | 58.47 / 1.682 / 196.4 / 0.9332 |
+| 0.005 | −1.223e-01 | 1 | 88.0 s | 58.3 / 1.535 / 196.3 / 1.31 |
+
+解析版**同一点** min eig = **+9.013e-02**（正定）。差分后验 SD 的绝对值（58 / 196）与
+解析版（0.98 / 3.19）差两个数量级，且 `ls_beta_T` 随步长摆动 **43%**。
+
+机制：这是一个**近零特征方向**（解析 min eig 只有 +0.09），差分噪声决定它的符号 ⇒
+`hyper_draws` 把负特征值抬到地板后照常抽样，SD 由**地板**而非数据决定。
+**解析版不可能因差分噪声丢掉正定性**；代价是它算的是真边际的 Hessian，内层拉普拉斯
+误差必须如实报告（A2 的残差就是这个量级）。
+
+⚠️ 因此 **B2 的判据不能是「差分版可用」**（那是我原先的期望，实测 0/3 正定 ⇒ 被推翻），
+只能是「差分版的失真必须被如实报告」。`hyper_draws` 确实返回 `n_flipped`（= 非正特征值
+个数）⇒ 调用方据此**拒绝**该后验，而不是把 58 当 SD 用。
+
+### 5. ❗ 端到端干跑又抓到一个错报：`nan` 不是最差挡位
+
+`1_Code/DDM_Core/stage8_run.py --synthetic 2 … --n-draws 8 --hyper-method analytic`
+端到端跑通（**532.9 s**，两个模型都拟合 + 分单元 PPC + 报告 + JSON），但 LOO 退化：
+`ELPD 0.000 ± nan、p_loo −706.37、k_max nan、失败 2/2`。原因是极小样本（N=2、8 条抽取）
+下超参数后验过宽，极端抽取处 `log_marginal` 非有限 ⇒ PSIS 把观测判为失败。
+
+真正的缺陷在**渲染**：`render_group` 的 `nan <= 0.7` 与 `nan <= 1.0` **都是 False** ⇒
+`k_max = nan` 掉进了「k > 1.0」那一档，把「k 不可用」**误报**成「k 超界」。
+已显式分开两种情况，并新增自测 **A7b**（`k_max = nan` 必须报「LOO 无效」，且不得出现
+「k > 1.0」字样）。`hier.fit_and_loo` 现在返回 `n_nonfinite_loglik`，让失效**可归因**。
+
+### 6. ❗ 自测 13/13 全绿而真实运行 `KeyError`：手写 fixture 的陷阱
+
+端到端干跑第一次直接崩在 `stage8_run.fit_group`：`KeyError: 'n_bad'`。
+`loo.psis_loo` 返回的键是 `n_k_gt_bad` / `n_obs`，`n_bad` / `n` **从来不存在**。
+
+但 `_scratch/check_stage8_run.py` 当时 **13/13 全绿** —— 因为它用的 fixture 是**手写**的
+`{"n_bad": 0, "n": N}`，与代码**一样错**。**手写 fixture 用与代码相同的错误键名时，
+测的是我的虚构，不是接口。**
+
+修法与守卫：
+
+* fixture 改为由**真实的** `loo.psis_loo` 产生（只覆盖被测判据的输入 `k_max`）；
+* 新增 **A0 接口守卫**：用**正则从 `stage8_run` 源码里抽出**所有 `lk[...]` / `lk.get(...)`
+  的键，断言它们都存在于 `psis_loo` 的返回里。
+  ⚠️ 第一版 A0 用字面串匹配 `f'"{q}"'`，而源码里单引号与双引号混用 ⇒ 只抽到 2 个键、
+  判据失败。**守卫本身也要有牙齿：从源码抽，不靠字面串。**
+
+### 7. 校验证据
+
+* `1_Code/DDM_Core/_scratch/check_hyper_hess.py` **全绿、exit 0**（日志
+  `1_Code/DDM_Core/_scratch/check_hyper_hess_u8.txt`）。
+* `1_Code/DDM_Core/_scratch/check_stage8_run.py` **15/15、exit 0**（原 13/13；新增 A0
+  接口守卫与 A7b NaN 守卫）。日志 `1_Code/DDM_Core/_scratch/check_stage8_run_u8.txt`。
+* 端到端（`--synthetic 2 --n-draws 8 --hyper-method analytic`）：**532.9 s 跑通**，
+  `stage8_report.md` + `stage8_results.json` 均已写出（`_scratch/_s8run_an/`）。
+* `project()` 在 `--hyper-method analytic` 下把超参数 Hessian 一项**打印为 0**，
+  并注明「解析法（Louis）⇒ 0 次众数搜索」。
+
+### 8. 尚未做
+
+* 解析版与差分版在**正式规模**上的后验 SD 对比（需真实数据；本节只有 N=2 的构造）。
+* 解析版算的是**真边际** Hessian、差分版算的是**拉普拉斯边际** Hessian ⇒ 内层拉普拉斯
+  误差大的模型上两者本就该有差；这个差值本身应当作为**模型诊断**报出来。
+* `loo_bruteforce` 真留一在正式规模上的成本（它是 `loo_matrix` 的基准，但每被试要重拟合一次）。
+
+---
+
+## 8.27 被静默吸收的退化：`n_nonfinite_loglik` 看不见什么（2026-10-14，D51）
+
+### 1. 起点：一条不该出现的警告
+
+Stage 8 的 analytic 干跑（`--synthetic 4 --hyper-method analytic --n-x 31`）里出现
+
+```
+D:\Conda\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+```
+
+而 D47 之后 analytic 路线**不做任何有限差分 Hessian**，所以这条警告不该来自我们自己的
+差分 ⇒ 必须定性，不能当成噪声放过。
+
+### 2. 出处（一手证据）
+
+* `_numdiff.py:686` 的 `df = [f_eval - f0 for f_eval in f_evals]` 在 `_dense_difference`
+  （`_numdiff.py:663`）里，只被 `approx_derivative`（`_numdiff.py:278`）调用。
+* SciPy 1.16 的 `_minimize_lbfgsb` 在 `_lbfgsb_py.py:413` 调
+  `_prepare_scalar_function(...)` 并用 `sf.fun_and_grad` ⇒ **L-BFGS-B 也走数值梯度**。
+* 全库 grep `minimize|minimize_scalar`：干跑路径上唯一被调用的是 `hier.py:189`
+  （L-BFGS-B）；`loo.py:110` 用 Brent 的 `minimize_scalar(method="bounded")`（无导数）；
+  `likelihood.py:177` 与 `twophase.py:303` 的 `fit_mle*` 在干跑里不调用。
+* ⇒ 警告来自 `hier.subject_map_laplace` 的众数搜索。
+
+### 3. 机制
+
+`g(x) = ll_x(x) + log 先验(x)`；`ll_x` 非有限时 `g` 返回 `-inf`（`hier.py:185-186`，
+**有意的可行性屏障**）。优化器最小化 `lambda x: -g(x)` ⇒ 不可行区里目标是 **`+inf`**。
+`approx_derivative` 算 `f_eval - f0 = inf - finite` → `nan` 加该警告；L-BFGS-B 拿到
+`nan` 梯度后**照旧继续**（`hier.py:168` 记过同族的"在 NaN 上原地打转"）。
+
+**最小复现**：`1_Code/DDM_Core/_scratch/_probe_degenerate.py` 的牙齿用例把 `ll_x` 换成
+处处 `-inf` 的桩，直接打出同一行 `_numdiff.py:686` —— 不需要任何真实数据、任何被试、
+任何实验条件。
+
+### 4. ❗ 现象依赖似然网格分辨率 `n_x`，与模型族无关
+
+同一份合成数据（4 人、187/191/188/190 试次、`seed=7`）、同一 `n_em=2`、`n_draws=4`、
+`seed=0`、`hyper_method="analytic"`：
+
+| 探针 | 模型 | `n_x` | LOO 阶段"目标非有限"次数 | `_numdiff` 警告 | `p_loo` |
+|---|---|---|---|---|---|
+| `_scratch/_probe_nonfinite_obj.py`（v2，spy 记录） | M-T1 | **31** | 18（4 抽取 × 4 被试 = 16 次搜索） | **16** | −939.75 |
+| `_scratch/_probe_degenerate.py`（D51 新计数器） | M-T1 | **31** | **18** | **16** | **−939.75** |
+| `_scratch/_probe_degenerate.py` | M-T3 | **31** | **24** | **21** | −1045.96 |
+| `_scratch/_probe_degenerate.py` | M-T1 | 41 | **0** | **0** | −1171.77 |
+| `_scratch/_probe_degenerate.py` | M-T3 | 41 | **0** | **0** | −1057.79 |
+
+* **两个独立仪器给出逐位相同的计数（18 / 16）与逐位相同的 `p_loo`（−939.75）** ⇒
+  v2 那个 spy 在数值上是惰性的（`wrapped(x)` 只调 `fun(x)` 原样返回），计数可信；
+  这同时是一次仪器交叉验证。
+* 换到 `n_x=41` 后，**两个模型的同一现象都完全消失**（0 / 0）⇒ 这是**网格分辨率**
+  的性质，**不是 M-T1 的时变漂移拐点**的性质（M-T3 的 `ll_x` 没有那个拐点，照样退化）。
+* ⚠️ **而正式干跑 `stage8_run.py` 用的正是 `--n-x 31`** ⇒ 这不是"某个自测配置"的
+  性质，而是**生产配置**的性质。
+* **警告数 ≤ 非有限目标数**（16 ≤ 18、21 ≤ 24）不是记账错误：`approx_derivative` 只在
+  减法的两个操作数里出现 `inf - inf`（或已有 `nan`）时才发警告，而 `inf - finite = inf`
+  **是合法结果、不发警告**。⇒ 两个计数各测一部分，谁也不能代替谁。
+
+单被试的进一步对照（`1_Code/DDM_Core/_scratch/_probe_nx_pair.py`：只调
+`subject_map_laplace`、从区间中点起搜，不做 EM、不做 LOO）在 `n_x = 31 / 41 / 81` 上
+**都是 0 次非有限**、`Σlog_marg` 相差 ≤ 2.3e-05 ⇒ **退化只出现在"热启动"的搜索上**
+（`loo_matrix` 拿上一次的众数当起点），不在中点起搜上。所以"网格粗 ⇒ 立刻非有限"是错的；
+正确的说法是"**网格粗 ⇒ 热启动搜索偶尔会落到有限域之外**"。
+
+⚠️ 而 `fell_back`（众数退回初值）**在这四种配置里都是 0 次** ⇒ 本轮抓到的**不是一个
+已经发生的退化，而是一条假设的失效路径**：计数器装上了、牙齿测试证明它在触发时确实会
+报出来，但真实数据上没有触发过。这条区别必须随结论一起报。
+
+### 5. 真正的缺陷：那句注释说"如实标记"，却没有任何字段
+
+`hier.py:192-194`：
+
+```python
+if not np.isfinite(g(xm)):
+    # 优化失败：退回初值，并如实标记
+    xm = x_init
+```
+
+注释写着"如实标记"，但返回的 dict 里**没有任何字段**记录这件事 ⇒
+
+1. 该被试的"众数"其实是起点，其协方差是**起点处的曲率**，`log_marginal` 也在起点算；
+   这三样被当成一个真实最优解进入 EM 的 M 步与 `loo_matrix`。
+2. 报告里的 `n_nonfinite_loglik` **只看 LOO 矩阵的元素是否有限**（`hier.py:518`），
+   它看不见上面这个过程。
+
+### 6. 修法（D51）：三个计数器 + 一条可归因的守卫（只加观测，不改数值）
+
+* `subject_map_laplace` 新增 `fell_back`（bool）与 `n_nonfinite_g`（int，`g` 返回非有限的
+  次数，**含 `hessian_x` 的那些调用**）。
+* `hier_fit` 聚合为 `n_fallback` / `n_nonfinite_g`。
+* `loo_matrix(..., stats=None)` 新增 **`stats` 出参**（空 dict 进），填
+  `n_searches` / `n_fallback` / `n_nonfinite_g` —— **不改返回值类型**（仍是 `np.ndarray`），
+  所以既有调用点零影响。
+* `fit_and_loo` 输出 `loo_stats` / `n_fallback_fit` / `n_nonfinite_g_fit`；
+  `stage8_run.fit_group` 在退化计数非零时**打印**并落盘
+  `n_degenerate_fallback` / `n_degenerate_nonfinite`。
+* **`H` 非有限时抛 `ValueError`**（带 `fell_back` / `n_nonfinite_g` / `converged` /
+  `n_evals` 与"该查什么"）：`fell_back` 触发意味着 `g(xm)` 非有限，而 `hessian_x` 用中心
+  差分，四个角点在非有限邻域里就得到 NaN ⇒ `np.linalg.eigvalsh` 抛
+  `LinAlgError("Eigenvalues did not converge")` —— 一条**完全无法归因**的报错（不说哪个
+  被试、哪个超参数、为什么）。修守卫前这里是 `LinAlgError`，修后是可归因的 `ValueError`。
+
+#### 没有改动的是屏障本身
+
+`g` 仍返回 `-inf`。把屏障换成"一个很大的有限惩罚"能让数值梯度保持有限、警告消失 ——
+但它**改变优化轨迹**，从而改变每一个已拟合的数字，而现有全部验证（`check_hier.py` 0 项
+未通过、`check_stage8_run.py` 15/15、闭式高斯基准 3.97e-09）都钉在当前语义上。
+⇒ **记录它，不动它**；谁要改，必须是一次显式的、单独验证的变更。
+
+### 7. ❗ 必须先说清的区分：LOO 退化**不是**这个现象造成的
+
+同一批实跑里，`ELPD 0.000 ± nan`、`k_max nan` 在**两种网格、两个模型上都出现**：
+
+| `n_x` | 模型 | LOO 阶段"目标非有限" | `ELPD` | `k_max` | `p_loo` |
+|---|---|---|---|---|---|
+| 31 | M-T1 | 18 | 0.000 ± nan | nan | −939.75 |
+| 31 | M-T3 | 24 | 0.000 ± nan | nan | −1045.96 |
+| 41 | M-T1 | 0 | 0.000 ± nan | nan | −1171.77 |
+| 41 | M-T3 | **0** | 0.000 ± nan | nan | −1057.79 |
+
+后两行是**决定性的**：`n_x=41` 下两个模型**都是零数值退化，LOO 依然退化**。
+⇒ 这个规模上的 LOO 退化是**已知的小样本 PSIS 失败**（`n_draws=4`、N=4；N=2 时更早量到
+`p_loo` −706.37 / −2900.54、失败 2/2），**与 `_numdiff` 警告无关**。
+两者必须分开报：前者是"该规模不构成模型比较证据"（`5_Reference/08_工作流/Stage8_建模与验证方案.md`
+§8 的事前登记规则），后者是"目标函数在热启动搜索里偶尔落到有限域外"。
+
+⚠️ 注意 `p_loo` 在这一档**不是一个可比较的数**：它在 −939.75 / −1045.96 / −1171.77 /
+−1057.79 之间跳动，而 `k_max` 恒为 `nan`、`ELPD` 恒为 `0.000 ± nan` ⇒ 这正是
+`stage8_run.py` 的 `L272` 判据（`not np.isfinite(k) or n_failed >= n_obs` ⇒ 报
+「⛔ 本组 LOO 无效」）存在的理由：**`nan` 不是最差挡位**，不能与 `k > 1.0` 混为一谈。
+**不要**用这些 `p_loo` 值的差异去推断"哪条数值路径更好"——它们是同一个失败的不同噪声实现。
+
+### 8. 一条与 Stage 9 闸门直接相关的读数
+
+`likelihood.fim_diagnostics`（`likelihood.py:265-276`）里
+`ev_pos = ev[ev > 0]`、`cond = ev_max / ev_pos[0]` —— **`cond` 只用正特征值**。
+于是 `diag(0,1,1,…)` 报 `cond = 1.0`、`n_bad = 1`（`1_Code/AutoRA_SPE/check_stage9_inner.py`
+的 B1d 实测）。⇒ **`cond` 单独不能发现退化**（一个奇异矩阵可以说自己 `cond = 1.0`）；
+Stage 9 的 Objective (D) 必须**同时**查 `cond` 与 `n_bad`，这不是冗余。
+
+### 9. 校验证据
+
+* `1_Code/DDM_Core/_scratch/check_hier.py`：**0 项未通过**、exit 0（820.3 s）—— 新增的
+  Hessian 守卫**没有被任何既有用例触发** ⇒ 它与既有语义不冲突。
+* `1_Code/DDM_Core/_scratch/check_stage8_run.py`：**15/15、未通过 0 项**、exit 0
+  （日志 `1_Code/DDM_Core/_scratch/check_stage8_run_after_d51_u8.txt`）。
+* `1_Code/AutoRA_SPE/check_stage9_inner.py`：**29/29、exit 0**（原 26/26；新增 B1b/B1c/B1d）。
+* `1_Code/DDM_Core/_scratch/_probe_degenerate.py`：牙齿测试 ✅；真实路径 `n_x=41` 见 §4，
+  日志 `1_Code/DDM_Core/_scratch/_probe_degenerate_u8.txt`；`n_x=31` 日志
+  `1_Code/DDM_Core/_scratch/_probe_degenerate_nx31_u8.txt`。
+* `1_Code/DDM_Core/_scratch/check_files.py`：**5/5 通过**（全部裸 LF、无 BOM）。
+
+### 10. 尚未做
+
+* `n_x` 在**正式规模**（40 人 × 576 试次）上是否仍然只差这一点 —— 需要真实数据；
+  若粗网格在正式规模上退化更多，`n_x` 本身要进 D51 的结论。
+* 把屏障换成有限惩罚的 A/B 对比（**必须是一次显式的、单独验证的变更**，见 §6）。
+* ~~`n_x` 对 Stage 9 内环的影响：`stage9_inner` 走的 `n_x` 是 `hier.ddm_subject` 的默认值，
+  与干跑的 `--n-x 31` **不是同一个数** ⇒ Stage 9 的设计排序要不要跟着改网格，需要单列。~~
+  ❌ **2026-10-14 更正（见 §8.30 与决策 D55）：这一条整条作废 —— 内环根本没有似然网格。**
+  `1_Code/AutoRA_SPE/stage9_inner.py` 全符号 grep **不含 `n_x` / `hier` / `ddm_subject`**；
+  内环用 `simulate_subject` / `simulate_euler_subject` + `trials_from_arrays` 造试次、
+  用 `likelihood.opg_information` / `twophase.opg_information_step` 算期望信息量。
+  内环真正的分辨率旋钮是 **`DT_GEN = 5e-5`**（M-T1 Euler 步长）与
+  **`REL_STEP_FD = 1e-3`**（OPG 中心差分步长），**这两个要连同结论一起报**。
+
+---
+
+## 8.28 `max k` 单独没有分辨力：LOO 可用性必须同时看 `p_loo`（2026-10-14，D52）
+
+### 1. 起点
+
+4 人 analytic 端到端干跑（`--synthetic 4 --synth-n-rep 4 --n-em 2 --n-draws 32 --n-x 31
+--n-ppc 4 --seed 0 --hyper-method analytic`）的 M-T1 结果（
+`1_Code/DDM_Core/_scratch/stage8_run_an4_u8.txt`，4501.7 s）：
+
+```
+ELPD -3526.254 ± 32.997；p_loo 2816.26；k_max 0.000；越界 0/4；不可用 0；失败 0；非有限 0
+```
+
+按 `1_Code/DDM_Core/stage8_run.py::render_group` 当时的判据
+（`not isfinite(k) or n_failed >= n_obs`）以及
+`5_Reference/08_工作流/Stage8_建模与验证方案.md` §8 的事前登记规则（三档**全部以
+`max k` 为键**），这一行会掉进「`max k ≤ 0.7` ⇒ 可报 `ΔELPD` + 配对 SE」——
+**被判成"可用"**。
+
+### 2. `n_obs` 到底是什么
+
+- `1_Code/DDM_Core/hier.py:494 loo_matrix(subjects, hyper, mode_warm=None, maxiter, stats=None)`
+  返回 **`(S, N)`**：第 i 个超参数抽取下**每个被试**的边际对数似然
+  （docstring 原文：「⚠️ 每个 (抽取, 被试) 都要**重新求众数**（热启动）」）。
+- `1_Code/DDM_Core/loo.py:213 psis_loo(log_lik)` 的 `"n_obs": int(N)`（**L238 / L268**）
+  是 `log_lik` 的**列数**。
+- ⇒ 本项目的 LOO 单位是**被试**（`hier.loo_bruteforce` 的 docstring 亦写明
+  「主计划要求 LOO 单位 = 被试」）⇒ 这一档 **`n_obs = 4`（被试数），不是 756（试次数）**。
+- ⇒ `p_loo = 2816.26` 对 `n_obs = 4` ⇒ **有效参数数是观测数的 704 倍**。
+
+### 3. 为什么 `max k = 0.000` 不是健康证明
+
+同一个 `max k = 0.000` 在**健康**矩阵上也会出现。实测：
+
+| 矩阵 | `p_loo` | `max k` | `ELPD` |
+|---|---|---|---|
+| `rng.normal(-3.0, 0.3, size=(30, 3))`（A7 的 fixture 形状） | **0.184** | 0.805 | −9.149 |
+| 同分布另一次抽样 | **0.222** | **0.000** | −9.183 |
+| 同分布、`sd = 0.001` | 2.42e−06 | **0.000** | −9.000 |
+
+⇒ `max k` 为 0 既可能是"权重近似均匀"（健康），也可能是"权重彻底退化"
+（`p_loo/n_obs = 704`）—— **它没有分辨力**。能分辨的是 `p_loo`。
+
+### 4. 健康区间 `[0, n_obs]`
+
+- `p_loo < 0`：意味着**留一比拟合内还准**，逻辑上不可能。
+  N=2 的旧干跑实测 `p_loo` = **−706.37**（M-T1）/ **−2900.54**（M-T3），`k_max = nan`。
+- `p_loo > n_obs`：意味着**惩罚超过全部信息量**。
+- ⚠️ **这个洞是 N=4 才暴露的**：N=2 时 `n_failed = 2 = n_obs`，被旧判据的
+  `n_failed >= n_obs` 那一条拦住了；N=4 时 `n_failed = 0`、`k_max = 0.000`，
+  **两条旧判据全过**。
+
+### 5. 修法（已落进 `1_Code/DDM_Core/stage8_run.py::render_group`）
+
+判据改为收集**理由清单**：`max k` 非有限 / `n_failed ≥ n_obs` / `p_loo ∉ [0, n_obs]`
+任一条成立即判「⛔ **本组 LOO 无效**」，并打印具体的越界量；报告行**强制**打印
+`p_loo` 与 **`p_loo`/`n_obs` 这个比值**（它是唯一能分辨的那个数）。
+
+### 6. 校验证据
+
+- `python 1_Code\DDM_Core\_scratch\check_stage8_run.py` ⇒ **共 18 项、未通过 0 项、
+  exit 0**（原 15 项），新增三颗：
+  - **A7c** `k_max = 0` 且 `n_failed = 0`、但 `p_loo = 704·n_obs` ⇒ **必须**报「LOO 无效」✅
+  - **A7d** 负 `p_loo`（−353.0）⇒ **也必须**报「LOO 无效」✅
+  - **A7e** 反向对照：健康 `p_loo`（`0 < p_loo/n_obs < 1`）**不得被误伤**，
+    仍须给出「可报 ΔELPD」✅
+- 日志 `1_Code/DDM_Core/_scratch/check_stage8_run_d52_u8.txt`。
+- fixture（`_scratch/check_stage8_run.py:90 make_results`）的 `loo` 字典一律由
+  **真实的** `loo.psis_loo` 产生、**不手写** —— 历史教训：手写 fixture 用了与代码相同的
+  错键名（`n_bad` / `n`）⇒ 自测 13/13 全绿而真实运行 `KeyError`。
+
+### 7. 尚未做
+
+- 正式规模（~40 人/组）上 `p_loo/n_obs` 的实际取值范围 —— 需要真实数据；
+  届时 `[0, n_obs]` 这条界要不要收紧（例如再加"`p_loo/n_obs` 应远小于 1"）由实测决定。
+- `n_draws` 与 `N` 对 `p_loo/n_obs` 的联合影响（这一档 `n_draws = 32`、`N = 4`）。
+
+---
+
+## 8.29 两类"看不见的污染"的工具化（2026-10-14，D54 同轮）
+
+本轮为了追一个语法错，顺手把两类**会静默污染文件、且已经反复咬人**的问题做成了工具，并清理了全仓存量。
+
+### (1) 中文字符串里混进 ASCII 双引号 ⇒ 字符串提前闭合
+
+**症状**：在中文长字符串里手写 `"某某"` 时用 ASCII 引号，字符串提前闭合。Python 报的是
+`SyntaxError: invalid syntax. Perhaps you forgot a comma?`，而且**指向整条语句的开头**
+（实测：真凶在第 57 行与第 65 行，报错分别说第 33 行与第 64 行）。本会话**出现两次**。
+
+**为什么既有工具都抓不住**：
+- `tokenize` **不报错** —— `"a"b"c"` 是合法的 `STRING NAME STRING` 序列，只在 **parser** 层失败；
+- 按行统计引号个数的**奇偶性**抓不住 —— 那一行有 4 个引号，是偶数。
+  （这个判据我写过一版，**误报 49/105 个文件**，把 `["a", "b", "c"]` 这类合法行全打成嫌疑 ⇒ 已废弃。
+  **教训：启发式审计器的误报率决定它有没有用。**）
+
+**真正的判据**：token 流里出现 **`STRING` 紧跟 `NAME`/`NUMBER`** —— 合法的 Python 里
+字符串后面**永远**不会直接跟一个裸标识符或数字。
+
+**工具**：`1_Code/DDM_Core/_scratch/check_code_quotes.py`（97 行、裸 LF）。
+它**只在 `ast.parse` 失败时**才去定位真凶行，因此**零误报**；顺带报 `ast.parse` 的另一类失败
+（UTF-8 BOM ⇒ `invalid non-printable character U+FEFF`）。
+用法：`python 1_Code\DDM_Core\_scratch\check_code_quotes.py <文件或目录…>`（**必须显式传参**，无参数 exit 2）。
+
+**修法**：内嵌引号一律写全角 `「」`（或 `" "`）。
+
+### (2) 全仓 27 个文件带 UTF-8 BOM
+
+`check_code_quotes.py` 的全仓扫描（`1_Code` 四个子目录、163 个 `.py`）清出存量：
+**27 个带 BOM 的文件**（3 个 `.py`：`_scratch/_dbg_cell.py`、`_scratch/_probe_t0_wall.py`、
+`_scratch/_probe_t0_wall2.py`；其余是 `_scratch/*_u8.txt` 日志、`Experiment/exp_Check/*.csv`、
+`Python_for_Check/Visualization/V2/outputs/*.csv`、`Animation_Manim/scenes/s4_kernel_length_scale.py`）。
+`.py` 文件带 BOM 时**正常导入不会暴露**（CPython 会剥掉 BOM），只有按 utf-8 直接读时才炸
+⇒ 这就是它们能长期潜伏的原因。
+
+**工具**：`1_Code/DDM_Core/_scratch/_strip_bom.py`（44 行）。干跑列清单、`--apply` 才写回；
+同时把 CRLF 规范化成 LF（本项目全线**裸 LF**）。已 `--apply` 一次：**27/27 已写回**，
+复扫 `check_code_quotes.py` 得 **163 个文件、0 个语法错、exit 0**。
+
+### (3) 产生 BOM 的元凶（工具坑）
+
+用 **`Set-Content -Encoding utf8`**（Windows PowerShell 5.1）写 Python 脚本会**加上 BOM**，
+随后 `check_files.py` 报 `BOM=True`、`ast.parse` 抛 `invalid non-printable character U+FEFF`。
+⇒ **Python 脚本一律用编辑器 / `write` 工具写，不用 `Set-Content`。**
+
+---
+
+## 8.30 D54 落到代码：遗漏率罚分改成可行域约束，而裁决不许把「A 差 32%」说成「不可分辨」（2026-10-14，D55）
+
+### 1. 为什么有这一节
+第 35 项已实测：标量 `J` 的 MC 噪声有 **95–101%** 来自 (C) 那条关于遗漏率的**二次罚分**（D4 附近 `dC/d(omission) ≈ 125`），而加大 `n_fim` 救不回来（遗漏率不按 `1/sqrt(n_fim)` 收敛）⇒ 用 `J` 给四路消融排序等于**用噪声排序**。D54 的决定是把 (C) 从"陡峭罚分"改成**可行域约束**，并让臂间裁决**只建立在 (A)/(B) 上**。本节记录把它写进代码时又抓到的三个洞，以及因此在 9A 上得到的头条结论。
+
+### 2. 代码改动（`1_Code/AutoRA_SPE/stage9_loop.py`，618 → 749 行、裸 LF）
+- 新常量 **`OMISSION_BAND`**（**与 `stage9_objective.FROZEN["omission_band"]` 同源**；改 `FROZEN` 会改 `SPEC_SHA256`，而重新冻结必须是一次显式、单独验证的变更 ⇒ 本轮**不动哈希**，改由**搜索层**把带当约束执行）与 **`CRITERION = ("A", "B")`**。
+- `Evaluator._objective_record`：折算之后追加约束 —— 带外 ⇒ `feasible = False` 且闸门文本写入 `D54 约束：遗漏率 … 落在冻结带 […] 之外（罚分改为约束，不进可行集）`。**罚分仍照算**（它冻结在哈希里），只是**不进判据**。
+- `Evaluator.best(key=...)`：`"J"`（历史口径，参考）/ **`"A"`（D54 之后的推荐点：A 最小、B 大者优先打破并列）**；其它值抛 `ValueError`。
+- `run_arms`：新增 `curve_a`（best-A-so-far）、`best_A`、**`B_at_best_A`**（**同一个点**上的 B ⇒ 配对比较，不拿 A 的最好点和 B 的最好点拼出一个不存在的设计）、`n_feasible`。
+- `compare_arms` 重写：只看 `(A_best, B_at_A_best)`，两根噪声带 `2·sd_A` / `2·sd_B` **分别判**。
+- `main()`：报告与 JSON 都落 `d54` 段（带、被带排除的设计数、可行数）与推荐的 `(A,B)`。⚠️ **`--out` 不给就不写 JSON** —— 早先两次冒烟因此只留下日志、没有机器可读产物（本轮补了）。
+
+### 3. ❗ 洞一：裁决规则会把「A 差 32%」洗成「不可分辨」
+首版四分规则的最后一条是"`ΔA` 超带但 `ΔB` 落在带内 ⇒ 不可分辨"。D54 后的第一次冒烟就撞上它：`bo` 的 `A_best = 0.5113` vs `random` 的 `0.3881`（**`ΔA = 0.1232`，即差 32%**），只因 `ΔB = 0.0489` 落在 `±0.2665` 里，日志就印成"不可分辨"。
+这正是 `1_Code/AutoRA_SPE/README.md` §6 处方⑥「**GP 必须自己证明配得上**」要防的那种洗白。改判为 **「在 (A) 上显著更差（而 B 分量不可分辨）」**；同时把"头名 A 更好但 B 明显更差"从"不可分辨"改判 **权衡…不得宣称最好**（A 赢不能抵消 B 输）。牙齿测试落地为 `E2b` / `E5`。
+
+### 4. ❗ 洞二：事前登记的遗漏率带**与锚点不相容**
+`E7` 把"锚点是否落在冻结带内"做成**每次都打印的硬读数**，于是第一次跑就报出来：
+
+| 设计 | 遗漏率（M-T1） | 冻结带 `[0.05, 0.20]` |
+|---|---|---|
+| **锚点 D4**（`T[33.33/83.33/149.99/249.98]ms × W[799.98/1199.90/1799.90]ms × r12`，**Stage 5 已定稿用于正式采集**） | **0.3611**（rho = 0.6） | **带外 ⇒ 不可行** |
+
+其余档位：rho = 1.0 / 0.75 / 0.5 下 0.3229 / 0.3177 / 0.3750；M-T3 下 0.314–0.335。
+⇒ **已被定稿采用、正在据此准备正式采集的那个设计，不满足事前登记的遗漏率上界（0.20），超出 1.8 倍。** 三种处置：
+(a) **不动已冻结的规格**，把它作为 Stage 9 的 **9A 头条结论**报出来（改哈希再算是最容易被后来者读成"事后调参"的动作）；
+(b) 走一次**显式的重冻结**（必须在任何优化结果之前、记录理由、接受 `SPEC_SHA256` 变化并复跑全部依赖哈希的自测）；
+(c) 保留带，但把 D4 明确标为"仅作归一化锚点、不参与可行集"。
+**本轮采用 (a)，并把它记为待拍板事项。**
+
+### 5. ✅ 9A 的头条（D54 后第一次冒烟：`--budget 12 --n-fim 1 --noise-repeats 2 --seed 0`）
+- 候选 **174** 个（另 186 个被 C3 否决）；**176 次评估、内环 803 s**；**带外 22 个 / 可行 27 个**。
+- 噪声带：**`2·sd_A = 0.0050`**、`2·sd_B = 0.2665`、`2·sd_J = 5.8494`（**仅参考**）。
+- **推荐点**（(A) 最小）：`A = 0.3881`、`B = 8.7653`、遗漏 **0.168**，设计 `T[33.33/149.99/349.99/449.98]ms × W[1199.90/1799.90/2399.80]ms × r12` —— **W 全部取高档**。
+- **锚点 D4**：`A = 0.3858`、`B = 7.4824`、`C = 10.3827`、`J = 10.8827`、**可行 = False**，`ΔA = −0.0023`（**落在噪声带 0.0050 之内**）。
+- ⇒ **D4 的精度 (A) 与最优可行设计不可分辨、名义上甚至略好；取消 D4 资格的只有遗漏率带这一条。** 这是 9A 最稳的一句话。
+- **四臂**（用修正后的裁决）：`random` 0.3881 ｜ `grid` 0.3897（ΔA 0.0016 ≤ 0.0050 ⇒ **不可分辨**）｜ `manual` 0.3989（ΔA 0.0108 > 0.0050 且 ΔB −0.8885 < −0.2665 ⇒ **被 random 支配**）｜ **`bo` 0.5113（在 (A) 上显著更差）**。
+- ⚠️ **这条结论的强度受噪声带自身限制**：`2·sd_A` 只由 **2 次重复**（1 个自由度）估出；同族量 `sd_J` 在两次冒烟里量到 **0.074 与 2.92（跨 40 倍）** ⇒ 严谨的误差棒必须来自**重复整个消融（R 个种子组）**。在拿到它之前，"BO 差于随机"只能说**"在这一个种子组上显著更差"**。
+
+### 6. ❗ 更正一条我写错的记录：内环**不依赖 `n_x`**
+§9 第 33 项、§8.27 末段与 `5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §11 第 10 条曾写"`stage9_inner` 走的是 `hier.ddm_subject` 的**默认** `n_x`，与干跑 `--n-x 31` 不是同一个数"。**这是错的**：对 `1_Code/AutoRA_SPE/stage9_inner.py` 做全符号 grep，**不含 `n_x`、不含 `hier`、不含 `ddm_subject`** —— 内环用 `simulate_subject` / `simulate_euler_subject` + `trials_from_arrays` 造试次，再用 `likelihood.opg_information` / `twophase.opg_information_step` 算信息量，**根本没有似然网格**。D51 的 `n_x` 依赖是 `hier.subject_map_laplace` 的**众数搜索**（Stage 8 路径）的性质，与内环无关。
+内环真正的分辨率旋钮是 **`DT_GEN = 5e-5`**（M-T1 的 Euler 步长）与 **`REL_STEP_FD = 1e-3`**（OPG 中心差分步长）—— **这两个必须连同结论一起报**。
+教训与 `5_Reference/AGENTS.md` §六「拿文档当事实」同族：**在写下"X 依赖 Y"之前，先 grep 一遍 X。**
+
+### 7. 校验证据
+- `python 1_Code\DDM_Core\_scratch\check_files.py 1_Code\AutoRA_SPE\stage9_loop.py 1_Code\AutoRA_SPE\check_stage9_loop.py` → `749` / `340` 行、全部**裸 LF、无 BOM、`ast=OK`**。
+- `python -u 1_Code\AutoRA_SPE\check_stage9_loop.py 1 <结果路径>` → **28 项、未通过 0 项、exit 0、58.8 s**（21 → 28：新增 `E2b`、`E5` 改写、`E6`/`E6b` 的 D54 约束正反例、`E7` 锚点读数；日志 `1_Code/AutoRA_SPE/_scratch_check_stage9_loop_u8.txt`）。
+- D54 后的冒烟：日志 `1_Code/AutoRA_SPE/_scratch_stage9_loop_smoke12_d54_u8.txt` + JSON `1_Code/AutoRA_SPE/_scratch_stage9_loop_smoke12_d54.json`。
+- 判据漂移工具：`1_Code/AutoRA_SPE/_scratch_recompare_smoke12.py`（47 行）用已落盘的 JSON **离线重算裁决**，不必重跑 13 分钟的内环。
+
+### 8. 尚未做
+1. **冻结遗漏率带的处置需要拍板**（见 §4 的 (a)/(b)/(c)）；
+2. **消融的误差棒要来自 R 个种子组的重复**（见 §5 末），在此之前臂间结论只对"这一个种子组"成立；
+3. Objective 仍缺"**每次会话总时长**"成本项 ⇒ 它系统性地把 `W` 推向候选池上限（2399.8 ms = 144 帧），任何推荐都必须连同会话时长一起读。
+4. ✅ **已补（D55 当轮）**：`stage9_loop.main()` 的 payload 新增 `"cache": {name: 记录}`（经 `_jsonable()` 折算 numpy 标量/数组）⇒ 落盘件**自足**，可离线复算 (A,B) 支配关系与 Pareto 前沿。**同时暴露一条运行成本事实**：`pareto_front(ev, names=None)` 走 `ev.feasible_names()` ⇒ **无论 `--budget` 多少，报前沿都要把整个候选空间算一遍**，任何运行的耗时下限 ≈ `174 × 单次内环评估`（`n_fim=1` 约 3.5–5 s/次 ⇒ **下限约 10–15 min**）；这也解释了 `--budget 12` 那次 `n_evals = 176`（48 次来自四臂、其余来自锚点/噪声标定与全空间评估）。
+
+## 8.31 前沿与推荐点的作用域：`pareto_front()` 只覆盖抽样点（2026-10-14，D56）
+
+### 1. 为什么有这一节
+D55 把「payload 缺逐设计 `cache` ⇒ 落盘件无法离线复算支配关系」列为待办。补上 `cache` 之后，用 `1_Code/AutoRA_SPE/_scratch_probe_d4_domination.py` 的**离线模式**读了 `1_Code/AutoRA_SPE/_scratch_payload_check.json` 里全部 **174** 个设计的读数，结果**推翻了 D55 刚写下的两条更正**。
+
+### 2. 代码改动（`1_Code/AutoRA_SPE/stage9_loop.py`，749 → **787 行**）
+1. 新增模块级 `_jsonable(x)`：递归把 `np.ndarray` → `list`、`np.generic` → Python 标量（`inner_eval` 的 `se` / `se_sd` / `acc` 是数组，`json.dumps` 直接抛 `TypeError`）；
+2. payload 新增 `"cache": {name: 记录}` ⇒ **落盘件自足**，支配关系与前沿可离线复算；
+3. **算前沿之前先补全候选空间**：`run_arms` 之后调用 `ev.feasible_names()`（幂等，命中缓存不重算），并打印 `[前沿] 先补全候选空间（缓存里现有 N 个，候选共 M 个）…` 与 `[前沿] 全空间评估完毕：缓存 N 个、累计 n_evals 次内环评估、秒数`；
+4. payload 新增 `"front_scope": {"n_candidates", "n_cached_before_full_eval", "n_evaluated", "n_front"}`。
+
+### 3. ❗ 缺陷：报出的「推荐点 / 前沿」其实是四臂抽样点里的最优
+`def pareto_front(ev, names=None)`（L631）的循环头是 `for n in (names or list(ev.cache)):`，`ev.best("A")` / `ev.best("J")` 也只在缓存里找；而 `main()` 原先的顺序是 `front = pareto_front(ev)`（L713）→ `best(...)`（L714–715）→ … → `n_feas = len(ev.feasible_names())`（L718，**这一步才补全空间**）⇒ 报出的推荐点**完全取决于 `--budget`**，而输出里看不出这一点。实测对照（同一 `--n-fim 1 --noise-repeats 2 --seed 0`）：`--budget 12` 报 `A = 0.3881`；补全 174 个候选空间后该空间的最优可行设计是 `A = 0.3446`。
+
+### 4. ❗ 后果：D55 的两条更正都错 —— D4 确实被 5 个**可行**设计支配
+离线探针（缓存 **174** 个：可行 **27**、不可行 **147**）：
+- 锚点 D4：`A = 0.385802`、`B = 7.482412`、`C = 10.382716`、`J = 10.882716`、遗漏 **0.3611**、`feasible = False`；
+- **全部**已评估设计里支配 D4 的：**25 个**（前几名 `A = 0.2309 / 0.2440 / 0.2463 / 0.2503`，全部**不可行**）；
+- **可行集内**支配 D4 的：**5 个**，最强者 `T[33.33/149.99/349.99]ms × W[1199.90/1799.90/2399.80]ms × r16`：`A = 0.3446 < 0.3858`、`B = 8.6729 > 7.4824`、遗漏 **0.1910（在冻结带内）**；另四个 `A = 0.3495 / 0.3614 / 0.3840 / 0.3849`；
+- ⇒ `ΔA = +0.0412` 是噪声带 `2·sd_A = 0.0050` 的 **8 倍** ⇒ **D55 的「可行集内 0 个设计支配 D4」与「取消 D4 资格的是遗漏率而非精度」两句都错**。9A 的正确表述是：**D4 既不可行（遗漏 0.3611 > 0.20），也被 5 个可行设计在 (A,B) 上支配**。
+
+### 5. 元教训
+1. **一个不可行的支配者 ≠ 没有可行的支配者**：D55 从**一次单设计探针**推出**全空间结论**，是又一次「结论超出测量范围」（同族：§8.29、§9 第 30 / 33 项）；
+2. **报告的作用域必须落盘**：`front_scope` 就是这条纪律的代码形态 —— 今后任何「前沿 / 推荐点」都必须连同它一起读；
+3. 报前沿必须覆盖整个候选空间 ⇒ **任何一次运行的耗时下限 ≈ `174 × 单次内环评估`**（`n_fim=1` 约 3.5–5 s ⇒ **10–15 min**），**与 `--budget` 无关**。
+
+### 6. 校验证据
+- `python -u 1_Code\AutoRA_SPE\_scratch_probe_d4_domination.py 1_Code\AutoRA_SPE\_scratch_payload_check.json` → exit 0，日志 `1_Code/AutoRA_SPE/_scratch_probe_d4_domination_cache_u8.txt`；
+- `1_Code/AutoRA_SPE/_scratch_payload_check.json` 的 `cache` 段（174 项）与 `front_scope` 段；
+- `1_Code/AutoRA_SPE/stage9_loop.py` 787 行（裸 LF、无 BOM、`ast=OK`）；探针已重写为**离线 / 即时双模式**。
+
+- **全空间冒烟（后台作业 pwsh-170，验证本节的修法）**：`1_Code/AutoRA_SPE/_scratch_smoke_scope_u8.txt`（exit 0、内环 762 s / 墙钟 771 s、`n_evals = 176`、`cache = 174`） + JSON `1_Code/AutoRA_SPE/_scratch_smoke_scope.json`。打印 `[前沿] 先补全候选空间（缓存里现有 7 个，候选共 174 个）` → `[前沿] 全空间评估完毕：缓存 174 个、累计 176 次内环评估、762s`。
+- **推荐点确实被修好了**：同一个脚本、同一套设置，`--budget 12` 时报 `A = 0.3881`，这次全空间报 **`A = 0.3446 / B = 8.6729 / 遗漏 = 0.1910`**，与离线探针的可行集最小点（`0.344643…`）一致；锚点 D4 `A = 0.3858` ⇒ `ΔA = 0.0412`（噪声带 `2·sd_A = 0.0050` 的 8 倍）。
+- **H1 的诚实边界已被补上**：`front_scope = {n_candidates: 174, n_cached_before_full_eval: 7, n_evaluated: 174, n_front: 6}` ⇒ **`n_evaluated == n_candidates` 为真**（H1 只钉源码顺序，这条等式原先没人验证过）。
+
+### 7. 尚未做
+1. ~~给 `1_Code/AutoRA_SPE/check_stage9_loop.py` 补一个新牙齿~~ ✅ **已完成（D56 当轮）**：`check_stage9_loop.py` 261 → **374 行**，新增 **H 组**三条**静态源码判据**（`H1` `main()` 里 `ev.feasible_names()` 必须早于 `pareto_front(ev)` 与 `ev.best("A")`；`H2` payload 有 `"front_scope"` 且四键齐全；`H3` `"cache"` 段存在且经 `_jsonable()`）⇒ **31/31、exit 0、63.0 s**。⚠️ **边界**：H1 钉的是**源码顺序**，运行期的 `front_scope.n_evaluated == front_scope.n_candidates` 由**全空间冒烟**（见第 6 节）覆盖，自测里没有（那要跑 13 分钟）；
+2. **全空间评估与四臂搜索分开计时**并写进报告，否则「10–15 min」这个下限会在正式跑里被误读成搜索成本；
+3. ⚠️ 在**正式 `n_fim`** 下重测「可行集是怎么构成的」（第 8 节那三类的比例），并据此决定「数值病态」是设计空间的性质、还是 `n_fim = 1` 这个大 SE 的产物。
+### 8. 同一缺陷的另一个受害者：`n_band = 22` 也是部分空间的读数（全空间真值 93）
+
+`1_Code/AutoRA_SPE/stage9_loop.py` 里 `n_band` 原先与 `pareto_front()` 同批计算（都在
+`ev.feasible_names()` **之前**），所以 D55 那次 `--budget 12` 报的「带外 22 个」只在 49 个
+已评估点上成立。全空间冒烟（pwsh-170）把 174 个候选都算完后，payload 的
+`d54.n_band_rejected` 是 **93**。
+
+❗ **新读数（不是事先预期的）**：把 174 个候选按闸门归类 ——
+
+| 类别 | 个数 | 判据 |
+|---|---|---|
+| 可行 | 27 | 遗漏率在冻结带 `[0.05, 0.20]` 内、`cond ≤ 1e10`、`n_bad = 0`（无不可识别方向） |
+| 只被 D54 带否决 | 24 | 遗漏率带外，数值健康 |
+| **数值病态** | **123** | `cond > 1e10`（相关矩阵病态）**或** `n_bad > 0`（平均信息矩阵里有不可识别的方向；`n_bad` 的定义见 `1_Code/DDM_Core/likelihood.py::fim_diagnostics`，**不是「坏试次」**）；其中 69 个同时落在带外 |
+
+⇒ 在 **`n_fim = 1`** 下，**70.7%（123/174）的候选是被数值条件数刷掉的，不是被遗漏率带刷掉的**。
+⚠️ **这个比例是 `n_fim = 1` 的读数**，必须在正式 `n_fim` 下重测：同一设计 D4 的 `(A)` 在
+`n_fim = 1 / 2 / 12` 下是 `0.3858 / 0.3519 / 0.268` ⇒ 读数本身强烈依赖 `n_fim`，
+而「哪些设计可行」也会随之变化 ⇒ **不要把这个 70.7% 当成设计空间的固有属性**。
+❌ **2026-10-16 更正（见 D58、D60）**：本行原写「提示**条件数**随 `n_fim` 改善」，这是**半边错**的。
+实测（`1_Code/AutoRA_SPE/_scratch_time_nfim.py`）分成两类：`r24 / T=3档 W=2档` 型设计的 `cond`
+**不随 `n_fim` 改善**（`n_fim = 1 / 4 / 12` 为 2.231e15 / 2.191e15 / 2.013e15，`n_bad` **一直是 1**）⇒
+它们在**任何** `n_fim` 下都不可用；`r16 / T=3档 W=3档` 型才改善（5.513e5 → 3.213e5）。⇒
+`n_fim` 变大能让 `(A)` 变小（有限样本偏差），但**不能把病态设计救回来** —— 两类要分开说。
+（`(A)` 随 `n_fim` 变小这一半仍然成立，见 D55 洞五与 §8.34。）
+
+**元教训（与第 5 节同一类）**：凡是从 `ev.cache` 现算的**计数**（`n_band`、`n_feasible`、
+`n_front`、`best`）都隐含一个作用域。作用域没落盘的计数，事后无法判断它对不对 ——
+这次是两个数字里**一个对、一个错**（`n_feas = 27` 碰巧是在补全空间之后算的，
+`n_band = 22` 不是）。
+
+## 8.32 没有可行点的臂不得与有可行点的臂同台排序；报告必须由落盘件生成（2026-10-14，D57）
+
+### 1. 为何有这一节
+
+上一节（§8.31）修的是「前沿只覆盖抽样点」。这一节修的是同一个虚荣心的另一个出口：**当一条臂在本预算内一个可行点都没抽到时，`A_best = inf`**。旧码在这个输入上算 `gap = second["A_best"] - top["A_best"] = inf`、`d_b_top = top.B - nan = nan`，于是「差 ≤ 噪声带」与「被支配」两个判据**都为假** ⇒ 落 else 分支 ⇒ 把 `--budget 2` 的冒烟输出印成
+
+> 本预算下 (A,B) 上最好（比次好臂 `random` 的 A 小 inf > 噪声带 0.0050）
+
+**「没有数据」被印成了「大幅领先」。** 这与 §8.30 记录的那次洗白（把「A 差 32%」印成「不可分辨」）是同一族：**判据只在它真正测量到的范围内成立，而「测量不到」必须被显式命名。**
+
+### 2. 代码改动清单（`1_Code/AutoRA_SPE/stage9_loop.py`，787 → 821 行）
+
+1. `compare_arms(histories, noise)`：排完序后逐臂 `r["has_feasible_point"] = bool(np.isfinite(r["A_best"]))`；`with_pt = [r for r in rows if r["has_feasible_point"]]`、`top = with_pt[0] if with_pt else None`、`n_no_pt = len(rows) - len(with_pt)`。
+2. 三分支改判：(i) `top is None` ⇒ 没有任何一条臂取到可行点 ⇒ **无对照、无排序证据**；(ii) 该臂无点 ⇒ 「可行集内没有任何设计（`A = ∞`）⇒ 不参与排序」+ 提示看 `picked` 以区分「预算不足」与「该臂偏向不可行区」；(iii) `rest` 空（头名无对照）⇒ 「只有它一条臂取到设计 ⇒ 不得写成『最好』」；有真对照时按原 D54 三分支，并在三条裁决末尾追加「（另有 N 条臂在本预算内没有可行点）」。
+3. `main()` 的臂表与摘要：`a_s = f"{r['A_best']:.4f}" if np.isfinite(r["A_best"]) else "—"`（`b_s` / `j_s` 同理）⇒ 不再印 `inf` / `nan`。
+4. 键名统一：`run_arms` 的 `histories[arm]` 里 `B_at_best_A` → **`B_at_A_best`**（与 `compare_arms` 造的行同名）。
+
+### 3. 同一族的第二处缺陷：一个量两个键名（静默印 `—`）
+
+「`B`@`(A)` 最优点」这个量在 `run_arms` 的历史字典里叫 `B_at_best_A`，在 `compare_arms` 的行里叫 `B_at_A_best`。报告生成器的第 5 节读的是 `compare` 行 —— 但只要读错一个键，`_f()` 就会把整列**印成 `—`**，而 `—` 恰好也是「这个量是 `inf`/`nan`」的合法呈现 ⇒ **错误看起来与诚实的数据缺失一模一样**。这正是 §8.31 那条教训的翻版：**呈现层的默认值不能兼任错误信号。**
+
+修法 = 统一为 `B_at_A_best` + 新增 **H4** 静态判据（`1_Code/AutoRA_SPE/check_stage9_loop.py`）：`'"B_at_best_A"' not in 源码` 且 `源码.count('"B_at_A_best"') >= 3`（实测 **8 次** / 旧名 **0 次**）。
+
+### 4. 交付件：由落盘件生成的报告
+
+`1_Code/AutoRA_SPE/stage9_report.py`（337 行）读 payload 生成 `1_Code/AutoRA_SPE/stage9_report.md`（124 行）：头部写 payload 路径、字节数与 `sha256(raw)[:16]`；**八节** = 运行设置与作用域（`n_evaluated == n_candidates` ⇒ ✅ / ⚠️）/ 噪声标定 / 可行域构成 / 四路曲线 / 四臂裁决（`inf` 一律 `—`）/ Pareto 前沿 / 推荐点与「D4 离最优多远」（含 `ΔA / (2·sd_A)` 倍数与支配它的**可行**设计个数）/ 本次运行的四条局限。
+
+**为什么必须由落盘件生成**：手写报告必然出现「数字来自上一次运行，而口径已经变了」—— §8.30 与 §8.31 两节里被推翻的更正，全都是这么产生的。
+
+### 5. 校验证据
+
+1. `python -u 1_Code/AutoRA_SPE/check_stage9_loop.py 1 1_Code/AutoRA_SPE/_scratch_check_stage9_loop_d57c_u8.txt` ⇒ **36/36、未通过 0 项、exit 0、39.1 s**（E7 实测：锚点 D4 遗漏率 0.3611、`feasible = False`）。
+2. `python -u 1_Code/AutoRA_SPE/check_stage9_report.py` ⇒ **42/42、未通过 0 项、exit 0**（日志 `1_Code/AutoRA_SPE/_scratch_check_stage9_report_u8.txt`）。
+3. 落盘件 `1_Code/AutoRA_SPE/stage9_payload_nfim1_budget12.json`（**346512 字节**）：`settings = {budget: 12, n_fim: 1, n_subjects: 40, P: null, rho: 0.6, seed: 0}`、`n_evals = 176`、`seconds = 541.4`、`front_scope = {n_candidates: 174, n_cached_before_full_eval: 36, n_evaluated: 174, n_front: 6}`、`d54 = {omission_band: [0.05, 0.2], n_band_rejected: 93, n_feasible: 27, criterion: [A, B]}`。
+4. 四臂（`compare` 行，本次**四臂全部取到可行点** ⇒ 没有触发那条新分支）：`random A_best = 0.3881 / B_at_A_best = 8.7653 / 5 个`、`grid 0.3897 / 8.6711 / 3`、`manual 0.3989 / 7.8768 / 2`、`bo 0.5113 / 8.8142 / 4`；`2·sd_A = 0.0050`、`2·sd_B = 0.2665` ⇒ `random` 与 `grid` **不可分辨**（ΔA 0.0016）、`manual` **被 random 支配**（ΔA 0.0108 > 0.0050、ΔB −0.8885 < −0.2665）、`bo` **在 (A) 上显著更差**（ΔA 0.1232 = 32%；B 分量不可分辨）。
+5. 报告第 7 节：推荐点 `A = 0.3446 / B = 8.6729 / 遗漏 0.191 / J = 0.3138`（`T[33.33/149.99/349.99]ms × W[1199.90/1799.90/2399.80]ms × r16`）；锚点 D4 `A = 0.3858` ⇒ `ΔA = 0.0412` = 噪声带的 **8 倍**，被 **5** 个可行设计支配。
+6. **D57 写完之后的自查又揪出三处**（全部属于「自测测的不是交付的那份东西」这一族）：① 报告 §5 的「旧版措辞」告警原先读 `compare` 行里**不存在的旧键** `B_at_best_A` ⇒ 四臂全为有限值时也印出一整段假告警（重跑生成器后消失）；② `check_stage9_report.py` 原先只比对 `R.build(_REAL)`（**内存里重新生成**的报告）⇒ 磁盘上那条假告警从未被发现 ⇒ 新增 **R1l**（交付件必须与现输出逐字相同）；③ R1l 第一次运行即红，暴露出报告头原先印 `payload_path.as_posix()` ⇒ **生成结果取决于调用方式**（相对 vs 绝对）⇒ 新增 `_canonical()` 与 **R2i**。⇒ 286 → **304 行、42/42**。
+7. **逐位复现**（`python -u 1_Code/AutoRA_SPE/_scratch_cmp_payloads.py <旧.json> <新.json>`）：同一组参数（`--budget 12 --n-fim 1 --noise-repeats 2 --seed 0`）独立重跑一次 ⇒ `1_Code/AutoRA_SPE/_scratch_smoke_scope_b12b.json`（**346512 字节**，与旧件**同字节数**）：`settings` / `front_scope` / `d54` / `spec_sha256` / `n_evals` / `best` / `anchor` / `pareto` / `noise` 以及 `cache` 的 **174** 个设计**逐位相同**（差异 **0** 个）；唯一不同的是逐臂**墙钟 `seconds`**（`random` 34.7 → 35.5 s、`grid` 35.4 → 32.3 s、`manual` 32.6 → 32.0 s、`bo` 2.8 → 2.6 s）与 D57 改名的键 `B_at_best_A` → `B_at_A_best`。⇒ **同一 seed 下设计值与判据完全可复现**，报告里的数字不是「这次跑得巧」；同时 ⇒ 比较两次运行时必须先排除 `seconds`，否则会把计时噪声当成「结果不稳定」（本探针第一版正是这么误报 5 处差异的）。
+
+### 6. 元教训
+
+1. **「没有数据」必须被命名。** 一个判据的两个分支都不成立时，最危险的写法是「落到 else = 最好」。
+2. **呈现层的缺省值不能兼任错误信号。** `—` 既表示「`inf`/`nan`」也表示「键读错」，读者无法区分 ⇒ 键名必须唯一（H4），且报告必须能自证作用域。
+3. **报告必须由落盘件生成。** 手写报告把「上一次运行的数字」与「这一次的口径」混在一起，而这种错误在文本里看不出来。
+
+### 7. 尚未做
+
+1. 上面第 4 条的实测是 `--budget 2` 那次冒烟触发的分支；**四臂都有可行点的路径**由本次 `--budget 12` 覆盖，两条路径都有证据，但**「部分臂无可行点」的真实运行**仍未出现（现有证据来自自测造的夹具）。
+2. `(A)` 仍依赖 `n_fim`（D4：`n_fim = 1/2/12` ⇒ `0.3858/0.3519/0.268`）⇒ 报告的每个 `(A)` 读数都必须连 `n_fim` 一起读。
+3. 可行域构成（27 可行 / 24 只被带否决 / 123 数值病态）是 `n_fim = 1` 的产物，须在正式 `n_fim` 下重测。
+
+## 8.33 正式 `n_fim` 下的可行域重测，以及三处「静默漏判」缺陷（2026-10-16，D58）
+
+### 1. 为什么要做这一节
+
+主计划上仍开放的第 (2) 件是「在正式 `n_fim` 下重测可行域构成」：`n_fim = 1` 下 174 个候选里**123 个（70.7%）被数值闸门刷掉**，而这个比例是不是 `n_fim = 1` 的产物、当时无法回答。**正式 `n_fim` = 12** —— 这不是拍脑袋：`1_Code/DDM_Core/design_fim.py::N_FIM = 12`，`5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §3 以此为准，`_scratch/_c6_baseline.py` 也是在 `n_fim = 12` 上量到 D4 的 `A = 0.268`。内环另有 `UNIT_PER_CELL = 4`、`CELL_BUDGET = 144` ⇒ **174 个候选每个都是 576 试次**（`n_trials` 逐字相等）。
+
+### 2. 代码改动清单（5 处）
+
+1. `1_Code/AutoRA_SPE/stage9_loop.py::arm_bo`：`n_init = max(2, …)` → **`max(1, …)`**，并在 `n_init >= budget` 时打印退化提示（该预算下 GP 一次都不拟合）。
+2. `1_Code/AutoRA_SPE/stage9_report.py::_composition`：`ill` 由「只认 `cond` 那一段闸门文本」改为**两段都认** + `n_bad > 0` 兜底。
+3. `1_Code/AutoRA_SPE/stage9_report.py` 的 `n_bad` 措辞：由「坏试次」改为「**不可识别方向 N 条**」并加一处定义脚注（指向 `1_Code/DDM_Core/likelihood.py::fim_diagnostics`）。
+4. 自测牙齿：`1_Code/AutoRA_SPE/check_stage9_loop.py` 加 **E 组·续**（预算 1/2/3 的取点数必须逐字相等）与 **H5/H5b**（下限与退化提示的静态钉子）；`1_Code/AutoRA_SPE/check_stage9_report.py` 加 **R1m**（全文不得把 `n_bad` 说成「坏试次」）、**R2j/R2j-2**（分类必须认两段闸门文本，正例 + 反向对照）。
+5. `1_Code/AutoRA_SPE/stage9_report.py` §2：按 payload 自报的 `n_repeats` 打出 `sd` **自身**的不确定度（≈ `1/√(2(n−1))`；2 次重复 ⇒ `sd` 约 71%、`alpha = sd_J²` 约 141%），`n_repeats < 4` 时先警；牙齿 **R1p-h/R1p-i**。理由：`sd` 是估计量，不把重复数印出来，读者会把 `2·sd_A` 当成精确门槛。
+
+### 3. 缺陷一：小预算下 BO 臂超支，整轮跑不完（阻断级）
+
+`--budget 1 --n-fim 12` 跑到臂 bo 时抛
+`RuntimeError: 臂 bo 用了 2 次评估，预算 1 —— 四路消融必须同预算，否则结论无效`，**整轮中止、已花的 7 次评估（约 4 min）全部作废**。根因是 `n_init` 的下限写成了 2。守卫本身是对的（它拦的是超支），错的是下限；而且**守卫能拦住超支，拦不住「这个预算下这条臂不成立」**⇒ 修法必须同时加「退化自报」，否则读者会把退化当成 BO 的证据。
+
+### 4. 缺陷二：报告的分类只认一段闸门文本
+
+`gates` 里的两段数值文本是**不同的字符串**：`cond=… > 1e+10（病态，相关不可信）` 与 `n_bad=… > 0（有不可识别方向）`（各出现 123 次）。`_composition` 原先只看 `cond` 段 ⇒ 「只被 `n_bad` 否决」的设计被算进「其它闸门」。❗ **在 `n_fim = 1` 这批候选里两个集合恰好重合**（`n_bad > 0` 的 123 个 == `cond > 1e10` 的 123 个；`n_bad == 0` 但 `cond > 1e10` 的 **0** 个）⇒ 漏判**看不出来**，直到在正式 `n_fim` 下两段文本不再重合时才可能暴露。修法 = 两段都认 + `n_bad > 0` 兜底；牙齿 R2j（只被 `n_bad` 否决的必须算数值病态）+ R2j-2（反向对照）。
+
+### 5. 缺陷三：`n_bad` 被写成「坏试次」
+
+`1_Code/DDM_Core/likelihood.py::fim_diagnostics` 的定义是`ev = eigvalsh((I + I.T) / 2)`、`n_bad = sum(ev < max(ev_max * 1e-8, 1e-300))` ⇒ 它数的是**平均信息矩阵里不可识别的方向条数**，**不是「坏试次」**。两种读法要采取的行动完全不同（前者改设计、后者查采集）。共 3 处改口：报告 §3/§5（由 `stage9_report.py` 生成）、`1_Code/DDM_Core/README.md` §8.31 的分类表、`5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §3 依赖表。报告侧加 **R1m**（全文不得出现该错词）。⚠️ 该判据**第一次跑就红**：因为我在报告的免责声明里写了「不是「坏试次」」，而判据是全文子串匹配 ⇒ 写成「不是「数据里有若干试次坏了」」才通过。**全文子串式措辞判据会连「否定式声明」一起禁掉**，这是它的固有代价。
+
+### 6. 校验证据
+
+1. `1_Code/AutoRA_SPE/_scratch_time_nfim.py`（63 行）：同一设计在 `n_fim = 1/2/4/12` 上的耗时与病态 ——`n_fim = 12` 单次评估 16.1–31.2 s（`n_fim = 1` 为 1.5–5.1 s，≈ ×6.1）；**`r24 / T=3档 W=2档` 型设计的 `cond` 不随 `n_fim` 改善**（`n_fim = 1/4/12` 为 2.231e15 / 2.191e15 / 2.013e15，`n_bad` 一直是 **1**），`r16 / T=3档 W=3档` 型为 5.513e5 → 3.213e5。
+2. `1_Code/AutoRA_SPE/_scratch_cmp_nfim.py`（164 行）：两个 payload 的逐设计对照（构成表 / 迁移矩阵 / 病态成因 / 判据带宽与锚点 / 各档可行集 `(A)` 最小点）。用两个 `n_fim = 1` 的落盘件自检通过 —— **可行 27 / 只被带否决 24 / 只被数值病态否决 54 / 两者兼有 69 / 其它 0**，且两段闸门的集合完全重合。
+3. 噪声标定随 `n_fim` 的变化（`--noise-repeats 2`）：`n_fim = 1` → `sd_J = 2.9247`、`sd_A = 0.0025`、`sd_B = 0.1332`；**`n_fim = 12` → `sd_J = 0.4056`（−86%）、`sd_A = 0.0082`、`sd_B = 0.0386`、`sd_omission = 0.00307`** ⇒ D54 第 (1) 件「`n_fim` 提高到噪声小于设计差异」在 `sd_J` 上成立；⚠️ 但 `2·sd_A` 反而由 0.0050 变 **0.0163** ⇒ **判据带宽必须随 `n_fim` 一起报**（同 §11 第 19 条）；⚠️ 这两个读数都来自 **2 次重复**，6 次重复的版本见下第 7 条（`alpha` 差 **2.4 倍**）。
+4. 锚点 D4 在 `n_fim = 12` 下：`A = 0.3384 / B = 7.7075`（`n_fim = 1` 为 `0.3858 / 7.4824`）。
+5. `check_stage9_loop.py` ⇒ **41/41、未通过 0 项、exit 0、44.1 s**；`check_stage9_report.py` ⇒ **45/45、未通过 0 项、exit 0**；`check_stage9.py` 全套 ⇒ **共 10 项、未通过 0 项、99.0 s**（`S4` 41/41、`S5` 45/45）。
+6. ❗ **文档侧的过时状态更正**（`5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §3 依赖表）：EI 采集函数原写 `🔨 待写（§7.2）`，而 `1_Code/AutoRA_SPE/stage9_loop.py::arm_bo` 早已实现（`z`/`ei`、`alpha = ev.noise_alpha`）；M-T1 期望信息量原写「已在 `_scratch` 跑通但未提升为生产文件」，前半句在 D50 当天就被推翻（`stage9_inner.py::opg_information_step` / `se_from_information`、`check_stage9_inner.py` 29/29），后半句（未接进 `design_fim.design_se`）**仍成立且是有意的**。两处都用 `~~…~~` + `❌ **2026-10-16 更正（见 D58）**` 就地更正。
+7. `1_Code/AutoRA_SPE/_scratch_noise_repeats.py`（61 行，**只读、不写任何落盘件**）：同一锚点在`n_fim = 1` 与 `n_fim = 12` 上各换种子重算 **6** 次 —— `n_fim = 1`：`A` 逐次 0.35864 / 0.35508 / 0.34523 / 0.35509 / 0.35290 / 0.35750（均值 0.35408）、`sd_A = 0.00478`（相对离散 1.350%）、`sd_B = 0.14050`、`sd_J = 1.63356`、`sd_omission = 0.01239`、`alpha = 2.6685`；`n_fim = 12`：`A` 逐次 0.34428 / 0.33266 / 0.33432 / 0.32370 / 0.34524 / 0.34374（均值 0.33732）、**`sd_A = 0.00859`（相对离散 2.545%）**、`sd_B = 0.05094`、`sd_J = 0.62719`、`sd_omission = 0.00504`、`alpha = 0.39336`。两条结论：**(i)** `2·sd_A` 随 `n_fim` **变大**（0.00956 → 0.01717），而 `2·sd_B`、`sd_J`、`sd_omission` 都变小（0.28100 → 0.10188、1.63356 → 0.62719、0.01239 → 0.00504）—— `sd_A` 的增大在 2 次与 6 次重复下都出现 ⇒ **不是取样偶然**（机制待查；`(A)` 是 `relative_se` 的**几何平均**，对个别方向的病态比算术平均更敏感）；**(ii)** 2 次重复估 `sd` 会**系统偏**（`alpha` 0.165 vs 0.393 = 2.4 倍），因为两次重复用的是**同一对固定种子**（`base_seed + 791_900 + 37k`，`k = 0, 1`）⇒ 这个误差在多次运行之间是**相关的**，不是随机噪声。⇒ **正式跑改用 `--noise-repeats 6`** 重跑（先前的 2 次重复版本就地作废、未落盘）。
+
+### 7. 尚未做
+
+1. 🛑 **D55 第 18 条的三种处置仍待拍板**；本节与 §11 第 23 条已把决策读数备齐（见下）。
+2. **遗漏率带的敏感性**（`1_Code/AutoRA_SPE/_scratch_probe_band_sensitivity.py`，只读 payload、不改任何冻结量）：现行口径下**可行 27 个的遗漏率全都紧贴上界**（min 0.1615 / 中位 0.1892 / max 0.1962），只被带否决的 24 个是 0.2014–0.3733 ⇒ **下界 0.05 从未生效**；把上界放宽到 0.25 / 0.30 时最优设计不变（`A = 0.3446`），但 **0.35 时跳到 `0.3043`**，而**要含进锚点 D4（遗漏率 0.361111…）必须放到 0.37** ——届时数值可用设计 49 个、**支配 D4 的设计由 5 个增到 12 个**；锚点归一化口径（处置 (c)）下推荐点`A/A(D4) = 0.8933`（比 D4 小 **10.7%**）、四臂为 `random 1.0060`、`grid 1.0101`、`manual 1.0340`、`bo 1.3253`。⇒ **处置 (b)「重冻结到含 D4」并不能让 D4 变好，只是让它可比**。
+3. **正式 `n_fim = 12` 的四路消融**（`--budget 12 --n-fim 12`，约 1.5–2 h）尚未跑：本轮的 `n_fim = 12` 跑是 `--budget 1`（只为一趟补齐 174 个候选空间），四臂在预算 1 下**必然退化**（E 组·续的读数就是这件事），不能作为消融结论。
+4. 重复 **R 个种子组**以得到配对误差棒（`2·sd_A` 目前只由 2 次重复估出）。 ❌ **2026-10-16 更正（见 D59、§8.34）**：这一句低估了问题 —— 旧标定族的 `n_repeats` 次重复落在**同一个哈希值上的算术邻居**上，`n_fim = 1` 下 `sd_A = 0.0048` 而 48 个**无关**种子给 **0.0189（4.0 倍）**；即除了「重复几次」，还要问「**是不是独立重抽**」。
+
+## 8.34 判据带宽的标定种子必须独立重抽；两根带子不许互相顶替（2026-10-16，D59）
+
+### 1. 为什么要做这一节
+
+D58 之后主计划上只剩「在正式 `n_fim` 下重测可行域构成」与几个待拍板项，于是先把长跑挂上后台，
+回头核对 `1_Code/AutoRA_SPE/stage9_payload_nfim1_budget12.json` 里两个**本该一致**的读数：
+同一次运行的锚点 D4 在 `cache` 里是 `A = 0.3858017952097037`，而 `noise` 段的两次标定重复给出
+`0.358641 / 0.355084`。差 `0.0317` = `sd_A = 0.0025152` 的 **12.6 倍**。
+
+先排除了两个机制：`1_Code/DDM_Core` 侧的 `stage9_objective.evaluate()` 与 `stage9_loop._anchor_of()`
+**同路**（都用 `component_A(res)`、`params=None` ⇒ `FROZEN["params_C6"]`），所以不是参数集不同；
+`Evaluator._raw()` 记的 `seed=cell_seed(d["name"], base_seed)` 与缓存记录也一致，所以不是种子记录错位。
+剩下唯一可疑的是**标定那两次用的种子**。
+
+### 2. 代码改动清单（6 处）
+
+1. `1_Code/AutoRA_SPE/stage9_loop.py::measure_noise`：标定种子由
+   `cell_seed(d["name"], ev.base_seed + 791_900 + 37 * k)` 改为
+   `cell_seed(f"{d['name']}#noise{k}", ev.base_seed)`，并在 docstring 里写入实测数字与「不是邻居相关」的结论。
+2. `1_Code/AutoRA_SPE/stage9_loop.py::measure_noise`：返回字典新增 `seeds`（逐次种子）与 `family`（生成式字符串）
+   ⇒ 落盘件**自己**能证明「这几次重复是不是独立重抽」。
+3. `1_Code/AutoRA_SPE/stage9_loop.py::compare_arms`：取消「`ΔA` 在带内时借 `ΔB` 的带子判定」的短路 ——
+   头名四分（都不可分辨／(A) 不可分辨但 (B) 显著更差／(A) 不可分辨但 (B) 更好／`ΔA` 超带且 B 不差才是「(A,B) 上最好」），
+   非头名新增「在 (B) 上显著更差／更好」两条。「在 (A) 上不可分辨」**不再**被写成「两者不可分辨」。
+4. `1_Code/AutoRA_SPE/stage9_report.py` §2：有 `noise["seeds"]` 就印出标定种子族与全部种子；
+   没有（D59 之前的落盘件）就印警告「本落盘件没有记录标定种子 ⇒ 无法复核 `sd` 是独立重抽还是同一族算术邻居，
+   后者实测会把 `sd_A` 低报约 4 倍」。
+5. `1_Code/AutoRA_SPE/stage9_report.py` §7：「推荐点比锚点好 N 倍带宽」这一行后面一律加限制句
+   （分母来自 `n_repeats` 次重抽；`n_fim = 1` 下同一份 `ΔA = 0.0412` 可印成 8.2 倍或 1.1 倍）。
+6. `1_Code/AutoRA_SPE/stage9_loop.py`：新增模块常量 `VERDICT_LOGIC`（写明三代裁决逻辑的差别）与 payload 的
+   `"verdict_logic"` 键；`1_Code/AutoRA_SPE/stage9_report.py` §5 印出该版本，缺失时先警
+   「本落盘件没有记录裁决规则版本 ⇒ 判词可能由已被修正的规则生成」。**为什么不能省**：报告只逐字转印
+   `compare[*].verdict`（不重算），而规则改过三代 ⇒ 不记版本就没有任何办法判断手上这份判词该不该信。
+
+### 3. 缺陷一：标定种子是「算术邻居」
+
+`1_Code/AutoRA_SPE/stage9_loop.py::cell_seed(name, base) = (base + int(sha256(name.encode()).hexdigest()[:12], 16)) % 2**32`。
+旧式 `base + 791_900 + 37 * k` 因此是**同一个哈希值加一个小偏移** —— 每次的种子确实不同，
+但它们不是独立抽样。四族对照（`1_Code/AutoRA_SPE/_scratch_anchor_seed_scan.py`，222 行）：
+
+| 族 | `n_fim = 1` 的 `sd_A` | `n_fim = 12` 的 `sd_A` |
+|---|---|---|
+| 旧标定族（`+791_900 + 37k`，6 个） | 0.004779 | 0.008586 |
+| 另一族邻居（`+4_000_000 + 37k`，6 个） | 0.015623 | 0.004341 |
+| **无关种子**（`default_rng(20261016).integers`） | **0.018933**（n = 48） | 0.006897（n = 12） |
+
+- `n_fim = 1`：旧族把 `sd_A` 低报 **4.0 倍**（0.0048 vs 0.0189）。48 个无关种子的均值 0.354149、
+  中位 0.352165、MAD 0.014055、IQR 0.022347、极差 `[0.298688, 0.390828]`，直方图单峰而重尾
+  （1/1/1/3/6/14/7/5/7/3）⇒ ❗ **假设「邻居种子之间相关」被否**（间隔同样为 37 的另一族散布正常），
+  真因是**6 个样本在重尾分布上估 `sd`**。
+- `n_fim = 12`：旧族**不**偏小（反而略大）⇒ **4 倍低报是 `n_fim = 1` 特有的**。
+- 附带读数（`1_Code/AutoRA_SPE/_scratch_noise_repeats.py`）：2 次重复给 `alpha = 0.165`、6 次给 **0.393（2.4 倍）**，
+  且两次重复用的是**同一对固定种子** ⇒ 该偏差在多次运行之间是相关的，不是随机噪声。
+
+### 4. 缺陷二：`ΔA` 在带内时借 `ΔB` 的带子判定
+
+旧 `compare_arms` 在 `ΔA ≤ 2·sd_A` 时直接用 `ΔB` 与 `2·sd_B` 得出一句判词（「被支配」或「不可分辨」）。
+但两根带子各有自己的不确定度：`ΔA` 落在 `(A)` 的带内，只说明**关于 `(A)` 没有分辨率**，
+它既不支持也不否定关于 `(B)` 的结论。`n_fim = 1` 的实测里，这条短路把 `manual` 印成「被 `random` 支配」，
+换成诚实的带子后判词变成「在 (B) 上显著更差，而 (A) 分量不可分辨」。
+
+### 5. 换带重判：`n_fim = 1` 的头条被推翻
+
+`1_Code/AutoRA_SPE/_scratch_reverdict.py`（151 行，纯离线、只读）用 payload 自己的 `histories`
+与**替换后的** `sd_A`/`sd_B` 各调一次 `compare_arms()`：
+
+| 臂 | 旧带（`2·sd_A = 0.0050`、`2·sd_B = 0.2665`） | 诚实带（`0.0379`、`0.3761`） |
+|---|---|---|
+| `random`（0.3881） | 在 (A) 与 (B) 上都不可分辨 | 同 |
+| `grid`（0.3897） | 在 (A) 与 (B) 上都不可分辨 | 同 |
+| `manual`（0.3989） | **被 `random` 支配** | **在 (B) 上显著更差**（(A) 分量不可分辨） |
+| `bo`（0.5113） | 在 (A) 上显著更差 | 同（倍数由 24.5 降到 3.3） |
+
+❗❗ 最关键的是第 7 节那个「锚点离最优多远」：`ΔA = 0.041159` 在旧带下是 **8.18 倍**带宽，
+在诚实带下只有 **1.09 倍** ⇒ **`n_fim = 1` 档没有任何证据说推荐点比锚点 D4 好**。
+❌ **2026-10-16 更正（见 D60）**：本行「换带重判」用的两根带子是**单设计**的 `2·sd`（旧族 0.0050 / 无关族 0.0379）；跨设计比较的正确系数是 `2·√2` ⇒ 同一份 `ΔA = 0.0412` 应读作**3.0 倍 / 0.77 倍**（而不是 8.18 / 1.09），结论方向不变（都判「不可分辨」）；另外「推荐点比锚点好」这句话在 `n_fim = 1` 下**没有证据**（推荐点的 CRN 读数比自己的种子均值低 2.26σ，而锚点高 1.58σ ⇒ 单种子先后可能是抽签）
+
+### 6. 校验证据
+
+1. `python -u 1_Code/AutoRA_SPE/_scratch_anchor_seed_scan.py 1 48 1_Code/AutoRA_SPE/_scratch_anchor_scan_nfim1_u8.txt`
+   ⇒ 61 次评估、246.5 s；`... 12 12 ...` ⇒ 25 次评估、965.3 s（两条日志都在 `1_Code/AutoRA_SPE/`）。
+2. `python -u 1_Code/AutoRA_SPE/_scratch_noise_repeats.py` ⇒ 两条短日志 `_scratch_noise_repeats_u8.txt`。
+3. `python -u 1_Code/AutoRA_SPE/_scratch_reverdict.py 1_Code/AutoRA_SPE/stage9_payload_nfim1_budget12.json 0.018933 0.188060`
+   ⇒ `_scratch_reverdict_nfim1_u8.txt`（exit 0）。
+4. `python -u 1_Code/AutoRA_SPE/check_stage9_loop.py 1 1_Code/AutoRA_SPE/_scratch_check_stage9_loop_d59_u8.txt`
+   ⇒ **48/48、未通过 0 项、exit 0、47.8 s**（新增 E10a–E10d + H6/H6b）。
+5. `python -u 1_Code/AutoRA_SPE/check_stage9_report.py` ⇒ **52/52、未通过 0 项、exit 0**
+   （新增 R1p-j/k/l + R1p-m/n）；`stage9_report.md` 重新生成 ⇒ **133 行**（§5 多出「没有记录裁决规则版本」的先警，因为依据件是 D59 之前的 `n_fim = 1` 落盘件）。
+6. `python 1_Code\AutoRA_SPE\check_stage9.py --quick` ⇒ 8 项、未通过 0 项、1.8 s、exit 0。
+7. 第四处同族缺陷的牙齿：`1_Code/AutoRA_SPE/check_stage9_loop.py` 的 **H7**（`VERDICT_LOGIC` 常量与 `payload["verdict_logic"]` 的静态钉子）与
+   `1_Code/AutoRA_SPE/check_stage9_report.py` 的 **R1p-m**（无 `verdict_logic` ⇒ 先警必须出现）、**R1p-n**（有 ⇒ 印出且不得先警）。
+
+### 7. 尚未做
+
+1. **正式 `n_fim = 12` 的全空间重跑**（`--noise-repeats 16`，后台作业）尚未落盘 ⇒ 「`n_fim = 1` 下
+   174 个候选里 123 个被数值条件数刷掉」是不是 `n_fim` 的产物，要等它与 `_scratch_payload_nfim12.json`
+   用 `1_Code/AutoRA_SPE/_scratch_cmp_nfim.py` 对照后才有答案。
+2. 交付件 `1_Code/AutoRA_SPE/stage9_report.md` 的依据件仍是 `n_fim = 1` 那份 ——
+   D59 已证明该档的裁决带宽不可用，换依据件要等第 1 条落盘。
+3. 🛑 遗漏率带 `[0.05, 0.20]` 与锚点 D4 的 `0.361111` 不相容（D55 第 18 条）仍待拍板。
+
+## 8.35 跨设计比较的带宽系数少 √2；推荐点自带选择偏差（2026-10-16，D60）
+
+### 1. 为什么有这一节
+
+`1_Code/AutoRA_SPE/stage9_loop.py::compare_arms` 的每一条判词（不可分辨 / 显著更差 / 被支配 /
+权衡）都以一根**噪声带**为门槛，而 `(A)` 是 MC 估计量。前几轮（D59、§8.34）已经把带宽的**估计来源**
+钉住了（标定种子必须独立重抽），但**系数**本身还有一处错：`sd_A` 是**同一个设计**在不同种子下的
+标准差，而判词比的是**两条臂各自选中的不同设计**（CRN 种子由名字哈希导出 ⇒ 独立）⇒
+`Var(差) = 2·sd²` ⇒ 系数的正确值是 `2·√2`，而代码里写的是 `2·sd` ⇒ **窄 1.41 倍、方向偏宽松**
+（更容易自称显著）。这一处属「**事前登记的判据有缺陷**」，所以作为一次显式决策（D60）落纸，而不是静默改码。
+
+### 2. 代码改动清单（5 处）
+
+1. `1_Code/AutoRA_SPE/stage9_loop.py`：新增模块常量 `DIFF_BAND_FACTOR = 2.0 * float(np.sqrt(2.0))`
+   （= `2.8284271247461903`，紧跟 `VERDICT_LOGIC` 之后，含推导与两条未解决限制的注释）；
+   `compare_arms` 的 `band_a/band_b` 改用它；docstring 新增第 5 条纪律。
+2. 同文件：`VERDICT_LOGIC` 文案改为「带宽 = **差**的噪声带 `2·√2·sd`（不是单设计的 `2·sd`）」
+   ⇒ 落盘件自报的规则版本随之更新。
+3. `1_Code/AutoRA_SPE/stage9_report.py`：同名常量 `DIFF_BAND_FACTOR = 2.0 * math.sqrt(2.0)`
+   （**不 import 生产模块**，两处相等由自测钉住）；§2 把 `2·sd` 标注为「**单设计**读数带，⚠️不是判据带」
+   并新增判据带一节。
+4. 同文件 §5：从「逐字转印落盘件里的判词」改为**自己用当前规则重算一遍**（延迟 `sys.path` 插入后
+   `import stage9_loop` 调 `compare_arms`），三种打印：全等 ⇒ `✅ 与上面**转印**的判词逐字一致`；
+   不等 ⇒ `⚠️ **与上面转印的判词不一致的臂：…** ⇒ 以本节的复核文本为准`；异常 ⇒
+   `⚠️ **离线复核失败**（ExcType: msg）⇒ 上面的判词**未经复核**`（绝不静默）。
+5. 同文件 §7：`离最优多远` 的倍数改用 `2·√2·sd_A`；新增**选择偏差**段；→ 共 5 处。
+
+### 3. 缺陷一：带宽系数少 √2（影响面 = 全部判词）
+
+| 量 | 代码里的写法 | 正确写法 | 差 |
+|---|---|---|---|
+| `(A)` 的判据带宽 | `2.0 * sd_A` | `2·√2 · sd_A` | 旧值窄 **1.41 倍**（偏宽松） |
+| `(B)` 的判据带宽 | `2.0 * sd_B` | `2·√2 · sd_B` | 同上 |
+
+`n_fim = 1` 那份 payload（`stage9_payload_nfim1_budget12.json`）的实读：`sd_A = 0.0025152`
+（旧标定族）⇒ 旧带 `0.0050`、新带 `0.0071`；`sd_B = 0.1332437` ⇒ 旧带 `0.2665`、新带 `0.3768`。
+同一份 `ΔA = 0.041159`（锚点 vs 推荐点）在四种口径下的倍数：旧族 `2·sd` = **8.18 倍**、
+无关族 `2·sd` = **1.09 倍**（D59）、旧族 `2·√2·sd` = **3.0 倍**、无关族 `2·√2·sd` = **0.77 倍** ⇒
+**换哪一根带子都不构成「推荐点更好」的证据**（这也顺带更正了 §8.34 里「8.18 倍 / 1.09 倍」那两句）。
+
+### 4. 同族第五处：推荐点自带选择偏差（本轮最要紧的读数）
+
+判据带宽只解决「一个设计自己的读数有多准」；而报出的**推荐点**是「**可行集内 `(A)` 最小的那个**」
+⇒ 它是**极值统计量**，系统性偏低（*winner's curse*）。逐设计实测（`n_fim = 1`、
+`_scratch_anchor_seed_scan.py`、32 个无关种子 `default_rng(20261016)`）：
+
+| 设计 | CRN 读数 `(A)` | 32 个无关种子的均值 | `sd_A` | CRN 的 z |
+|---|---|---|---|---|
+| 锚点 D4 `T[33.33/83.33/149.99/249.98]ms x W[799.98/1199.90/1799.90]ms x r12` | 0.385802 | 0.357344 | 0.017976 | **+1.58** |
+| 推荐点 `T[33.33/149.99/349.99]ms x W[1199.90/1799.90/2399.80]ms x r16` | 0.344643 | 0.386742 | 0.018638 | **−2.26** |
+| 病态样例 `T[83.33/149.99/249.98]ms x W[799.98/1799.90]ms x r24` | 0.289613 | 0.318175 | 0.021285 | −1.34 |
+
+三条读数：
+
+1. **σ 逐设计同量级**（0.017976 / 0.018638 / 0.021285，最大是最小的 1.18 倍）⇒ 用锚点的 σ 当共同 σ
+   **可接受**（只略低估病态设计约 14–18%）；**同方差假设不必推翻**，但要写在报告的限制里。
+2. **推荐点的 CRN 读数比它自己的种子均值低 2.26σ**（锚点高 1.58σ）⇒ 单种子 CRN 下的「谁更好」
+   **可能是抽签结果**。两设计的种子均值差 `0.386742 − 0.357344 = 0.0294`（均值标准误 ≈ 0.0033，
+   约 **9 个标准误**）⇒ 那次按均值比，**锚点反而更优**。这不改 D54 的结论（D4 因遗漏率 0.3611 > 0.20
+   仍不可行），但**「推荐点比锚点好」这句话在 `n_fim = 1` 下没有证据**。
+3. ⇒ 要判断「哪个设计真的好」，必须做**种子平均**：新增探针
+   `python -u 1_Code/AutoRA_SPE/_scratch_mean_A_rank.py <payload.json> [n_seeds] [n_fim]`
+   （对 CRN 口径前 N 名逐个扫种子，给出按均值的排名与每个设计的偏差 σ）；
+   `_scratch_pick_designs.py` 用来从 payload 里取设计名。
+
+### 5. 报告的三处新呈现
+
+1. §2：`2·sd` 表头标注为「**单设计**读数带，⚠️不是判据带」，并单独列出 `2·√2·sd` 的判据带；
+2. §5：判词复核（一致 / 不一致 / 复核失败三种打印）——落盘件自报的规则版本只作**线索**，
+   结论以复核文本为准；
+3. §7：倍数用新带，并明确写出「**推荐点自身带有选择偏差**」与种子平均的做法，
+   且**自认**「本落盘件的种子均值没有在本报告里算过」（举例不得当结论）。
+
+### 6. 校验证据
+
+1. `python -u 1_Code\AutoRA_SPE\check_stage9_loop.py 1 _scratch_check_stage9_loop_d60_u8.txt`
+   ⇒ **53/53、未通过 0 项、exit 0、58.2 s**（新增 `[E 组·续 3]` E11/E11a/E11b/E11c + H8）；
+2. `python -u 1_Code\AutoRA_SPE\check_stage9_report.py` ⇒ **57/57、未通过 0 项、exit 0**
+   （新增 R1p-o/p/q/r/r2）；
+3. 三份 σ 实测日志：`1_Code/AutoRA_SPE/_scratch_sigma_anchor_u8.txt`（188.1 s）、
+   `_scratch_sigma_best_u8.txt`（183.0 s）、`_scratch_sigma_ill_u8.txt`（130.2 s）；
+4. `python -u 1_Code\AutoRA_SPE\stage9_report.py 1_Code\AutoRA_SPE\stage9_payload_nfim1_budget12.json`
+   ⇒ 交付件 **145 行**，§5 点出四条臂的判词都与转印的不一致、§7 印出选择偏差段；
+5. `python -u 1_Code\AutoRA_SPE\check_stage9.py --quick` ⇒ **8 项、未通过 0 项、exit 0**
+   （`check_stage9_report.py` 57/57）；
+6. `python -u 1_Code\DDM_Core\_scratch\check_files.py` ⇒ 全部裸 LF、无 BOM、`ast=OK`。
+
+### 7. 尚未做
+
+1. 判读两次 `n_fim = 12` 长跑（`--budget 1` 与 `--budget 12 --noise-repeats 16`），
+   把交付件依据件换到 `n_fim = 12` 的落盘件；
+2. 用 `_scratch_mean_A_rank.py` 在 `n_fim = 12` 下重做种子平均排名（`n_fim = 1` 下 7 个设计 × 32 种子
+   ≈ 13 min；`n_fim = 12` 约 ×6）⇒ 用**期望意义上的** `(A)` 重排可行集；
+3. `(B)` 一侧的选择偏差没有单独量（`B = |mu−1|/se_group` 含 `n_subjects` 折算，σ 与 `(A)` 不同源）。
+
+## 8.36 可行集的铺开度与「推荐点」的身份；病态集是结构性质（2026-10-16，D61）
+
+### 1. 动机
+
+D60 把跨设计比较的带宽改成了**差**的口径（`2·√2·sd`）。带宽一变，紧接着的问题就是：
+**那根带子相对可行集内部的铺开度有多宽**——如果可行集里与「最优」不可分辨的设计不止一个，
+那么报告里点名的「推荐点」就只是**可行带内的一个点**，论文里就不能写「唯一最优」。
+同时还要回答上一轮挂着的那个问题：`n_fim = 1` 下出现的 123 个数值病态候选，
+是不是**只在小 `n_fim` 下才病态**（即 `n_fim = 1` 的产物）。
+
+### 2. 两档对照：病态集是**设计空间的结构性质**
+
+`python -u 1_Code\AutoRA_SPE\_scratch_cmp_nfim.py 1_Code\AutoRA_SPE\stage9_payload_nfim1_budget12.json 1_Code\AutoRA_SPE\_scratch_payload_nfim12.json`（日志 `1_Code\AutoRA_SPE\_scratch_cmp_nfim_u8.txt`，两档 `n_evaluated = 176`）：
+
+| 类别 | `n_fim = 1` | `n_fim = 12` |
+| --- | --- | --- |
+| 可行 | 27 | **30** |
+| 只被遗漏率带否决 | 24 | 21 |
+| 只被数值病态否决 | 54 | 46 |
+| 两者兼有 | 69 | **77** |
+| `n_bad > 0`（数值病态集） | **123** | **123** |
+| `n_bad == 0` 但 `cond > 1e10` | 0 | 0 |
+
+❗ **病态集逐设计完全相同**（只有基线有、只有新件有 ⇒ 两边都是 0 个）⇒ **123 / 174 是设计空间的结构性质**，
+不是 `n_fim = 1` 的产物；随 `n_fim` 移动的只是**遗漏率带内的成员**（逐设计迁移：只病态→兼有 10、只带→可行 9、
+可行→只带 6、兼有→只病态 2）。带宽本身也随 `n_fim` 变：`2·sd_A` 0.0050 → **0.0164**、`2·sd_B` 0.2665 → **0.0771**。
+
+### 3. 铺开度：`(A)` 的极差是**几十到上百倍**判据带
+
+`python -u 1_Code\AutoRA_SPE\_scratch_feasible_spread.py <payload.json>`（日志 `_scratch_feasible_spread_u8.txt`）：
+
+| 落盘件 | 可行 | `(A)` 最小 / 中位 / 最大 | 极差 | 极差 ÷ 判据带 | 与最优不可分辨 | `(B)` 上不可分辨 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `stage9_payload_nfim1_budget12.json` | 27 | 0.344643 / 0.424855 / 1.091866 | 0.747223 | **105.03 倍** | **2 / 27** | 17 / 27 |
+| `_scratch_payload_nfim12.json` | 30 | 0.376187 / 0.462762 / 2.240307 | 1.864119 | **80.23 倍** | **11 / 30** | 10 / 30 |
+
+❗ **族稳健、点不稳健**：`n_fim = 12` 那 11 个不可分辨设计**全部**是最大 W 档
+`W[1199.90/1799.90/2399.80]ms` + `T` 3–6 档 + `r8–r16`（`n_fim = 1` 的 2 个也是最大 W 档 + `r16`）⇒
+可以说「**该设计族**稳健」，**不可以**说「这个点最优」；两档点名的推荐点是**两个不同设计**
+（`...r16` → `T[33.33/149.99/249.98/449.98]ms x W[1199.90/1799.90/2399.80]ms x r12`）。
+
+### 4. 带宽 `2·√2` 的实测支持（含一次自我纠错）
+
+`python -u 1_Code\AutoRA_SPE\_scratch_pair_corr.py 1_Code\AutoRA_SPE\_scratch_mean_A_rank_v2_u8.vals.json`：
+逐设计 `ρ = +0.486 / +0.487 / +0.496 / +0.603 / +0.763 / +0.848`、配对 `sd_pair` = 0.0101–0.0186（< `√2·sd ≈ 0.0255`）
+⇒ 实测判据系数 `2·sd_pair/sd` = **1.085 / 1.374 / 1.837 / 1.945 / 1.979 / 1.991**，全部小于独立性假设的 `2·√2 = 2.828`。
+
+❗ 一度以为这**推翻**了 D60 的独立性假设（即 `2·√2` 偏宽）。读码后确认是**探针口径**造成的：
+`1_Code/AutoRA_SPE/_scratch_anchor_seed_scan.py::_one()` 把种子**直接**交给 `inner_eval` ⇒
+同一份种子表下**所有设计共用同一条随机流**（共享 CRN）⇒ 正相关是当然的。而循环里
+`1_Code/AutoRA_SPE/stage9_loop.py::Evaluator._raw` 用 `seed=cell_seed(d["name"], base_seed)`
+（`cell_seed(name, base_seed) = (base_seed + sha256(name)[:12]) mod 2**32`）⇒ **每个设计各自一条流** ⇒
+两条臂相互独立 ⇒ `Var(ΔA) = 2·sd²` ⇒ **`2·√2` 不改**。
+
+附带结论：「**共享流 CRN 配对**」是一条**候选改进**（判据系数可收到 1.1–2.0，配对 SE ≈ 0.64 × 非配对），
+不是现有判据的缺陷；两个口径**不可混用**（报告 §7 与两个探针都写明；探针的配对 t 值不能替代第 5 节的判词）。
+
+### 5. 报告与探针的新呈现
+
+1. `1_Code/AutoRA_SPE/stage9_report.py` §7 新增「**可行集里「最优设计」的身份是否唯一**」段：
+   印出可行数与 `(A)` 的最小/中位/最大、「极差 = k 倍判据带 `2·√2·sd_A`」、「与最优不可分辨的可行设计 m / N」、
+   「`(B)` 上与推荐点不可分辨的 m2 / N」，并明说**不得**写成「唯一最优」；只有 1 个可行设计时改印「可行集只有 1 个设计」；
+2. §7 的选择偏差段补一行**口径提醒**：种子平均探针的**配对**口径（共用随机流）≠ 本报告的判据带（各设计各一条流）；
+3. 新建两个探针：`_scratch_feasible_spread.py`（可行集铺开度 + 不可分辨计数 + 全列）与
+   `_scratch_pair_corr.py`（逐设计 ρ、配对 `sd_pair`、实测判据系数）。
+
+### 6. 校验证据
+
+1. `python -X utf8 -u 1_Code\AutoRA_SPE\check_stage9_report.py` ⇒ **61/61、未通过 0 项、exit 0**
+   （`_scratch_check_stage9_report_d61_u8.txt`；新增 R1p-s/s2/s3 + R1p-r3）；
+2. 交付件 `1_Code/AutoRA_SPE/stage9_report.md` **149 行**，且 R1l 要求它与生成器现输出**逐字相同**（已重生成）；
+3. `python -X utf8 -u 1_Code\AutoRA_SPE\check_stage9.py --n-fim-inner 2` 全套 ⇒ **10 项、未通过 0 项、exit 0**
+   （`_scratch_agg_console_d61_u8.txt`）；
+4. 两档对照日志 `_scratch_cmp_nfim_u8.txt`（⚠️ 与 D58 时期的同名文件，已被本轮内容覆盖；
+   D58 只在文档里引用了脚本名，未引用该日志内容）；
+5. 铺开度日志 `_scratch_feasible_spread_u8.txt`（42 行）、配对相关日志 `_scratch_pair_corr_u8.txt`；
+6. ❗ **环境坑**：本机控制台编码 = GBK（`sys.stdout.encoding == 'gbk'`）⇒ 含 `⇒`/`✅` 的探针必须 `python -X utf8` 运行，
+   否则 `UnicodeEncodeError: 'gbk' codec can't encode character '\u21d2'`；日志必须用
+   `[System.IO.File]::WriteAllText(..., (New-Object System.Text.UTF8Encoding($false)))` 写
+   （`Tee-Object` 会写出 **UTF-16**，首字节 `FF FE` ⇒ `check_files.py` 直接 `UnicodeDecodeError`）。
+
+### 7. 尚未做
+
+1. `n_fim = 12` 的种子平均排名（`python -u 1_Code\AutoRA_SPE\_scratch_mean_A_rank.py 1_Code\AutoRA_SPE\_scratch_payload_nfim12.json 32 12`，约 1.9 h）⇒ 判断「锚点在正式 `n_fim` 下是否也最优」；
+2. 正式 `--budget 12 --n-fim 12 --noise-repeats 16` 落盘件的判读（`pwsh-345`）与**交付件依据件**切换；
+3. 🛑 `1_Code/DDM_Core/README.md` §9 第 18 项（D55 的遗漏率带与锚点 D4 不相容）仍待拍板 ——
+   **新证据**：D4 的遗漏率在 `n_fim = 1`（0.3507 / 0.3819）与 `n_fim = 12`（0.3565 / 0.3521）两档都在 0.35 左右
+   ⇒ 带 `[0.05, 0.20]` 对 D4 的排斥是**稳健的**，不是小样本产物；
+4. 「共享流 CRN 配对」是否升格为正式判据（需重做 D60 的登记与报告措辞）。
+
+## 8.37 交付件依据件换到正式 `n_fim = 12`；锚点在 `(A)` 上其实期望最优（2026-10-17，D62）
+
+**动机**：D60/D61 之后判词与带宽都改过，但交付件的依据件仍是 `n_fim = 1` 那一批。正式 budget-12 运行（`--budget 12 --n-fim 12 --noise-repeats 16`）落盘后，必须换档并重判「锚点 vs 推荐点」。
+
+**① 正式件与 `_restamped` 件**：`1_Code/AutoRA_SPE/stage9_payload_nfim12_budget12.json`（375296 B、`n_evals = 190`、5815 s、`n_repeats = 16`、`sd_A = 0.00746192`、`sd_B = 0.0492737`、`sd_omission = 0.00425987`、`cache` 174、`pareto` 6、带外 98 / 可行 **30**、`manual` 臂 `A_best = inf`）；它启动早于 `VERDICT_LOGIC` ⇒ 无该键。`1_Code/AutoRA_SPE/_scratch_restamp_payload.py`（124 行）读 `histories` + `noise`、用当前 `compare_arms` **离线重算** `compare` 段并写 `provenance`，其余字段逐字继承 ⇒ `stage9_payload_nfim12_budget12_restamped.json`（377131 B）：旧带 0.0149 / 0.0985 → 新带 **0.0211 / 0.1394**、**3/4 条判词不同**（只是阈值数字变，**方向一条都没变**）。
+
+**② 依据件换档**：`check_stage9_report.py::_REAL` 改指 `_restamped` 件；`R1j` 从「旧版措辞告警**不得**出现」改为**按 payload 现算**（`_has_inf_arm = any(not math.isfinite(float(r.get("A_best", inf))) for r in d["compare"])`）—— 正式件里 `manual` 没有可行点，这条告警**应该**出现；旧硬编码只对 `n_fim = 1` 那批成立。
+
+**③ ❗ 锚点在 `(A)` 上期望最优**（`_scratch_mean_A_rank_nfim12_u8.txt`，32 个无关种子、7769.9 s）：锚点 D4 种子均值 **0.340119 ± 0.001394**（CRN 0.338437、偏差 −0.21σ）> 候选 0.374739 / 0.375209 / 0.383809 / 0.383816 / 0.384073（推荐点）/ 0.385240；6 个配对差全部为正且显著（`t = +25.49…+41.10`）⇒ **期望意义上锚点好 0.035–0.045**；`n_fim = 1` 那档同向（0.357344 vs 0.386742）。⚠️ 锚点被 D54 的带排斥（遗漏 **0.3546**）⇒「`(A)` 更好但**不可执行**」，推荐点仍是可行集内 `(A)` 最小者。
+
+**④ 遗漏率带敏感性（`n_fim = 12`）**：现行带 30 可行（遗漏 0.1788 / 中位 0.1908 / 0.1975）、只被带否决 21、全 174 个 0.1102–0.4644；**支配锚点的可行设计 0 个**（`n_fim = 1` 档 5 个）；上界 0.20/0.25/0.30 ⇒ 最优 `A` 0.3762/0.3717/0.3497（支配数仍 0）、0.35 ⇒ 0.3162（2 个）、**0.3611 ⇒ D4 进带**（3 个）；下界 0.05 从未生效；比值口径：`A/A(D4) = 1.1115`、`B/B(D4) = 1.1334`。用户拍板 D55 第 18 条 = **(a)+(c)** ⇒ 该待办关闭。
+
+**⑤ 报告修正与牙齿**：§3 的「`n_fim = 1` 这批候选里两者恰好重合」→ D61 的「两档逐设计相同 ⇒ 结构性质」；§3 的「须在正式 `n_fim` 下重测这一节」→「D61 已重测：仍 123/174、`cond` 2.231e15 → 2.013e15」；§8 第 4 条「病态比例是本次 `n_fim` 的产物」**翻转为「不是」**；§7 新增 D62 段。牙齿 **R1p-t**（这两句不得再出现、须说「结构性质」）+ **R1p-r2** 改写（实测与边界两条都在）⇒ **61/61 → 62/62**；交付件 **152 → 154 行**。
+
+**⑥ 尚未做**：「共享流 CRN 配对」是否升格为正式判据（系数 2.83 → 1.1–2.0，需重做 D60 登记）；✅ **已由 D69 结案（不采用）**：实测收窄仅 1.07–2.15 倍，且换种子口径即换实验（见 §8.44）；四个用户侧 Stage；真实数据到手后的 `cellmean.py` 剖面诊断。
+
+## 8.38 本机其实有完整贝叶斯栈；ArviZ 独立复核了手写 PSIS-LOO（2026-10-17，D63）
+
+**结论**：`D:\Conda\envs\hssm\python.exe` 里装着 **pymc 5.28.5 + pytensor 2.38.3 + arviz 0.23.4 + hssm 0.3.0**（Python 3.11.15、numpy 2.4.6、scipy 1.17.1）；另一处 `C:\Users\蔡振辛\AppData\Local\Programs\Python\Python313`有 pymc 5.25.1 / arviz 0.20.0（无 `hssm`）。**默认 `python`（`D:\Conda\python.exe`）确实没有**——D41 当初只查了它，所以「本机没有任何贝叶斯栈」这个前提是**错的**。
+
+**交叉复核**（`1_Code/DDM_Core/_scratch/_probe_bayes_stack.py`，79 行）：同一 `(S = 2000, N = 40)` 逐点对数似然矩阵上，`loo.psis_loo` 给 `elpd_loo = -53.814882`、`se = 4.082616`、`p_loo = 0.778425`、`k_max = 0.0591`；`arviz.loo`（需一个占位 `posterior` 组）给 `-53.816786`、`4.031690`、`0.780329`、`k_max = 0.1208` ⇒ **`elpd_loo` 相对差 3.54e-05**；`k_max` 差 0.062 是两条 GPD 尾部截断/平滑实现的差别，两者都远低于 0.7。
+
+**不能做的事**：`pm.sample` 抛 `OSError: [WinError -1066598273] Windows Error 0xc06d007f`；`pytensor.config.cxx = ''` 且 `g++` 未安装 ⇒ C 实现不可用、Python 回退时 DLL 加载失败 ⇒ **本机跑不了 MCMC**（`hssm` 拟合同样跑不了）。要跑就得先装 `conda install -n hssm gxx` 或 MSVC Build Tools。
+
+**⇒ 决定（D63）**：主路线仍走**零依赖**（§8.22 + §8.28），ArviZ 只作**外部复核**；D41 从「🛑 需拍板」改为「✅ 已核查结案」——「装不装 pymc」这个拍板项消失。
+
+**牙齿**：`1_Code/DDM_Core/_scratch/check_loo.py` 新增 `[D]` 三条 —— **D1** 复核日志在场且自报一致、**D2** 相对差 < 1e-3、**D3** 日志记下 pymc 版本与采样可用性 ⇒ **14 → 17/17、exit 0**。
+
+## 8.39 `2·√2·sd` 的 `√2` 取常数：同方差在正式 `n_fim` 下实测成立（2026-10-17，D64）
+
+**动机**：D60 把跨设计比较的带宽从 `2·sd` 改成 `2·√2·sd`，依据是 `Var(ΔA) = 2·sd²`。但那个式子的前提是**两条臂的 σ 同量级**（同方差）；当时只在 `n_fim = 1` 上用 3 个设计验过（`sd_A` 0.0180 / 0.0186 / 0.0213，最大/最小 1.18 倍）。若 σ 在各设计间差几倍，`√2` 就得逐对算、带宽不能是单一常数。
+
+**做法（零新计算）**：D62 那份 32 种子的逐设计读数（`_scratch_mean_A_rank_nfim12_u8.vals.json`）本来就含7 个设计 × 32 个种子；`_scratch_pair_corr.py` 从中抽出每个设计的逐种子 `sd`（输出 `_scratch_pair_corr_nfim12_u8.txt`）。
+
+**结果**：`n_fim = 12` 的 7 个可行设计 `sd_A` = **0.0068 / 0.0069 / 0.0070 / 0.0071 / 0.0076 / 0.0079 / 0.0085**（最大/最小 **1.24 倍**）；`n_fim = 1` 那档 3 个设计 1.18 倍 ⇒ 两档都不支持「不同设计的 σ 差好几倍」⇒ `2·√2·sd` 里那个 `√2` 取**常数**是有依据的，不是裸假设。
+
+**边界**：同一份输出里 `ρ = +0.22…+0.80` 是**探针共用随机流**的口径（`_scratch_anchor_seed_scan._one()` 把种子直接交给 `inner_eval`），**不能**用来说明循环里两条臂相关 —— 循环用 `cell_seed(name, base_seed)`，各设计各一条流（D61 已纠错）。这条只补经验支持，**不改**任何判据、带宽或推荐点。
+
+**牙齿**：`1_Code/AutoRA_SPE/check_stage9_report.py` 新增 **R1p-u**（报告必须给出「同方差」+ `1.24` + `0.0068` + `1.18` 四项）⇒ **62/62 → 63/63**；交付件 `stage9_report.md` **154 → 155 行**。
+
+## 8.40 Stage 8 全量运行器在合成数据上端到端跑通（2026-10-17，D65）
+
+### 8.40.1 动机
+
+Stage 8 的代码（`1_Code/DDM_Core/hier.py`、`stage8.py`、`loo.py`、`stage8_run.py`）此前只有**分段自测**（`check_hier.py` / `check_stage8.py` / `check_loo.py` / `check_stage8_run.py` 18/18），从来没有**把整条链路在同一份数据上跑通过**：拟合 → LOO → 模型比较 → PPC → 报告。真实数据到手前必须知道「跑得起来吗、要多久、闸门会不会响」。
+
+### 8.40.2 两次运行
+
+| 项 | 干跑 I（主配置） | 干跑 II（小配置） |
+|---|---|---|
+| 数据 | `--synthetic 3 --synth-n-rep 3 --seed 7`，142/143/141 试次 | 同左，`--seed 11` |
+| 配置 | `n_em` 5、`n_draws` 30、`n_x` 25、PPC 2、`analytic` | `n_em` 3、`n_draws` 12、`n_x` 21、PPC 1、`analytic` |
+| 预估 | 0.49 h（29.4 min） | 0.22 h（13.2 min） |
+| **实测** | **5597.9 s（93.3 min，×3.2）** | **3013.2 s（50.2 min，×3.8）** |
+| M-T1 | 3015.1 s、ELPD −521.183 ± 7.258、`p_loo` 185.369、`k_max` 5.000 | 1696.1 s、−541.007 ± 17.573、218.05、0.000 |
+| M-T3 | 2553.8 s、−350.223 ± 16.448、36.221、4.825 | 1305.9 s、−462.861 ± 17.618、144.57、0.000 |
+| 判词 | 两模型都「⛔ 本组 LOO 无效」 | 同左 |
+| PPC | 全局 6–7/12 在带内、分单元 15–17/20 | 6–7/12、13–16/20 |
+
+产物：`stage8_report.md`（1.9–9.2 万字符）+ `stage8_results.json`。**没有 `stage8_manifest.json` 是设计如此** —— 它只在「人数超过批量闸门（`_BATCH_WARN_N`）」时才写（`stage8_run.py` L425–434）。
+
+### 8.40.3 四条只在实跑里现形的事实
+
+1. ❗ **成本预估器低估 3–4 倍**。预估口径是「48 试次/人、`n_x=41`、单次似然 34 ms」，而干跑每人 141–143 试次、正式数据 576 试次/人 ⇒ 时间计划按 ×4 留余量。
+2. ❗ **D52 的 `p_loo` 闸门承重**。小配置两个模型 `k_max` 全 **0.000**、`n_k_gt_bad` 全 **0/3**（只看这两条会判「可报 ΔELPD」），而 `p_loo/n_obs` = **72.7 / 48.2** ⇒ 判无效。这是 D52 第一次在**真实运行器**（而不是自测夹具）里救回一次误判。
+3. ❗ **`n_degenerate_nonfinite` 是隐形的**：主配置 **54**（M-T1）/ **16**（M-T3），而 `n_nonfinite_loglik` = **0**；同时 scipy `_numdiff` 报 `RuntimeWarning: invalid value encountered in subtract`（D51 同族，`n_x = 25` 即出现）。
+4. ❗ **`analytic` 超参数 Hessian 在 N=3 上并非必正定**：M-T1 最小特征值 **−0.2031**、`n_flipped = 1`（协方差被抬过）；M-T3 **+0.0199**、`n_flipped = 0`。§11 第 2 条要求「必须同报谱与 `n_flipped`」因此是硬要求。
+
+### 8.40.4 一条判读纪律：合成数据不是 DDM 生成的
+
+`_scratch/make_fake_pilot.py` 按 `Exp_Design_Formal.m` 的**规则表转录**生成数据：RT = `T + lognormvariate(−0.5, 0.45)`、正确率固定 0.75、刺激内按键均匀分布 —— **没有 DDM 证据累积过程**。所以干跑里 PPC 的系统性失配（遗漏率观测 0.06–0.09 vs 预测 0.19–0.26；`rt_p50` 观测 0.70 vs 预测 0.60）是**阴性对照成功**：PPC 认出了「这份数据不是这个模型生成的」。**不得**反过来把这几张表当作对 M-T1/M-T3 的批评；要验模型恢复，必须用 `1_Code/DDM_Core/simulate.py` 那一套生成器。
+
+### 8.40.5 尚未做
+
+1. **在 DDM 生成的数据上**做同一套端到端干跑（合成数据换成 `simulate.py`，可同时验参数恢复与 PPC 的**正确阳性**能力）。
+2. 正式数据（4 组 × ~40 人）的批处理时间表：按 ×4 余量估，576 试次/人远超本次干跑，需在真实规模上再测一次。
+3. `n_degenerate_nonfinite` 目前只**计数**，没有定位到「哪一步、哪个参数方向」；若要修 `_numdiff` 退化（D51 同族），应先把计数拆细。
+
+## 8.41 Stage 8 的输入契约：只吃 v4.1 逐被试 txt（2026-10-17，D66）
+
+**动机**：D65 收尾时把 `2_Data/Real_Data/EXP_data_combined.csv` 当 `--data` 喂进 `1_Code/DDM_Core/stage8_run.py`，运行器一路走到 `read_formal_data.py:180` 的 `RF.to_trials(rec)` 才抛**未捕获的** `KeyError: 'matchKey'`（`RF.validate` 在 `RF.load_file` 的 try 之外）、exit 1、裸 traceback。症状像是「读坏了」，根因是那个文件**根本没有那些列**。
+
+**为什么不能转换**：`2_Data/Real_Data/EXP_data_combined.csv` 是 **32 列逗号汇总**，而 `HEADER25` 要 25 列（制表符）。缺的 **9 列**是：`block`、`premature_press`、`timeout`、`responded_by_deadline`、`stimulus_onset_actual`、`stimulus_offset_actual`、`mask_onset_actual`、`stimulus_dur_actual`、`stimulus_frames` —— 全是**刺激呈现时序对反应时窗的记录**。它们不是「换个写法」，而是**当初没采**。补列只能靠猜（例如用 `RT` 倒推「有没有抢按」），而猜出来的列会**伪装成数据**进入模型。另外 `2_Data/Real_Data/` 下 **0 个 `*.txt`**。
+
+**改法（入口契约）**：`collect()` 先分辨输入 —— 目录只取 `*.txt`（没有就点名拒绝）、文件非 `*.txt` 用 `_non_txt_reason()` 拒绝并**逐条列出缺列**、`load_file` 返回空观测用 `rep["error"]` 说明、`RF.validate` 包进 try、一个可用被试都没有时打印**被拒明细**并 **exit 2**。
+
+**牙齿**：`1_Code/DDM_Core/_scratch/check_stage8_run.py` 新增 **E1–E5** ⇒ 自测 **18/18 → 23/23**。
+
+**后果**：Stage 8 的真实数据输入**只能**来自 Stage 7 采集产出的逐被试 txt；**不写** CSV 适配层；历史 87 人件与 Stage 8 无关（它服务的是 Stage 2–5 的恢复/比较，那些不要求 `block`/`premature_press` 等列）。
+
+## 8.42 Stage 1 验收的机器判据，与合成生成器练习行的一处不符（2026-10-17，D67）
+
+### 动了什么
+
+1. `1_Code/Experiment/exp_Check/check_stage1_acceptance.py`（**新建**，408 行，零依赖，复用
+   `read_formal_data.read_one` 的列名口径）：把 `Stage1_技术验证记录.md` §6 的四张手填表变成 6-A–6-E
+   五组判据。`6-A`（掩蔽纹理预加载）与 `6-E`（刺激内/刺激后按键的延时可比性）**不可机器判**，
+   检查器如实标为「需手测 2 项」，不把它们算进通过率。
+2. `1_Code/DDM_Core/_scratch/make_fake_pilot.py` 的练习行 `Correct` 由 `0` 改为 `NaN`。
+
+### 为什么（判据为什么必须机器判）
+
+`6-C` 要判 `stimulus_frames == T / FlipIntv` —— 期望值是 **2 / 5 / 9 / 15**（四个 T 档）。
+在实验机上手算 2 名被试 × 4 个 T 档、还要逐行比对 `stimulus_offset_actual == mask_onset_actual`，
+**必错且不可复核**。检查器改为用 `_frames(t, fi) = max(1, int(round(t / fi)))` **现算**期望值，
+于是期望值本身也能被自测断言（注入 `--defect-1f` 的帧量化缺陷必须被拦住）。
+
+### 6-D 的五条，以及为什么「按字节搜 `0x00`」
+
+| 判据 | 期望 |
+|---|---|
+| 表头 | 25 列逐字比对 |
+| `NA` 约定 | `Response=NA` ⇒ `RT`、`Correct` 必须 NaN，`timeout=1`、`responded_by_deadline=0`；反之必须有限 0-1 |
+| `block` 编号 | 练习 0、正式 1-3 |
+| `0x00` 字节 | 按**字节**搜（文本解码会把 NUL 变成替换符而看不出） |
+| `timestamp` | 只做存在性检查（其值不作判据） |
+
+### 自测 6 例（`--self-test`）
+
+| 用例 | 期望 | 实测 |
+|---|---|---|
+| 干净数据（`make_fake_pilot.py` 现生成） | 通过 | ✅ |
+| `--defect-1f`（帧量化缺陷） | 拦住 6-C | ✅ |
+| `--defect-mismatch`（响应与 RT 矛盾） | 拦住 6-D | ✅ |
+| 变异：`Response=NA` 但 `RT` 有值 | 拦住 6-D | ✅ |
+| 变异：文件里混进 `0x00` 字节 | 拦住 6-D | ✅ |
+| 变异：历史 16 列口径（v2/v3 表头） | 拦住「0 口径」，一句话说明不适用 | ✅ |
+
+### 顺带修掉的缺陷：练习行的 `Correct` 不是 0，是 NaN
+
+`make_fake_pilot.py` 原来把练习行写成 `Correct = 0`，而 `1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`
+在 `isPractice` 分支写 **NaN**（练习行没有对错）。于是「用生成器造干净数据去验检查器」这一例**必然失败**
+—— 生成器自己造了一行不合规的数据。已改为 `None if rt is None else ...`。
+**这条缺陷只在「生成器 × 检查器」这条闭环里现形**：真实文件的练习行由 MATLAB 程序写 NaN，碰不到。
+
+### 尚未做
+
+1. 真实文件未在手（需用户实机跑 N=2–3 名技术被试）。
+2. `6-A`（掩蔽纹理预加载）与 `6-E`（按钮延时可比性）两项**不可机器判**，必须人执行。
+3. 检查器不做**刺激时序**层面的复算（只看记录下来的列是否自洽）：真实时序要靠 MATLAB 打印的帧量化对照表。
+
+## 8.43 超参数 Hessian 非正定 ⇒ 「本次的 σ 不得解读」（2026-10-17，D68）
+
+### 一、动机：D65 只记了「要报」，没记「报了之后怎样」
+
+D65 的 §11 第 13 条要求「必须同报特征值谱与 `n_flipped`」。但报告里多印一个 `n_flipped = 1/16`
+**不改变任何结论的强度** —— 读者看到它只会想「记一笔就行」。真正的机制是：
+
+1. `1_Code/DDM_Core/hier.py::subject_map_laplace` 对每个被试的 Hessian 做特征分解，
+   把**非正**特征值抬到 `floor = max(1e-8 · max abs(λ), 1e-12)`，再取逆得到 `cov`；
+2. ⇒ 被抬过的那个方向，后验方差 ≈ **1/floor**（实测 `1/floor` ≈ 4.37e+05）；
+3. 层级 σ² 的定义（`hier.fit_hier`）是 `mean[(x − μ)² + Cov_kk]`
+   ⇒ **一个被抬过的方向就能把 σ 撑到没有意义**。
+
+### 二、代码改动：报告里多一行判据（`stage8_run.py::render_group`）
+
+* 正定（`n_flipped == 0`）⇒ `超参数 Hessian：**正定**（n_flipped = 0/K、特征值 [min, max]）`；
+* 非正定 ⇒ 一行写四件事：`n_flipped`、特征值区间、`floor` 公式与 `1/floor` 的数值、
+  **本次收敛 σ 的末轮区间**（这一项是关键 —— `1/floor` 是机制上界，实测 σ 才是「这次到底有没有被撑大」）。
+
+### 三、实测：一次真实干跑里 σ 被撑到 2.27e+03
+
+来源 `1_Code/DDM_Core/_scratch/stage8_synth3_dryrun/stage8_results.json`（D65 主配置干跑，N=3）：
+
+| 模型 | `n_flipped` | 特征值区间 | `1/floor` | 收敛 σ 末轮区间 |
+|---|---|---|---|---|
+| M-T1（`rho` 自由，K=8） | **1/16** | [−0.203, 229] | 4.37e+05 | [**0.0127, 2.27e+03**] |
+| M-T3（`rho` = 1，K=7） | 0/14 | [0.0199, 231] | — | [6.65e-06, 2.95] |
+
+⇒ M-T1 的 `(A)` 类参数（有界 [0, 1] 量级）出现 σ = 2270，**这在统计上没有意义**：
+它正是 `1/floor` 把某个方向的后验方差放大后的产物。报告现在已经会在同一行里把这件事说出来。
+
+### 四、牙齿（`_scratch/check_stage8_run.py`，23/23 → 25/25）
+
+* **A11**：`eigval = [1e-2, 0.5, −2.3725, 3.0]`、`n_flipped = 1` ⇒ 报告必须同时含
+  `n_flipped` = **1/4**、`不得解读`、`1/floor`，且**不得**出现单独的「正定」；
+* **A12**（反向对照）：`eigval = [1e-2, 0.5, 2.0, 3.0]`、`n_flipped = 0` ⇒ 必须含「**正定**」、
+  **不得**出现「不得解读」（防止一刀切把健康情形也污名化）。
+* **C1–C4**（`_scratch/check_hier.py` 的 C 组，D68）：用**纯二次**的 `ll_x` 把 Hessian 造死（`g = −½(λ1 x1² + λ2 x2²)`、`λ1 = 10`、`λ2 = −5` ⇒ `A = −H = diag(10, −5)`），断言：`n_flipped` = 1、`cov` 被抬方向 = **`1/floor`**（比值 1.000000）、边际有限、且负曲率方向上 L-BFGS **发散**（`|mode|` ≈ 1e9 ⇒ 该点根本不是众数）。这一条把「σ 不可解读」从措辞变成**可复现的机制**。
+
+### 五、尚未做
+
+1. ✅ **非正定是不是 N 依赖 = 不是「小样本就会好」**（D68 回填）：探针 `_scratch/_probe_hess_scaling.py`（A 组 DDM、seed 7）归一化最小特征值 **−4.202e-03（N=3，1/16）→ −1.362e-03（N=6，1/16）→ +1.394e-03（N=12，0/16）→ +1.184e-03（N=24，0/16）**
+   ⇒ **符号翻、量级不变**（四档都 1e-3）⇒ 最平方向一直在；B 组（非 DDM、N=3）种子 7/11/99 = **1/16、1/16、2/16** 全非正；`_scratch/_probe_hess_seedcheck.py` 的 A 组 N=3 换 seed=99 变 **0/16** ⇒ 逐数据集偶发。⇒ 只能「逐模型读 `n_flipped`」，不得凭 N 承诺 σ 可解读。
+2. 若正式数据上 `n_flipped ≠ 0`（完全可能，见第 1 条），那一组的 σ 整列作废；备选是改 `hyper_method="fd"` 重算超参数协方差，代价见 D47/D65 的成本表。
+3. σ 的这一行**不改变** LOO/ELPD 的结论：非正定发生在**被试层协方差**，
+   而 LOO 的边际是逐被试的 log-lik，不受 `cov` 抬升影响（D65 已实测：eigenvalue shift 不影响组层 LOO 边际）。
+
+## 8.44 「共享流 CRN 配对」实测后不升格（2026-10-17，D69）
+
+#### 8.44.1 动机
+
+D61 的「尚未做」里一直挂着一条：`stage9_loop.compare_arms` 的判据带是 `2·√2·sd`，其中的 `√2` 来自
+「两条臂是不同设计、各自独立抽样」；若把两条臂改成**共用同一条随机流 + 逐种子配对**，
+`Var(Δ) = sd1² + sd2² − 2ρ·sd1·sd2` 会随正相关下降 ⇒ 带子可以收窄。收窄多少一直没量过。
+
+#### 8.44.2 做法
+
+新建 `1_Code/AutoRA_SPE/_probe_crn_pairing.py`（**137 行**，零新依赖）：读正式落盘件的 `cache`，
+取 `(A)` 最小的 **3 个可行设计** + **锚点 D4**，对每个设计在**同一份 12 个种子**上各评估一次
+（`n_fim = 12`、`n_subjects = 40`、`rho = 0.6`，走 `_scratch_anchor_seed_scan._one()`，
+它把种子**直接**交给 `inner_eval` ⇒ 各设计共用同一条流），算逐设计 `sd`、与基准设计的 Pearson `ρ`、
+配对 `sd_pair` 与**实测系数 `2·sd_pair/sd`**（独立性假设是 `2·√2 = 2.828`）。
+
+#### 8.44.3 实测（`_scratch_crn_pairing_nfim12_u8.txt`，4 × 12 次内环、约 26 min）
+
+| 设计（相对基准 `…W[1199.90/1799.90/2399.80]ms x r12`） | 均值 | `sd` | `ρ` | `sd_pair` | 实测系数 | 相对 `2√2` 收窄 |
+|---|---|---|---|---|---|---|
+| `T[33.33/149.99/349.99]ms x W[1199.90/1799.90/2399.80]ms x r16` | 0.376065 | 0.008995 | **+0.328** | 0.009491 | **2.332** | 1.21 倍 |
+| `T[33.33/149.99/349.99]ms x W[1199.90/1799.90/2399.80]ms x r12` | 0.383676 | 0.007263 | **+0.783** | 0.004755 | **1.316** | 2.15 倍 |
+| 锚点 D4 | 0.340411 | 0.006897 | **+0.122** | 0.009331 | **2.650** | 1.07 倍 |
+
+逐设计 `sd` = 0.0069–0.0090（max/min **1.30 倍**）⇒ 与 D64 的同方差结论一致；
+正式件自报的锚点 `sd_A = 0.0075`（16 次重复）也在这个量级。
+
+#### 8.44.4 判定：不升格
+
+1. **收益有限且不稳定**：相关性从 +0.12 到 +0.78 不等，带子只收窄 1.07–2.15 倍；换成「1/2.83」的直觉是错的。
+2. **要真用就是换实验**：`stage9_loop.Evaluator._raw` 现在用 `seed = cell_seed(d["name"], base_seed)`
+   ⇒ 各设计各一条流。改成「只依赖种子表」会让**所有既有落盘件的 `cache` 键全变** ⇒ 必须重跑内环、重新登记，
+   不是换分析。
+3. **事前登记的价值更大**：`2·√2·sd` 已写进交付件与论文方法段（D60）；为了 1–2 倍的带宽去动口径，
+   会把「事前登记」变成「看到结果再改规则」。
+
+#### 8.44.5 与 D60/D61 的关系
+
+* D60（带宽系数 `2·√2`）**不变**，仍是唯一判据口径。
+* D61 的「尚未做」里那条**结案（不采用）**，但量化依据留在这里：若将来重做实验，
+  应事前登记配对口径，并知道收益上限在 1.1–2.2 倍。
+
+#### 8.44.6 尚未做
+
+1. 若真要收窄带宽，更有效的路子是**增加 `n_fim`**（`sd_A` 按 `1/√n_fim` 缩小），而不是改配对口径 ——
+   这条本轮未测（`n_fim = 12 → 24` 的内环成本约 ×2）。
+2. Stage 9 的其余技术项已全部结案：剩下的都是用户侧（Stage 1 实机验收 / Stage 6 Pilot / Stage 7 采集 / 定稿签批）。
+
+
+### 8.45 Stage 8 的正向对照：DDM 生成数据要被自己的 PPC 认出来（2026-10-17，D70）
+
+#### 8.45.1 为什么必须有这一半
+
+D65 的合成干跑给出的是**阴性对照**：`_scratch/make_fake_pilot.py` 生成的数据不是 DDM 生成的，
+PPC 报了系统性失配（遗漏率观测 0.06–0.09 vs 预测 0.19–0.26）⇒ 证明「PPC 能认出不是本模型的数据」。
+但那句话有个致命的反面：**只会报警的工具也满足它**。要证明 PPC 有分辨力，必须给一份
+**由本模型生成**的数据，看它会不会「认对」。
+
+#### 8.45.2 生成器（`_scratch/_make_ddm_pilot.py`，223 行）
+
+* RT/选择来自 `1_Code/DDM_Core/two_phase.simulate_euler_subject`，真值 = `MappingParams`
+  （`shape_model = "lin"`）+ `rho = 0.8` ⇒ **生成模型就是 M-T1**，M-T3（`rho` 固定 1）是错的那个。
+* 写文件按 `1_Code/Experiment/exp_matlab/Exp_Design_Formal.m` 的规则：`HEADER25` 25 列、
+  tab 分隔、`stimulus_frames = round(T / 16.667 ms)`、`mask_onset_actual = onset + T`、
+  `stimulus_offset_actual = mask_onset_actual`、漏答行 `Response = NA` 且 `Correct = NaN`。
+* 每人 `t0` 从 `lognormal(median 0.15 s, sigma 0.12)` 抽、clip 到 `[0.10, 0.30]`。
+* 两档真值：`--preset qc`（默认，`QC_TRUTH`：`d = 1.15 / a = 1.15 / t0 = 0.18`）与
+  `--preset fim`（`TRUTH`，与 Stage 9 探针同口径：`d = 1.20 / a = 1.10 / t0 = 0.15`）。
+
+#### 8.45.3 牙齿（`_scratch/check_make_ddm_pilot.py`，138 行，12/12）
+
+G1 表头逐字等于 `RF.HEADER25`、G2/G3 `block` 练习 0 与正式 1–3、G4 `stimulus_frames` 由 T 反推、
+G5 漏答三件套、G6 `(T, W)` 格数与 `n_rep`、G7「不可由生成 RT 反推 rho」、G8 慢真值能让 `timeout` 出现、
+G11 默认 `rho = 0.8`、G12 写文件钉死 `newline="\n"`。
+
+#### 8.45.4 Stage 7 的 QC 认不认这份数据
+
+全量设计（2 人 × 576 试次）跑 `1_Code/Experiment/qc_group.py` ⇒ **G1–G9 全 PASS、剔除 0、待复核 0**
+（G5 `timeout` 0.1%、G6 正确率 0.577、G7 `RT<T` 6.34%）。96 试次的小设计会因试次数不足而不过 G2/G4 ——
+那是**降采样**，不是数据错。
+
+#### 8.45.5 一条标定发现：真值比被试快，QC 会误判
+
+`TRUTH`（`d = 1.20 / a = 1.10 / t0 = 0.15`）的 RT 中位只有 **0.275 s**，低于 `analyze_pilot.py` 的
+S6-5 合理区间下界 0.3 s ⇒ **真由 DDM 生成**的数据也会被 QC 判 FAIL。改 `QC_TRUTH`
+（`d = 1.15 / a = 1.15 / t0 = 0.18`）后 RT 中位 **0.325 s**、正确率 0.577 ⇒ 全 PASS。
+⇒ 教训：QC 判 FAIL 时先问「真值是不是选得比被试快」，不要直接怀疑模型或代码。
+
+#### 8.45.6 正向对照的结果
+
+**DDM 生成的数据被自己的 PPC 认了出来**（`_scratch/ddm_pilot_posctrl`，3 人 × 96 试次、`n_x = 25`、`--hyper-method analytic`；报告在 `_scratch/stage8_posctrl_rho08/`）：
+
+| 数据来源 | （被试 × 模型）块数 | 全局 12 项在带内 | 分单元 20 项在带内 |
+|---|---|---|---|
+| **正向对照**（`_make_ddm_pilot.py`，M-T1 为生成模型） | 6 | **69/72 = 95.8%** | **120/120 = 100%** |
+| 阴性对照（D65 的 `make_fake_pilot.py`，非 DDM） | 6 | **37/72 = 51.4%** | **95/120 = 79.2%** |
+
+逐块：M-T1 12/12、12/12、10/12；M-T3 12/12、12/12、11/12 ⇒ 连**错的模型**（M-T3，`rho` 固定 1）也能把「由 M-T1 生成」的数据描述到带内 —— 这符合预期（M-T3 是 M-T1 的约束特例，`rho = 0.8` 与 1 在 96 试次上分辨力有限），也说明**PPC 不是模型选择工具**（§11 第 7 条）。
+
+**LOO 这边没有变好**：3 人 × 96 试次下 `p_loo/n_obs` = **496**（M-T1）与 **3.68**（M-T3）⇒ 两个模型都被判「⛔ 本组 LOO 无效」，`compare_models` 的 ΔELPD 不得引用。这不是数据来源的问题，也不是「被试太少」（D73 已推翻该读法：被试层 `p_loo` 量的是 profile 边际在超参数抽取间的离散度）⇒ 「正向对照能做」与「被试层 LOO 能用」是两件事；试次层 PSIS 在同一批抽取下 `p_loo/n_obs = 0.138`、`k_max = 0`（§8.48）。
+
+附带一条观测：M-T1 的超参数 Hessian 又是 `n_flipped` = **1/16**（特征值 [−0.539, 338]），M-T3 正定（0/14、[0.229, 343]）—— 与 D68 的「最平方向随时可能翻负、与 N 无单调关系」完全一致。
+
+顺带修掉一个显示缺陷：报告表头的「来源」原先硬编码成「正式数据」，对照运行里是错的标签；现在写成 `--data <路径>`（`check_stage8_run.py` 的 **E6** 静态守卫，自测 **26/26**）。
+
+#### 8.45.7 尚未做
+
+1. 正向对照只做了 N=3 / 96 试次；要让**被试层 LOO**（不只是 PPC）也有效，需要 N≈40 的规模，
+   成本按 §8.40 的 ×4 余量估算在小时量级 ⇒ 留给真实数据或专门一次长跑。
+2. PPC 的分单元统计量在正向对照里也只是 20 项/块；正式数据上要按 §10 第 4 条补齐。
+### 8.46 Stage 6/7 的真实规模就绪实测（2026-10-17，D71）
+
+1. **动机**：Stage 6 的六条自测与 Stage 7 的 `qc_group.py` 十例自测都是**小数据、非 DDM 生成**；
+   「脚本能跑」在真实规模（8 人 × 576 试次）上从未被验过，而这是用户开跑前最后一道自证。
+2. **做法**：用 D70 的生成器 `_make_ddm_pilot.py --preset qc --n-subjects 8`（seed 31，**5.2 s**）
+   生成 v4.1 25 列 txt，跑 `qc_group.py --expect-n 8` 与 `analyze_pilot.py`。
+3. **组层全绿**：`qc_group.py` 的 G1–G9 全 PASS（组层 timeout 7.4%、正确率 0.570、`RT < T` 2.23%、
+   帧长 16.667 ms），**剔除 0**。
+4. **被试层 0 WARN**：`analyze_pilot.py` 的 S1-1 与 S6-1…S6-6 全 PASS（`RT < T` 2.37%、刺激内 2.37%、
+   timeout 最差单元 14.58%、注视期抢按 0%、自洽 0 行矛盾）。
+5. ❗ **复核负担是真实存在的**：同一批合法数据上 **5/8 人**被标「待复核」
+   （4 人 S6-5 正确率 0.493–0.550 < 0.55；1 人 S6-1 最差单元 timeout 41.7% > 40%）。
+   机理：这两个判据本是**组层**口径，下沉到被试层后个体差异与 deadline 截断叠加
+   （正确率跨被试 0.493–0.616，与 timeout 率 0.4%–18.4% **负相关** —— 截断掉的更多是慢错误）。
+   处置：**不删判据、不放宽阈值**，把「待复核」当人工复核信号，报告里报「复核率」而非「剔除率」。（补注（D71 收紧）：该合成真值的**组层正确率只有 0.577**，而门槛是 0.55 —— 差值 0.027 ≈ **1.3 个逐被试 SE**（二项 SE ≈ 0.021，n ≈ 570 反应试次）。所以「约一半被试落在门下」是**阈值边际性**的可预期后果，不是判据错；真实数据若正确率约 0.7，触发率会显著更低。本条要钉的是「复核 ≠ 剔除」的**语义**，以及不得为了让复核名单好看而放宽阈值。）
+6. **牙齿**：`1_Code/Experiment/exp_Check/check_pilot_ready.py`（**9/9**）读两份落盘日志做 P1–P3 断言，
+   并做 P4/P5 静态断言（`qc_group.py` 的待复核与剔除不共用累加器；`analyze_pilot.py` 仍把 S6-2c 与 S6-2 分开判）。
+7. **未做**：真实某台机器上的帧长、真实被试的正确率分布、以及「待复核」在真实数据上的发生率 —— 三者都只能
+   等 Stage 6/7 实跑，本节的数字来自 DDM 合成数据。
+
+### 8.47 组级缓存与 `--resume`（2026-10-17，D72）
+
+1. **动机**：Stage 8 §10 第 1 条要求正式数据「每组 ~40 人」跑层级拟合；按 §8.40 的成本，那是
+   **单次几十小时**的批处理作业，而 `main()` 原本只在**全部组跑完后**写一次 `stage8_results.json`
+   ⇒ 第 3 组崩溃 = 前两组白跑。
+2. **做法**（`1_Code/DDM_Core/stage8_run.py`）：每组拟合完立刻**原子**写 `stage8_group_<组>.json`（`*.tmp` + `os.replace`：长跑被杀时半截文件不会冒充完整缓存）
+   （`tag`/`lines`/`results`/`config`）；`--resume` 命中缓存即跳过拟合，报告里插一行
+   `> ♻️ 组 g 复用缓存 …（未重拟合）`；缓存**绑定配置**（`n_em`/`n_draws`/`n_x`/`n_ppc`/`seed`/
+   `hyper_method`/`bruteforce`/数据源），不一致 ⇒ `ValueError`；缓存非 JSON/缺字段 ⇒ `ValueError`
+   （**不静默重算**）。
+3. **证据**：`_scratch/check_stage8_run.py` **31/31**（E13 落盘且报告含该组结果；E14 `--resume`
+   后 `run_group` 调用 **0** 次、缓存字节不变、报告含「复用缓存」；E15 换 `n_em` 报配置不一致；
+   E14b 坏缓存报错、E16 缓存走 `*.tmp` + `os.replace`）。
+4. **边界**：缓存只按**组号**匹配；配置虽然绑定，但换数据/换配置时**必须换 `--out` 目录**。
+   这是「别把两套配置混进同一份报告」的最后一道人工防线。
+
+
+### 8.48 被试层 PSIS-LOO 不可估（2026-10-17，D73）
+
+1. **现象**：D70 正向对照（3 人 × 96 试次、S=30）`elpd_loo = −1642.940 ± 588.064`、
+   `p_loo = 1489.098`（`p_loo/n_obs = 496`）、`k_max = 5.000`；`_s8run_an`（2 人）出现**负 p_loo**
+   （−706.371 / −2900.542）。负 p_loo 只可能来自 PSIS 权重病态。
+2. **机理**：`hier.loo_matrix` 每一列是「给定一组超参数的 **profile 边际似然**」；超参数抽样走到尾部，
+   该列就被个别荒诞抽样支配 —— 探针实测同一构造在 S=10 时矩阵全距 **2.3e9**、逐列 SD 7.7e8。
+   ⇒ `p_loo` 量的是**离散度**，不是有效参数个数。
+3. **对照**：同一批抽取摊到**试次层**（3 人 × 47/46/47 试次 ⇒ `n_obs = 140`）后 `p_loo = 19.273`
+   （比值 **0.138**）、`k_max = 0.000`、`n_failed = 0` ⇒ 试次层可用。
+4. **口径**：模型比较的 `ΔELPD` 用**试次层**矩阵；**被试层**留一用 `loo_bruteforce`（小 N，金标准）
+   或 K-fold（大 N）。被试层 PSIS 的数字只能当「矩阵不可估」的证据，不得当拟合优度。
+5. **顺手修的 bug**：S=30 时 `subject_map_laplace` 会抛 `ValueError: 在众数处 ∂²g 非有限
+   （28/64 个元素）`，旧 `loo_matrix` 会让 40 小时长跑崩在第 39 小时；现在该格记 −inf、计入
+   `n_hessian_fail`，PSIS 记为失败。牙齿 `_scratch/check_loo.py` **17 → 21/21**（E1 不抛异常、
+   E2 记 −inf、E3 计数逐格累加、E4 该列被计为失败且不污染其他列）。
+6. **已落成可切换口径（D73 ⑧）**：`stage8_run.py` 新增 `--loo-level {participant,trial}`，**默认 `participant`**（历史日志与结论逐位可复现）；`hier.loo_matrix_trials` 返回 `(S, 总试次)`，逐试次似然非有限时记 −inf 并计 `n_trial_ll_fail`；`compare_models` 拒绝形状/层不一致的矩阵；`--loo-level` 也进了缓存配置键（换口径 `--resume` 会报「配置不一致」）。牙齿：`_scratch/check_loo.py` **21 → 26/26**（F1–F5）、`_scratch/check_stage8_run.py` **31 → 32/32**（E17）。
+7. ❗ **「换到试次层」不是充分条件（D74）**：2 人 × 93 试次、`n_em=1`、`n_draws=15`、`n_x=11` 的端到端实跑，`k_max = 0.000`、越界 0/93，但 `p_loo/n_obs` 仍是 **8.57**（M-T1）/ **12.7**（M-T3）。根因在 `stage8_results.json` 里直接可读：`hyper.eigval` 各有两个负特征值（−0.825 / −0.947）、`theta` 逐维 SD 最高 **134**、\|θ\| 最高 **303** ⇒ 每列都被荒诞尾部抽样支配，摊到试次层只是把同一份病态除以更大的 `n_obs`。8. **判据顺序（D74）**：先看超参数 Hessian 是否正定（`n_flipped == 0`），再看层与 `p_loo/n_obs`。对照实测（`_scratch/_probe_hyper_pd.py`，同一份代码、只改配置）：3 人、`n_em=2`、`n_x=21`、S=20 ⇒ min eig **0.026544**、负特征值 **0/16**、θ SD ≤ 3.88 ⇒ 试次层 `p_loo/n_obs` = **0.138**。`render_group` 的 LOO 判词已加「非正定 ⇒ `p_loo` 不可解读」，牙齿 `check_stage8_run.py` **32 → 34/34**（A7f 必须拦、A7g 不误伤）。
+
+
+### 8.49 超参数 Hessian 的正定性不是样本量的函数（2026-10-17，D75）
+
+1. **问题**：D74 把「超参数 Hessian 非正定」立成了 LOO 可用的前置条件，但当时只有两个点（2 人非正定、3 人正定），很容易被读成「人太少，人多了就好」。
+2. **扫描（N=2…6，只改 N）**：`_scratch/_probe_hyper_pd.py`，`n_em=2`、`n_x=21`、S=2、seed 7、≈46 试次/人：N=2 正定（min eig 0.0388、0/16、max\|θ\| 7.0）、N=3 正定（0.0265、0/16、7.3）、N=4 **非正定**（−0.0875、1/16、62.8）、N=5 正定（0.1019、0/16、4.5）、N=6 **非正定**（−0.0051、1/16、33.6） ⇒ **非单调**。
+3. **加试次也不救**：N=4 把每人试次从 ≈46 提到 187–191（`n_rep=4`）后仍是 1/16 非正定（min eig −0.357、max eig 469.7、max\|θ\| **97.9**、拟合 256.4 s）。
+4. **判据要补一栏**：失败拟合的 `λ_min` 可以只到 −0.005（相对 `λ_max` 约 1e-5）⇒ 符号不说明程度；与之同步恶化的是**抽样跑了多远**（`max_abs_theta`）。实测分离：正定 ≤ 7.3，非正定 33.6 / 62.8 / 97.9 / 303（2 人 S=15 那次）。
+5. **代码**：`hier.hyper_draws` 增 `max_abs_theta`（随结果落盘）；`render_group` 的 Hessian 行并列印「`n_flipped`」与「本次抽样 `\|θ\|` 最大」（字段缺失写「未记录」）。牙齿 `check_stage8_run.py` **34 → 37/37**（A13 必须印、A13b 不得静默省略、A14 不得印空粗体 `****`）。
+6. **口径**：正式数据里 LOO 可用性**只能逐组事后判定**；论文不得写「~40 人/组时 LOO 可用」。
 
 ## 9. 尚未做
 
@@ -2352,5 +3653,35 @@ PPC           ≈ 2667 min
 | 25 | **Stage 6 Pilot 技术试测（用户侧执行）** | 方案已就绪：[`5_Reference/08_工作流/Stage6_Pilot方案.md`](../../5_Reference/08_工作流/Stage6_Pilot方案.md)（208 行，v1，2026-10-14）。**N = 8 推荐**（4 个 P 档 `P = 0/8/32/120` **每档至少 1 人**）、每人**完整 576 试次**（"小规模"只缩人数，不缩 T/W 档数与 4 类，否则 S6-4 失效）、35–45 min。**9 条事前登记判据**：S1-1 / S1-1b / S6-1 / S6-2 / **S6-2c** / S6-3 / S6-4 / S6-5 / S6-6（FAIL ⇒ 退出码 1；WARN 不影响退出码）+ **S6-2b**（INFO：用 `stimulus_frames` 独立核对「刺激被提前结束」）。**❗ 本方案对本 Stage 的核心修正**：主计划说「`RT < T` 的比例是关键」，但 `RT < T` 混进**预期性抢按**（`RT < 0.15 s`）与**刺激内完成累计**（`0.15 s ≤ RT < T`）两类行为，而**短 T 下两者必然混在一起**（`T = 2 帧 = 33.3 ms` 时 `RT < T` ⇔ `RT < 33.3 ms`，**必定** < 0.15 s）⇒ 新增 **S6-2c** 只认后者，`> 20%` 才要求 **Stage 8 扩展为时变输入模型**；同理 S6-5 的"过快"只在 `RT ≥ T` 的试次里算。**工具链**（零依赖）：`python 1_Code/Experiment/analyze_pilot.py <数据目录>`（判据实现 + 帧长自估 + 旧 16 列文件自动跳过）与合成数据生成器 `_scratch/make_fake_pilot.py`（5 个缺陷开关）；**六例自测全部符合设计**，其中两例是**对照组**（`RT < T` 总比例同样 22.74% / 25.54% 超标，但只有"刺激内累计 23.85%"那例触发 Stage 8）。**硬前置：Stage 1 实机验收（第 21 条 / §8.20）必须先在**同一版程序**上过关**。⚠️ 6 条已知限制见方案文档 §11（含「0.15 s 分界是行为学惯例而非本任务实测值，改动必须重新登记」） |
 | 26 | **Stage 7 正式采集的逐 P 组质控（用户侧执行）** | 主计划 §3 Stage 7 要求「**每完成一个 P 组就做一次数据质量快检**（不要等收完再查）」。工具与方案已就绪：[`5_Reference/08_工作流/Stage7_数据采集执行与质控方案.md`](../../5_Reference/08_工作流/Stage7_数据采集执行与质控方案.md)（v1）+ `1_Code/Experiment/qc_group.py`（判据 **G1–G9**，零依赖）。**规模**：4 组 × ~40 人 = **160 人**（招募 **192** 留 20% 损耗）、576 试次/人、16.5–16.9 min。用法：`python 1_Code/Experiment/qc_group.py <采集目录> --out qc_<日期>.md`；**采集期内不要加 `--final`**（G1 只报进度），该组收满后加 `--final` 才真正判定人数。❗ **两条最容易被忽视的判据**：**G8**（数据里的 `P` == 该组设计 `P`）只检测「文件被放进错的组目录」，与其它判据完全正交——错配后 Stage 8 会把 P=120 的被试当 P=0 拟合且**无任何其它告警**；**G7**（刺激内完成累计 `0.15 s ≤ RT < T`，≤20%）才是 Stage 8 是否扩展为时变输入模型的触发器，`RT < T` 总比例**不能**当质量指标（理由同第 25 条的 S6-2c）。**处置口径事前登记、中途不得改**：**剔除**仅限 S6-3 FAIL / 正式段 `< 90% × 576` / 旧格式文件；其余一律**待复核**，⚠️ 不得把"待复核"当"剔除"批量执行（会系统性多剔短 T 档）。**10 例自测 10/10**（`_scratch/check_qc_group.py`），并顺带修掉两个静默失败（见 §8.20.2：**UTF-8 BOM 让 25 个列名退化成 `col1..col25` 从而把 576 试次读成 0**、**空可用池的 `all(...)` 假通过**） |
 | 27 | ⚠️ **Stage 8 的层级结构与 leave-one-participant-out（§8.22 / §8.23）** | 本机**没有贝叶斯栈** ⇒ 已按**零依赖**路线交付 `loo.py`（PSIS-LOO，对解析高斯基准差 **0.015**）、`stage8.py`（拉普拉斯后验抽样 + PPC，**17 项判据全过**）、**`hier.py`（拉普拉斯-EM 层级拟合 + 以被试为单位的 LOO，自测 0 项未通过）**。✅ 原列的三条已补齐：① **层级**用拉普拉斯-EM（E 步 = 逐被试 MAP 众数 + 拉普拉斯边际；M 步闭式 `mu = Σx*/n`、`sigma_k² = mean_s[(x*−mu)² + Cov_s]`），闭式基准最大差 **3.97e-09**、σ̂ **0.4499**（真值 0.5）；② **leave-one-participant-out** 由 `loo_matrix` + `psis_loo` 实现，对**真留一** **r = 0.9942**；③ **模型比较** M-T1 **−196.69 ± 7.06** 胜 M-T3 **−688.26 ± 5.47**（+491.57）。❗❗ **但带一条硬限制**：**N 小时被试层 k 会爆表**——N=3 实测 **`max k` = 4.33 / 5.00、3/3 被试越界、`p_loo` 28.7 / 516.5** ⇒ 该规模下**不构成模型比较证据**，~40 人/组须在**正式数据**上复验。**仍待做**：正式数据上的全量拟合（`stage8_run.py`）、Stage 9 的设计空间优化。✅ **分单元 PPC 已补**（§8.24 第 5 节：`PPC_CELL_KEYS`/`CELL_STATS`/`ppc_table(with_cells=True)`，D3/D4 给出"全局 `omission_rate` 只有 0.25 而 Self-Match 单元是 1.0"的直接证据）；✅ **数据→模型的桥已交付**（§8.24：`1_Code/Experiment/read_formal_data.py` + `exp_Check/check_read_formal_data.py` **30 项全过**）；✅ **全量运行器已交付**（§8.25 第 4 节：`1_Code/DDM_Core/stage8_run.py`，含 `--data`/`--synthetic`、逐人 `t0` bounds、四挡 k 判定、分单元 PPC、成本预估与 `--plan-only`）。**仍待做**：正式数据上的全量拟合（`stage8_run.py --data`）。**新证据**：`stage8.py` 的 4 参数/576 试次实验里 `corr(beta_T, beta_ST) = −0.699`、`corr(d_ref, beta_S) = −0.692`，MLE 偏差 `beta_T +139% / beta_ST −672%` ⇒ 第 23 条的"补偿"结论**可直接从后验相关结构看见** |
-| 28 | 🛑 **Stage 8 的依赖决定需拍板（D41）** | `_scratch/_probe_env.py` 实测：可用 numpy/scipy/pandas/matplotlib/sklearn；**缺失** `pymc`/`numpyro`/`jax`/`arviz`/`cmdstanpy`/`emcee`/`torch`/`hddm`。⇒ 主计划 §3 Stage 8 的字面要求无法用现成 PPL 执行。已先走**零依赖**路线（§8.22 + §8.23，层级、PPC 与 leave-one-participant-out 都已实现并带基准证据），并把"是否安装 `pymc`+`arviz`"留作**用户拍板项**：装了可拿到真贝叶斯后验与 `arviz` 的成熟诊断（rank plot、R̂、ESS、`az.loo`），代价是**改变项目依赖面**（且需在论文方法里交代——本项目**全线是 MLE、没有任何先验**，这一点装不装 PPL 都要说明）|
+| 28 | 🛑 **Stage 8 的依赖决定需拍板（D41）** | `_scratch/_probe_env.py` 实测：可用 numpy/scipy/pandas/matplotlib/sklearn；**缺失** `pymc`/`numpyro`/`jax`/`arviz`/`cmdstanpy`/`emcee`/`torch`/`hddm`。⇒ 主计划 §3 Stage 8 的字面要求无法用现成 PPL 执行。已先走**零依赖**路线（§8.22 + §8.23，层级、PPC 与 leave-one-participant-out 都已实现并带基准证据），并把"是否安装 `pymc`+`arviz`"留作**用户拍板项**：装了可拿到真贝叶斯后验与 `arviz` 的成熟诊断（rank plot、R̂、ESS、`az.loo`），代价是**改变项目依赖面**（且需在论文方法里交代——本项目**全线是 MLE、没有任何先验**，这一点装不装 PPL 都要说明） ✅ **2026-10-17 结案（D63，§8.38）**：本机 `D:\Conda\envs\hssm` 里其实有 pymc 5.28.5 + arviz 0.23.4 + hssm 0.3.0（默认 `D:\Conda\python.exe` 没有）⇒「装不装」的拍板项消失；已用 ArviZ 在同一矩阵上复核 `loo.py`（`elpd_loo` 相对差 **3.54e-05**）；但 `pm.sample` 不可用（`0xc06d007f`、无 g++）⇒ **主路线仍零依赖**，ArviZ 只作外部复核。 |
 | 29 | ✅ **`wfpt.flux` 的小 `t` 数值失效 —— 已根因修复（§8.24 第 4 节）** | `1_Code/DDM_Core/wfpt.py` 的 `flux`（L72–106）用 [0,a] 特征函数级数，**项幅 O(k) 而真值 `t→0` 时指数级小** ⇒ 真值落到抵消地板（实测 `wfpt._k_max(t_min = 0.020, a = 2.0, tol = 1e-15) = 39` ⇒ `39·eps ≈ 8.7e−15`）以下时返回值的**符号是噪声**，`per_trial_loglik` 的 `np.any(f <= 0)` 随即把**整份**数据判死（实测 −7.77e−14 / +6.01e−16 / −8.23e−15 全在该量级，且 `t0` 依赖**非单调**：0.2300 挂、0.2360 过、0.2371 又挂 ⇒ 不是 `t ≤ 0` 的墙）。**已根因修复**：`flux` 新增**镜像/反射级数**分支 `_flux_dual`（由同一特征函数展开经 Poisson 求和互换得到，小 `t` 收敛），并按交叉点 `cross = a·d_min/π` 与正弦级数 `_flux_series` 派发；**独立判据**是解析积分恒等式 `∫ f dt = (1−e^{−2v(a−d)})/(1−e^{−2va}) = p_upper`（仅 `v > 0`）与 scipy `quad`（**推导路径完全不同**）。`1_Code/DDM_Core/_scratch/check_flux_smallt.py` **6 项全过**（V1 **4.549e−14**、V2 **2.686e−09**、V3 **1.344e−15**、V4 **8.822e−16**、V5 小 `t` 侧 1080 点与 `_flux_dual` 逐位相同而**旧实现**有 184 点错 >1e−3 / 80 点 ≤0 / 最差 **2.16e+34**、V6 大 `t` 侧 4200 点逐位相同）。❗ **修复不改变既有结论（实测）**：旧 0.02 s 余量处旧实现与修复后最差只差 **7.85e−09**，`validate_wfpt.py`（V1 4.54e−08 / V2 5.16e−08 / V6 5.34e−09）数值逐位复现 ⇒ 收益是**拆掉隐藏耦合与 `t < 0.02` 的静默污染**，不是纠正已发表的数字。`t0` 安全余量保留但**理由变了**：闸门 1（`t > 0`）是硬的 + 闸门 2 现在**只剩下溢**（`t ≳ d_min²/1490 ≈ 0.017`）；`check_read_formal_data.py` **30/30**（A14 断言**反向**、新增 A15 兼作回归守卫）。✅ **遗留的两处 floor 已重新论证（§8.25）**：`_T_FLOOR = 1e-4` **保留**（理由仅限退化输入，正式最小 T 是它的 333 倍）；`_S_FLOOR = 1e-3` **保留**，但理由由"防相消"换成**实测的卷积分辨率**（对闭式的相对误差在 s=1e-4 处首次 < 1e-2、现行 1e-3 处 9.6e-07 ⇒ 有 ≥10× 余量）；min-max 最优 **f\* ≈ 1.4e-4** 记录在案但**未采纳**（只把最坏点误差由 ~3.1% 压到 ~1.0%，代价是整条已验收套件重新验收）。另：`np.maximum(t−T, _S_FLOOR)` 的钳位经 `np.nextafter` 上探 4×100 000 步 = **0 命中**，确认是**死代码**（保留但不得声称它在防相消） |
+| 30 | ✅ **超参数 Hessian 的可扩展性 —— 已根因解决（§8.26，D47）** | §8.25 第 4 节实测出「正式规模 **256 h/组**、4 组约 6 周」，主导项是 `hier.hyper_hessian` 的**有限差分**（对 `nh = 2K` 维做中心差分，每次目标评估都对全部 N 人各做一次温启动众数搜索 ⇒ M-T3 **420·N** + M-T1 **544·N** = **964·N**，40 人/组 = **38 560 次**）。**已实现解析版** `hier.hyper_hessian_analytic`（Louis 的缺失信息恒等式，`n_evals = 0`，只剩矩阵运算），并经**独立闭式参考**验证：闭式高斯层级上解析 vs 对闭式函数另做的中心差分 **max 相对差 1.881e-08**；真实 DDM 上解析版 **正定（min eig +9.013e-02）**、加速 **354 647×**（0.3 ms vs 96.4 s）。❗ 顺带实测出一个真缺陷：**差分版在真实 DDM 点上三个步长全部不正定**（min eig −0.138 / −0.135 / −0.122），后验 SD 崩成 58 / 196 且 `ls_beta_T` 随步长摆动 **43%**，而解析版同点正定 ⇒ 近零特征方向上**差分噪声决定符号**。`hyper_draws` / `fit_and_loo` / `stage8_run` 新增 `method` / `--hyper-method {fd,analytic}` 开关（**默认仍是 `fd`**，切换必须连同实测差值交代，不得静默替换）。❗ 端到端干跑又抓到两个**错报 / 接口**缺陷：① `k_max = nan` 曾被 `nan <= 0.7` 与 `nan <= 1.0` 都判 False 而掉进「k > 1.0 不构成证据」档（**把"不可用"误报成"超界"**）——已显式分开并加自测 **A7b**；② `stage8_run` 读 `lk["n_bad"]` / `lk["n"]` 而 `loo.psis_loo` 返回 `n_k_gt_bad` / `n_obs`（**真实运行 `KeyError`，自测 13/13 却全绿**，因为 fixture 手写的键名与代码一样错 ⇒ **手写 fixture 用与代码相同的错键名时，测的是我的虚构**）——已把 fixture 改为由**真实** `psis_loo` 产生，并新增 **A0 接口守卫**（用**正则从源码抽键**，不靠字面串：第一版字面匹配因单/双引号混用只抽到 2 个键）。`1_Code/DDM_Core/_scratch/check_hyper_hess.py` **全绿**、`_scratch/check_stage8_run.py` **15/15**。**仍待做**：正式规模上解析/差分后验 SD 的对比（需真实数据） |
+| 31 | ✅ **Stage 9 的内环仪器已交付（D50，§8.21 的 `_scratch` 原型提升为生产文件）** | 新建 `1_Code/AutoRA_SPE/stage9_inner.py`（551 行、裸 LF）与 `1_Code/AutoRA_SPE/check_stage9_inner.py`（466 行、裸 LF，A–F 六组）。**这是把 Stage 9 从"方案里的一个文件名"变成可运行、自证过的模块**：Stage 8 的完整拟合要 420·N / 544·N 次众数搜索（第 30 项），进不了优化循环 ⇒ 内环改用期望信息量 `inner_eval(T_levels, W_levels, n_rep, model, rho, n_fim, seed, param_set)`，一次调用给出 `se` / `se_rho` / `se_sd` / `corr` / `cond` / 遗漏率 / 正确率 / `rt_ms`，并由 `geomean_relative_se(res, focus=C6)` 直接喂 Stage 9 的 Objective (A)。**两条分支都钉在已验证的实现上**：M-T3 分支对 `design_fim.design_se`（同 seed）**逐位复现**（`max 相对差 = 0.000e+00`，判据 <1e-12）；M-T1 分支（`batch=False`）对 `_scratch/check_mt1_fim.py::design_se_step` 的参数与 `rho` 均 **0.000e+00**（判据 <1e-12）；`rho = 1` 时在**同一份试次**上与 M-T3 差 **0.000%**（归一化逐试次对数似然最大绝对差 9.260e-07）——这一条正是第 17 项那句"`rho = 1` 时 M-T1 退化为 M-T3"的实现级验证。CRN 规则 `seed + 1000·k` 被钉住；`build_table`/`save_table`/`load_table` 的 `.npz` 往返后 `se` **逐位不变**。**自检 `n_fim=2`（73.9 s）与 `n_fim=4`（118.3 s）两档都 26/26、exit 0**；含"牙齿"测试七类（非法 model / M-T1 缺 `rho` / M-T3 多给 `rho` / `rho` 上界与下界越界 / 非法参数集 / 违反 `W > T+200ms` / 关注集含不存在的参数），都必须**报错而不是静默算出一个数**。❗ **提升时改掉两处原型真缺陷**：① `rho` 的越界守卫原本**只挡下界**——直接探针实测 `twophase.per_trial_loglik_step` 在 `rho = 1.0/3.0/3.003/3.01/5.0` 处**全部返回有限值**，只有 `rho = -0.003` 返回 `None` ⇒ 上界越界会被静默算成一个数，生产版对 `lo_r <= rho - hr and rho + hr <= hi_r` **两侧**显式检查；② 批次向量化路径原先把**平铺后**的设计传给行为诊断 ⇒ `is_match` 长度与模拟结果不符（改为传未平铺的设计，因为 `np.tile` 是整块重复）。❗ **两条必须与仪器一起报的读数**：(a) **批次向量化的加速比实测只有 1.32×（`n_fim=2`）/ 1.26×（`n_fim=4`）**，不是方案里估的 4×（OPG 有限差分那部分摊薄不掉）；(b) 把 `rho` 当自由参数会让 `d_ref` 的边际 SE **+116.8%**、其余 8 个参数只涨 0–8.1% ⇒ **与 M-T3 做实现比对时必须 `include_rho=False`**，否则量到的不是实现差而是 `rho` 与 `d_ref` 的真实相关代价。**遗传自**：第 7 / 17 项的 `_scratch/check_mt1_fim.py`（自检 A 8.795e-08、自检 B 相对差 0.000%）；设计排序结论见第 17 项与 `5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §5.3.2（**D4 在 6 个（参数集 × ρ）组合里都是第 4 名**，且 **M-T1 下 SE 约为 M-T3 的 1.7–2.5 倍**） |
+| 32 | ✅ **"被静默吸收的退化"已加观测项（D51，§8.27）** | 起因是 analytic 干跑里一条**不该出现**的 `_numdiff.py:686` 警告（D47 之后 analytic 路线不做任何有限差分 Hessian）。**定性**：SciPy 1.16 的 L-BFGS-B 也走数值梯度（`_lbfgsb_py.py:413` → `ScalarFunction.fun_and_grad` → `approx_derivative`），而干跑路径上唯一的 `minimize` 就是 `hier.py:189` ⇒ 警告出自 `hier.subject_map_laplace` 的众数搜索。**机制**：`ll_x` 非有限时 `g` 返回 `-inf`（有意的可行性屏障）⇒ 取负后不可行区里目标是 `+inf` ⇒ `approx_derivative` 算 `inf - finite` → `nan` 加警告，L-BFGS-B 拿到 `nan` 梯度后**照旧继续**。**最小复现**：把 `ll_x` 换成处处 `-inf` 的桩即得同一行警告，不需要任何真实数据。❗ **现象依赖似然网格分辨率 `n_x`**：同一份合成数据、同一 `n_em=2/n_draws=4/seed=0`、M-T1、analytic，`n_x=31` 下 LOO 阶段量到 **18 次非有限目标 / 16 条警告 / `p_loo = −939.75`**，`n_x=41` 下 **0 / 0 / −1171.77**；两个独立仪器（v2 的 spy 与 D51 的新计数器）给出**逐位相同的 18 / 16 / −939.75** ⇒ 仪器交叉验证通过，计数可信。**而正式干跑用的正是 `--n-x 31`** ⇒ 这是**生产配置**的性质。单被试对照（`_scratch/_probe_nx_pair.py`，只从中点起搜、不做 EM/LOO）在 `31/41/81` 上**都是 0 次** ⇒ 退化只出现在**热启动**搜索上（`loo_matrix` 拿上一次众数当起点），"网格粗 ⇒ 立刻非有限"是错的。**真缺陷**：`hier.py:192-194` 的注释写着「优化失败：退回初值，并**如实标记**」，但返回的 dict 里**没有任何字段**记录它 ⇒ 该被试的"众数"其实是起点、协方差是起点处的曲率，却当作真实最优解进入 EM 的 M 步与 LOO 矩阵；而 `n_nonfinite_loglik` **只看 LOO 矩阵元素是否有限**，看不见这个过程。**修法**：`subject_map_laplace` 新增 `fell_back` / `n_nonfinite_g`；`hier_fit` 聚合为 `n_fallback` / `n_nonfinite_g`；`loo_matrix(..., stats=None)` 新增 **`stats` 出参**（**不改返回值类型**，仍是 `np.ndarray`，既有调用点零影响）；`fit_and_loo` 输出 `loo_stats` / `n_fallback_fit` / `n_nonfinite_g_fit`；`stage8_run.fit_group` 退化非零时打印并落盘；`H` 非有限时抛**带诊断的 `ValueError`**（原先是一条无法归因的 `numpy.linalg.LinAlgError: Eigenvalues did not converge`）。**屏障本身没动**（仍返回 `-inf`）——换有限惩罚会改变优化轨迹从而改变每一个已拟合的数字，现有全部验证都钉在当前语义上 ⇒ 记录而不动它。❗ **两个必须分开报的现象**：`ELPD 0.000 ± nan` / `k_max nan` 在 `n_x=41` 且 **M-T3**（**零数值退化**）时**照样出现** ⇒ 这个规模的 LOO 退化是**已知的小样本 PSIS 失败**（`n_draws=4`、N=4），**与 `_numdiff` 警告无关**（见第 27 项）。✅ **B1d 顺带定案**：`likelihood.fim_diagnostics` 的 `cond = ev_max / ev_pos[0]` **只用正特征值** ⇒ `diag(0,1,1,…)` 报 `cond = 1.0`、`n_bad = 1` ⇒ **`cond` 单独不能发现退化**，Stage 9 的 Objective (D) 必须同时查 `cond` 与 `n_bad`。**校验**：`check_hier.py` 0 项未通过（820.3 s）、`check_stage8_run.py` 15/15、`check_stage9_inner.py` 29/29。**遗传/承接**：第 7 项（M-T1 仪器）、第 17 项、第 27 项（小样本 LOO 的判决）、第 30 项（D47 的 analytic 路线）；`n_x` 在正式规模上是否仍只差这一点**仍待真实数据** |
+| 33 | ✅ **LOO 可用性必须同时看 `p_loo`（D52，§8.28）** | `max k` **单独没有分辨力**：4 人 analytic 干跑的 M-T1 给出 `max k = 0.000`、`n_failed = 0`、`越界 0/4`，按当时判据与 `Stage8_建模与验证方案.md` §8 的事前登记规则（三档**全部以 `max k` 为键**）会被判成**可用**；而同一行的 `p_loo = 2816.26` 对 **`n_obs = 4`** ⇒ **有效参数数是观测数的 704 倍**，结构性崩坏。**为什么是 4 不是 756**：`hier.loo_matrix` 返回 `(S, N)`（每个抽取 × 每个被试的边际对数似然），`loo.psis_loo` 的 `n_obs = N` 是列数 ⇒ 本项目 LOO 单位 = **被试**（`hier.loo_bruteforce` 的 docstring 亦写明）。**为什么 `k_max = 0.000` 不是健康证明**：同一个 0.000 在健康矩阵上也会出现（实测 `rng.normal(-3.0, 0.3, size=(30, 3))` 的另一抽样：`p_loo = 0.222`、`max k = 0.000`）⇒ 0 既可能是「权重近似均匀」也可能是「权重彻底退化」，**无法分辨**。**健康区间 `[0, n_obs]`**：`p_loo < 0` 意味着留一比拟合内还准（不可能；N=2 干跑实测 −706.37 / −2900.54），`p_loo > n_obs` 意味着惩罚超过全部信息量。❗ **这个洞是 N=4 才暴露的**：N=2 时 `n_failed = 2 = n_obs`，被旧判据拦住了。**修法**：`stage8_run.py::render_group` 改为收集理由清单（`max k` 非有限 / `n_failed ≥ n_obs` / `p_loo ∉ [0, n_obs]`）任一条成立即判「⛔ 本组 LOO 无效」，并在报告行**强制**打印 `p_loo` 与 **`p_loo`/`n_obs` 这个比值**（它是唯一能分辨的那个数）。**校验**：`_scratch/check_stage8_run.py` **18/18、exit 0**（原 15 项），新增 A7c（`k_max = 0` + `n_failed = 0` + `p_loo/n_obs = 704` ⇒ 必须报「LOO 无效」）、A7d（负 `p_loo` ⇒ 必须报）、A7e（反向对照：健康 `p_loo` 不得被误伤，仍给「可报 ΔELPD」）；日志 `_scratch/check_stage8_run_d52_u8.txt`。**遗传自**：第 7 / 27 / 32 项（`max k` 会爆表；`nan` 不是最差挡位；一个计数器不够），以及 `Stage8_建模与验证方案.md` §11 新增的第 9 条已知限制 |
+| 34 | ✅ **Stage 9 的优化循环已交付（D53，含一条会改变结论口径的实测）** | 新建 `1_Code/AutoRA_SPE/stage9_loop.py`（617 行、裸 LF）与 `1_Code/AutoRA_SPE/check_stage9_loop.py`（261 行、裸 LF，A–G 七组，**21/21 通过、exit 0、67.2 s**）。**候选空间**：`T_POOL_MS`（2/5/9/15/21/27 帧）× `W_POOL_MS`（48/72/108/144 帧）× `n_rep ∈ {8,12,16,18,24}`，受 `len(T)·len(W)·n_rep = 576/4 = 144`（第 21 项：576 试次/人 ⇒ 四类刺激单元）与程序自检 C3（`W − T − 200 ms ≥ 300 ms`，`Exp_Design_Formal.m` L250-256）双约束 ⇒ **枚举实测 174 个可行设计、186 个被 C3 否决（C1 一个都没否决）**，每个候选 `n_trials == 576` 逐字成立。**CRN 种子由设计内容（名字的 sha256 前 12 位）导出**，不由候选表下标导出 —— 实测完整表（下标 0）与截断表（下标 20）里同一设计种子与读数**逐位相同**，174 个设计 → 174 个不同种子（这是处方④在代码里的形态）。**四臂同预算有牙齿**：`run_arms` 在 `len(names) != budget` 时抛 `RuntimeError`（D2b 人为让一臂超支 ⇒ 确实抛）。❗ **交付时改掉两处自己的缺陷**：① `arm_grid` 原先取「候选表前 N 个」，而候选表按 `(n_t, n_w, 组合)` 字典序排 ⇒ 前 6 个**全是 `r24` / `T` 最短 / `W` 最短的不可行角落**，那是把有偏角落样本冒充网格 ⇒ 改为等距空间填充扫掠；② ❗❗ **单位坑**：`inner_eval` 收**秒**、桥模块收**毫秒**，而候选表存的是毫秒 ⇒ 首跑把毫秒当秒喂进去，**不报任何错**，只是静默给出 `omission = 0.0`、`cond = 3.96e+17`、`relative_se` 量级 10⁴；症状是冻结 Objective 的三道闸门**全部拒绝**（`RuntimeError: 缓存里没有任何可行设计` —— 闸门尽职了）。修法：**单位只在 `levels_sec()` 一处换算**，两个 `inner_eval` 调用点都走它；B1/B1b 断言缓存路径与直接调用**逐位相同**（`max\|Δ\| = 0.000e+00`），**B2 专门把毫秒当秒再喂一次**（Δ遗漏 = 0.361、`cond` 8.91e15 vs 5.4e4）作为这条坑的回归钉。❗ **冒烟的四条读数**（budget 12、`n_fim=1`、`rho = 0.6`，40 次评估 / 182 s）：(a) 锚点 D4 `A = 0.3851 / B = 7.4007 / J = 10.4400`，四臂 best J = `grid 0.4673 < manual 0.5112 < random 0.5405 < bo 0.6382` ⇒ **该预算下 BO 没赢过空间填充网格**；(b) **锚点 D4 被 `T[33.33/83.33/249.98]ms × W[799.98/1199.90/2399.80]ms × r16` 在 (A,B) 两维上同时支配**（A 0.3324 < 0.3851、B 7.9303 > 7.4007）⇒ **「D4 不是 Pareto 最优」与遗漏率罚分无关**，这是 Stage 9 局部审计最稳的一句话；(c) 进入前沿的设计**全部取 W 高档**且 `C = 0`，而 D4 在 `rho = 0.6` 下遗漏 0.356 ⇒ `C ≈ 9.7` ⇒ **罚分带只在「高 W」区可达**，而 Objective **没有「会话总时长」成本项** ⇒ 它会系统性把 W 推向池上限（2399.8 ms）；(d) ❗ **`n_fim=1` 时内环 MC 噪声（`sd_J = 2.92`，两次重算 `J = 9.5112 / 13.6474`）大于设计之间的差异（0.47–0.64）** ⇒ **该配置下的臂间比较不可解释**；`--noise-repeats 2` 的 SD 只有 1 个自由度（同一指标另一次冒烟为 `sd_J = 0.074`）⇒ 进论文的消融必须提高 `n_fim` 且 `--noise-repeats ≥ 5`，并**重复整个消融（R 个种子组）**才能得到配对误差棒。**遗传自**：第 7 / 17 / 31 项（`design_fim` 的 CRN 天然性；M-T1 内环仪器；`stage9_inner` / `stage9_objective`）；限制与口径见 `5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §11 第 12–15 条 |
+| 35 | ✅ **标量 `J` 的 MC 噪声几乎全部来自遗漏率罚分（D54）＋嵌套模型的 `p_loo` 会饱和（第三条 LOO 退化诊断）** | 本轮把第 34 项记的「内环 MC 噪声大于设计差异」追到根因，并顺带记下第三条 LOO 退化诊断。**① 噪声根因（一手实测）**：新建一次性探针 `1_Code/AutoRA_SPE/_scratch_probe_noise_curve.py`（日志 `_scratch_probe_noise_curve_u8.txt`，360.5 s），把锚点 D4 在 `n_fim ∈ {1,2,4,8}` 上各算 5 次：`sd_J` = 1.8082 / 0.9784 / 0.9189 / 0.8312，`2·sd_J` = 3.6165 / 1.9567 / 1.8378 / 1.6624，`sd_omission` = 0.01370 / 0.00773 / 0.00719 / 0.00624，`sd_C` = 1.8148 / 0.9674 / 0.8954 / 0.8178，**`sd_C²/sd_J²` = 100.7% / 97.8% / 95.0% / 96.8%**。⇒ 科学信号 (A) 的 `sd_A = 0.005–0.008`、(B) 的 `sd_B = 0.10–0.15` 对 `J` 的方差贡献**约 0**，`C` 贡献 95–101%。**机制**：(C) 是关于遗漏率的**二次罚分**，在 D4 的遗漏率 0.35 处 `dC/d(omission) ≈ 125` ⇒ 把小 MC 噪声放大两个数量级。**并且加大 `n_fim` 救不回来**：遗漏率不按 `1/sqrt(n_fim)` 收敛（1→8 只降 0.55 倍，不是 0.35 倍；按 `1/sqrt` 外推需 `n_fim ≈ 59`，平坦化说明实际要更多），四档 `2·sd_J` **全部**远大于臂间差异 0.47–0.64。**处置（D54）**：罚分改为**约束**（遗漏率落 `[0.05, 0.20]` 之外的设计直接移出可行集，不给陡峭二次罚分）、**四路消融的判据只建立在 (A)/(B) 上**；长远修法是让遗漏率**解析化**（`1_Code/DDM_Core/twophase.py::survival_step`、`1_Code/DDM_Core/wfpt.py` 已有存活函数），但那要**重新冻结哈希**、**不得事后加权**。`stage9_loop.measure_noise` 已改为**同时返回 `omission`/`C`/`sd_omission`/`sd_C`**（不记分项就没法把「噪声来自哪一项」变成读数），`--noise-repeats` 默认 3 → **5**。**② 第三条 LOO 退化诊断**：`1_Code/DDM_Core/_scratch/_probe_loo_identical.py` 实测（4 人 analytic 干跑、`n_draws=32`）M-T1（K=8）与 M-T3（K=7）的 `p_loo` **只差 4.547e-13**（`2816.256994615058` vs `2816.2569946150575`），而 `elpd_loo`（−3526.254 vs −3485.938）与 `se`（32.997 vs 30.423）都明显不同 ⇒ **该 `p_loo` 不是复杂度估计，而是一个由数据结构决定的边界值**（`p_loo/n_obs = 704.1`）。**可自动检的规则**：嵌套模型的 `p_loo` 若在同一份数据上一致到 ~1e-13，则该 `p_loo` 不可用作复杂度读数。⚠️ 该档 `ΔELPD = 40.32`（M-T3 更好）与 N=3 那档 M-T1 胜 +491.6 **方向相反**，但两档都已被判为**不构成证据**（第 33 项），不得引用。**③ 顺带交付**：`1_Code/AutoRA_SPE/check_stage9.py`（185 行，**汇总自测**：`W1` 哈希是算出来的 + `assert_frozen()`、`W2`/`W3` 五个文件同时登记在两份文档里、`W4` 文件真在磁盘上；`S1`–`S4` 把四个子自测跑一遍，**以子进程退出码为权威**）。首轮 `W3` 报**假警**（判据要求裸露反引号文件名，而文档习惯写成带目录前缀的路径）⇒ 已改为同时接受 `` `name` `` 与 `` /name` ``，**且保留 `/` 前缀**（否则 `stage9_inner.py` 会被 `check_stage9_inner.py` 的子串满足）。**遗传自**：第 7 / 17 / 30 / 31 / 33 / 34 项 |
+| 36 | ✅ **两类"看不见的污染"已工具化并清空存量（§8.29，D54 同轮）** | (1) **中文字符串里混进 ASCII 双引号 ⇒ 字符串提前闭合**：本会话**出现两次**，Python 报 `invalid syntax. Perhaps you forgot a comma?` 且**指向整条语句的开头**（真凶在 L57/L65，报错说 L33/L64）。两个既有判据都抓不住：`tokenize` **不报错**（`"a"b"c"` 是合法的 `STRING NAME STRING`，只在 **parser** 层失败）；按行统计引号**奇偶性**抓不住（那一行 4 个引号是偶数 —— 我写过的那版**误报 49/105 个文件**，把 `["a","b","c"]` 这类合法行全打成嫌疑）。**真判据** = token 流里出现 **`STRING` 紧跟 `NAME`/`NUMBER`**（合法 Python 里字符串后永不直接跟裸标识符/数字）。新建 `1_Code/DDM_Core/_scratch/check_code_quotes.py`（97 行、裸 LF，**只在 `ast.parse` 失败时才定位真凶行 ⇒ 零误报**；顺带报 BOM）。修法：内嵌引号一律写全角 `「」`。(2) **全仓 27 个文件带 UTF-8 BOM**（3 个 `.py`：`_scratch/_dbg_cell.py`、`_scratch/_probe_t0_wall.py`、`_scratch/_probe_t0_wall2.py`；其余为 `_scratch/*_u8.txt` 日志、`Experiment/exp_Check/*.csv`、`Python_for_Check/Visualization/V2/outputs/*.csv`、`Animation_Manim/scenes/s4_kernel_length_scale.py`）—— `.py` 带 BOM 时**正常导入不暴露**（CPython 会剥 BOM），只有按 utf-8 直读才炸，这就是它们长期潜伏的原因。新建 `1_Code/DDM_Core/_scratch/_strip_bom.py`（44 行，干跑列清单 / `--apply` 写回，并把 CRLF 规范化为裸 LF），已 `--apply`：**27/27 写回**，复扫 `163 个文件、0 个语法错、exit 0`。(3) **元凶**：`Set-Content -Encoding utf8`（Windows PowerShell 5.1）写 Python 脚本会**加 BOM** ⇒ 脚本一律用编辑器/`write` 工具写。**遗传自**：第 24 项（格式化输出必须回头全查）、第 31–35 项（"一个计数器不够"的同族主题） |
+| 37 | ✅ **D54 已落到代码：遗漏率罚分 → 可行域约束**（`1_Code/AutoRA_SPE/stage9_loop.py` 618 → **749 行**） | 新常量 `OMISSION_BAND`（与 `FROZEN["omission_band"]` 同源，**不动哈希**，带在搜索层执行）与 `CRITERION = ("A","B")`；`_objective_record` 追加约束（带外 ⇒ `feasible=False` + 闸门文本含 `D54 约束`；**罚分照算但不进判据**）；`best(key="A")` 成为 D54 之后的推荐点；`run_arms` 记录 `curve_a` / `best_A` / **`B_at_best_A`**（同一点的 B ⇒ 配对）/ `n_feasible`；`compare_arms` 只看 `(A_best, B_at_A_best)`，`2·sd_A` 与 `2·sd_B` **分别判**；`main()` 落盘 `d54` 段。**冒烟（`--budget 12 --n-fim 1`）：176 次评估 / 内环 803 s、带外 22 个 / 可行 27 个、`2·sd_A = 0.0050`、推荐点 `A = 0.3881 / B = 8.7653 / 遗漏 0.168`。** 牙齿测试 `1_Code/AutoRA_SPE/check_stage9_loop.py` 21 → **28 项、28/28、exit 0、58.8 s**。⚠️ `--out` 不给就不写 JSON（早先两次冒烟因此只有日志）。**遗传自**第 35 项（D54 的实测依据） ⚠️ **2026-10-14 补注（见 D56 / §8.31）**：本项里的「推荐点 `A = 0.3881`」是**四臂抽样点里的最优**（当时前沿/推荐点只在 `ev.cache` 上算），**不是整个候选空间的最优**；补全 174 个候选后空间最优可行设计为 `A = 0.3446`。今后引用推荐点必须连同 `front_scope` 一起报。 |
+| 38 | ✅ **事前登记的遗漏率带与已定稿的锚点 D4 不相容 —— 已由用户拍板 (a)+(c) 结案（D55 / D62）** | `check_stage9_loop.py` 的 `E7` 把"锚点是否落在冻结带内"做成每次必印的硬读数，于是第一次跑就报出：**锚点 D4（Stage 5 已定稿、正在据以准备正式采集）的遗漏率实测 0.3611（M-T1，rho = 0.6；rho = 1.0/0.75/0.5 下 0.3229/0.3177/0.3750；M-T3 0.314–0.335），而冻结带上界是 0.20 ⇒ 超出 1.8 倍、D4 在带下不可行。** 三种处置：(a) 不动已冻结规格、把它作为 9A 头条结论报出来（**本轮采用**）；(b) 走一次显式重冻结（必须在任何优化结果之前、记录理由、接受 `SPEC_SHA256` 变化并复跑依赖哈希的自测）；(c) 保留带但把 D4 标为"仅作归一化锚点、不参与可行集"。**同一个冒烟还给出 9A 最稳的一句话**：D4 的 `A = 0.3858` 与最优可行设计的 `A = 0.3881` 只差 `ΔA = −0.0023`、**落在噪声带 0.0050 之内** ⇒ **取消 D4 资格的只有遗漏率带这一条，不是精度**。⚠️ 误差棒只由 **2 次重复**估出（同族量 `sd_J` 在两次冒烟里量到 0.074 与 2.92，跨 40 倍）⇒ 严谨误差棒必须来自 **R 个种子组的重复消融**；在拿到它之前只能说"在这一个种子组上"。**同轮更正**：曾写"内环走 `hier.ddm_subject` 的默认 `n_x`"是**错的** —— `1_Code/AutoRA_SPE/stage9_inner.py` 全符号 grep **不含 `n_x`/`hier`/`ddm_subject`**，内环没有似然网格（真正的分辨率旋钮是 `DT_GEN = 5e-5` 与 `REL_STEP_FD = 1e-3`）** ❌ **2026-10-14 更正（见 D56 / §8.31）**：本条末尾「取消 D4 资格的**只有**遗漏率带这一条、不是精度」**作废**。离线读全部 174 个设计的 `cache` 后：**可行集内有 5 个**设计在 (A,B) 上支配 D4，最强者 `T[33.33/149.99/349.99]ms × W[1199.90/1799.90/2399.80]ms × r16` 的 `A = 0.3446 / B = 8.6729 / 遗漏 = 0.1910`（**在冻结带内**）⇒ `ΔA = +0.0412` = 噪声带 `2·sd_A = 0.0050` 的 **8 倍**。D55 那句「`ΔA = −0.0023` 落在噪声带内」比较的是**推荐点**（当时只是四臂抽样点里的最优，`A = 0.3881`），不是空间最优。⇒ 正确表述是：**D4 既不可行（0.3611 > 0.20），也被 5 个可行设计在 (A,B) 上支配**。 ✅ **2026-10-17 用户拍板（D62 ⑥）＝ (a)+(c)**：保持冻结规格不动、把「锚点落在带外」作为 **9A 头条结论**报出，并同时给 D4 归一化的比值口径（正式件上推荐点 `A/A(D4) = 1.1115`、`B/B(D4) = 1.1334`）。补强证据：正式 `n_fim = 12` 件上 D4 的遗漏率 **0.3546**（`n_fim = 1` 档 0.3507 / 0.3819）⇒ 两档都 ≈ 0.35，不是小样本产物；现行带下**支配 D4 的可行设计 0 个**、D4 进带需上界 ≥ 0.3611 |
+| 39 | ✅ **前沿与推荐点的作用域缺陷已修（D56，§8.31）** | `1_Code/AutoRA_SPE/stage9_loop.py` 749 → **787 行**：新增 `_jsonable()`（`inner_eval` 的 `se`/`se_sd`/`acc` 是 numpy 数组，`json.dumps` 直接抛 `TypeError`）与 payload 的 `"cache"`（逐设计读数 ⇒ 落盘件自足）、`"front_scope"`；**算前沿之前先调 `ev.feasible_names()` 补全整个候选空间**并打印 `[前沿] …`。**根因**：`pareto_front()` （L631 的 `for n in (names or list(ev.cache)):`）与 `best()` 只覆盖**已缓存**的点，而 `main()` 原先在补全空间**之前**调用它们 ⇒ 推荐点/前沿取决于 `--budget`（`--budget 12` 报 `A = 0.3881`，全空间真值 `A = 0.3446`）。❗❗ **并据此推翻 D55 的两条更正**：离线读 174 项 `cache`（可行 27 / 不可行 147）⇒ **可行集内有 5 个**设计在 (A,B) 上支配锚点 D4，最强者 `T[33.33/149.99/349.99]ms × W[1199.90/1799.90/2399.80]ms × r16` 的 `A = 0.3446 / B = 8.6729 / 遗漏 = 0.1910`（**在冻结带内**），`ΔA = +0.0412` = 噪声带 `2·sd_A = 0.0050` 的 **8 倍** ⇒ D4「既不可行、也被可行设计支配」。⇒ 第 38 项里「取消 D4 资格的只有遗漏率带这一条，不是精度」**作废**。**遗传自**第 38 项与 `1_Code/AutoRA_SPE/_scratch_probe_d4_domination.py`（离线/即时双模式） 另加**新牙齿**：`check_stage9_loop.py` 261 → **374 行**、28 → **31/31、exit 0、63.0 s**，新增 **H 组**三条**静态源码判据**（`H1` `main()` 里 `ev.feasible_names()` 必须早于 `pareto_front(ev)` 与 `ev.best("A")`；`H2` payload 有 `"front_scope"` 且四键齐全；`H3` `"cache"` 段存在且经 `_jsonable()`）。⚠️ **边界**：H1 钉的是**源码顺序**，**不是**运行期的 `front_scope.n_evaluated == front_scope.n_candidates`（那要跑一次全空间，10–15 min，自测里没有，由冒烟覆盖）。 |
+| 40 | ✅ **「先补全候选空间再算前沿」已被一次全空间实跑验证（D56，§8.31 §6/§8）** | 后台作业 pwsh-170：`--budget 2 --n-fim 1 --noise-repeats 2 --seed 0`，`1_Code/AutoRA_SPE/_scratch_smoke_scope_u8.txt`（exit 0、内环 762 s / 墙钟 771 s、`n_evals = 176`、`cache = 174`），JSON `1_Code/AutoRA_SPE/_scratch_smoke_scope.json`。**推荐点**：`--budget 12` 报的 `A = 0.3881` → 全空间 **`A = 0.3446 / B = 8.6729 / 遗漏 = 0.1910`**（与离线探针一致）；锚点 D4 `A = 0.3858` ⇒ `ΔA = 0.0412`；`front_scope = {n_candidates: 174, n_cached_before_full_eval: 7, n_evaluated: 174, n_front: 6}` ⇒ `n_evaluated == n_candidates` **为真**。❗ **并发现同一缺陷的另一个受害者**：`d54.n_band_rejected` 全空间真值是 **93**（D55 那次报的 **22** 同样是部分空间读数）。❗ **新读数**：174 个候选 = **27 可行 / 24 只被 D54 带否决 / 123 数值病态**（`cond > 1e10` + 坏试次，其中 69 个同时带外）⇒ **`n_fim = 1` 下 70.7% 的候选是被条件数刷掉的**；⚠️ 该比例须在正式 `n_fim` 下重测（D4 的 `(A)` 随 `n_fim = 1/2/12` 为 `0.3858/0.3519/0.268`） 证据：`1_Code/AutoRA_SPE/_scratch_smoke_scope_u8.txt`、`1_Code/AutoRA_SPE/_scratch_smoke_scope.json`；§8.31 §8；遗传自第 39 项 |
+| 41 | ✅ **「没有可行点的臂不得混排」与「报告必须由落盘件生成」已落地（D57，§8.32）** | `1_Code/AutoRA_SPE/stage9_loop.py` 787 → **821 行**：`compare_arms` 新增 `has_feasible_point` 与三分支（全臂无点 ⇒「没有任何一条臂…没有数据」；该臂无点 ⇒「不参与排序」；头名无对照 ⇒「只有它一条臂…不得写成『最好』」），有真对照时每条裁决末尾追加「另有 N 条臂没有可行点」；`main()` 非有限值印 `—`；`histories[arm]` 的 `B_at_best_A` → **`B_at_A_best`**（读错会把「`B`@`(A)` 最优点」整列静默印成 `—`）。**交付件**：`1_Code/AutoRA_SPE/stage9_report.py`（**337 行**）→ `1_Code/AutoRA_SPE/stage9_report.md`（**124 行**）+ `1_Code/AutoRA_SPE/check_stage9_report.py`（**304 行、42/42、exit 0**）；`check_stage9_loop.py` 374 → **423 行、36/36、39.1 s**（新增 E8 四条 + H4）。**实测**（`--budget 12` 全空间、`n_evals = 176`、内环 541.4 s、`n_evaluated = 174 = n_candidates`、落盘件 346512 字节）：四臂全部取到可行点 ⇒ `random 0.3881`（与 `grid 0.3897` 不可分辨）｜`manual 0.3989`（被 random 支配）｜`bo 0.5113`（(A) 上显著更差 32%）；推荐点 `A = 0.3446 / B = 8.6729 / 遗漏 0.191`；锚点 D4 `ΔA = 0.0412` 被 5 个可行设计支配 证据：`1_Code/AutoRA_SPE/_scratch_check_stage9_loop_d57c_u8.txt`、`1_Code/AutoRA_SPE/_scratch_check_stage9_report_u8.txt`、`1_Code/AutoRA_SPE/stage9_payload_nfim1_budget12.json`；§8.32 §5；遗传自第 40 项 ⇒ **D57 后自查补 R1l（交付件必须与现输出逐字相同）与 R2i（路径渲染与调用方式无关、`_canonical()`）两条牙齿 ⇒ 304 行、42/42** |
+| 42 | ✅ **正式 `n_fim` 下的可行域重测 + 三处「静默漏判」缺陷（D58，§8.33）** | ① 阻断级：`1_Code/AutoRA_SPE/stage9_loop.py::arm_bo` 的 `n_init` 下限写成 2 ⇒ `--budget 1` 时取 2 个点 ⇒ 同预算守卫抛错、**整轮中断**；改为 `max(1, …)` + 「预算 ≤ `n_init` 时自报退化为随机采样」。② `1_Code/AutoRA_SPE/stage9_report.py::_composition` 只认 `cond` 闸门文本 ⇒「只被 `n_bad` 否决」被算成「其它闸门」，而 `n_fim = 1` 下两个集合恰好重合（123 == 123）⇒ **漏判看不出来**；改为两段都认。③ `n_bad` = **不可识别方向条数**（`likelihood.py::fim_diagnostics`），不是「坏试次」；3 处改口 + 加 R1m。④ **正式 `n_fim` = `design_fim.N_FIM` = 12**：`sd_J` 2.9247 → **0.4056**（−86%），但 `2·sd_A` 0.0050 → **0.0163** ⇒ 带宽必须随 `n_fim` 一起报。⑤ 牙齿：E 组·续 + H5/H5b + R2j/R2j-2 + R1m + R1p-h/R1p-i ⇒ `check_stage9_loop.py` **41/41**、`check_stage9_report.py` **47/47**、全套 `check_stage9.py` **10 项、99.0 s**。证据：`1_Code/AutoRA_SPE/_scratch_time_nfim.py`、`1_Code/AutoRA_SPE/_scratch_cmp_nfim.py`、`1_Code/AutoRA_SPE/_scratch_probe_band_sensitivity.py`、`1_Code/AutoRA_SPE/_scratch_noise_repeats.py`（均**新建**）、`1_Code/AutoRA_SPE/_scratch_payload_nfim12.json`、`1_Code/AutoRA_SPE/stage9_payload_nfim12_budget12.json`；主计划 D58；`5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md` §11 第 23 条 |
+| 43 | ✅ **判据带宽的标定种子必须独立重抽；两根带子不许互相顶替（D59，§8.34）** | 起因是同一次运行里锚点 `A = 0.385802` 与标定两次的 `0.358641 / 0.355084` 差 12.6 倍 `sd_A`。四族种子探针证明旧标定族（`+791_900 + 37k`）在 `n_fim = 1` 下把 `sd_A` 低报 **4.0 倍**（0.0048 vs 48 个无关种子的 0.0189），而 `n_fim = 12` 下不低报 ⇒ 4 倍低报是该档特有的；「邻居相关」这条假设被另一族邻居（0.0156）否掉，真因是**6 个样本估重尾分布的 `sd`**。改法：种子由 `{名称}#noise{k}` 导出 + 落盘 `seeds`/`family`；`compare_arms` 取消「借另一根带子判定」的短路（头名四分、非头名两分）；报告印标定种子与限制句。**换带重判（`_scratch_reverdict.py`）后 `n_fim = 1` 的四臂裁决 4/4 条文本都变，「推荐点比锚点好 8.18 倍带宽」变成 1.09 倍 ⇒ 该档没有任何证据支持「推荐点更好」**。`stage9_loop.py` 831 → **886 行**、`check_stage9_loop.py` 465 → **530 行（47/47）**、`stage9_report.py` 370 → **397 行**、`check_stage9_report.py` 346 → **362 行（50/50）**、`stage9_report.md` **131 行** + **同族第四条**：判词是运行时生成的冻结产物而落盘件不记录规则版本 ⇒ 新增 `VERDICT_LOGIC` / `payload["verdict_logic"]`，报告 §5 印版本（缺失则先警），牙齿 = **H7** + **R1p-m/n**（循环自测 **48/48**、报告自测 **52/52**） |
+| 44 | ✅ **跨设计比较的带宽系数是 `2·√2`（差的口径），且推荐点自带选择偏差（D60，§8.35）** | 旧写法用**单设计**的 `2·sd` 判两个不同设计的差 ⇒ 窄 1.41 倍；逐设计 σ 实测（`n_fim = 1`、32 个无关种子）0.017976 / 0.018638 / 0.021285 ⇒ 同方差假设可接受；推荐点的 CRN 读数比自己的种子均值低 **2.26σ**、锚点高 1.58σ ⇒ 单种子 CRN 排序可能是抽签结果；报告 §5 改为**自己重算判词**并与转印比对（新增 R1p-o/p/q/r/r2）；新探针 `1_Code/AutoRA_SPE/_scratch_mean_A_rank.py`（种子平均排名） |
+| 45 | ✅ **可行集铺开度 = 几十到上百倍判据带 ⇒「推荐点」不是唯一解；病态集是设计空间的结构性质（D61，§8.36）** | `n_bad > 0` 的候选在 `n_fim = 1` 与 `12` 下都是 **123 / 174** 且**逐设计完全相同** ⇒ 结构性（随 `n_fim` 移动的只是遗漏率带内成员，可行 27 → 30）；`(A)` 极差 = **105.03 倍**（`n_fim = 1`）/ **80.23 倍**（`n_fim = 12`）判据带，与最优不可分辨 **2 / 27** 与 **11 / 30**，且全部落在最大 W 档 + `T` 3–6 档 + `r8–r16` ⇒ **族稳健、点不稳健**；报告 §7 新增「身份是否唯一」段 + R1p-s/s2/s3 + R1p-r3 ⇒ `check_stage9_report.py` **61/61**；带宽 `2·√2` 的实测支持（ρ = +0.486…+0.848 是探针**共用随机流**的口径 ⇒ 循环里各设计各一条流 ⇒ D60 不改） |
+| 46 | ✅ **交付件依据件 = 正式 `n_fim = 12` 的 budget-12 件（`_restamped`）；锚点在 `(A)` 上期望最优但被 D54 带排斥（D62，§8.37）** | 原始件 375296 B → `_restamped` 377131 B（离线重算 3/4 条判词、方向不变）；32 种子均值：锚点 **0.340119 ± 0.001394** 居首、6 个候选 0.374739–0.385240 全部更差（配对 t = +25.49…+41.10）⇒ 推荐点的单点优势是选择偏差方向的产物，而锚点遗漏率 0.3546 在带外 ⇒「更好但不可执行」；带敏感性：现行带支配锚点 **0** 个、D4 进带需 ≥ 0.3611；报告修正三处过时说法 + R1p-t/R1p-r2 ⇒ `check_stage9_report.py` **62/62**、交付件 **154 行**；用户拍板 D55 第 18 条 = (a)+(c) |
+| 47 | ✅ **本机 `D:\Conda\envs\hssm` 里有完整贝叶斯栈；ArviZ 独立复核了 `loo.py` 的 PSIS-LOO（D63，§8.38）** | pymc 5.28.5 / pytensor 2.38.3 / arviz 0.23.4 / hssm 0.3.0（py3.11.15）；同一 `(2000, 40)` 矩阵上 `elpd_loo` −53.814882 vs −53.816786（**相对差 3.54e-05**）、`p_loo` 0.778425 vs 0.780329；`pm.sample` 不可用（`0xc06d007f`、无 g++）⇒ 主路线仍零依赖；`check_loo.py` 新增 `[D]` 三条 ⇒ **17/17**；D41 拍板项关闭 |
+| 48 | ✅ **`2·√2·sd` 的 `√2` 取常数：同方差在正式 `n_fim` 下实测成立（D64，§8.39）** | 同一批 32 种子读数里抽出 7 个设计的逐种子 `sd_A` = 0.0068–0.0085（max/min **1.24 倍**）、`n_fim = 1` 档 3 个设计 1.18 倍 ⇒ 若 σ 差几倍则 `√2` 需逐对算；`ρ = +0.22…+0.80` 是共用随机流口径、不得用来判断循环里两条臂相关；报告 §7 新增 D64 段 + R1p-u ⇒ `check_stage9_report.py` **63/63**、交付件 **155 行** |
+| 49 | ✅ **Stage 8 全量运行器在合成数据上端到端跑通；成本低估 3–4 倍、`p_loo` 闸门承重、`n_degenerate_nonfinite` 隐形、N=3 的 analytic Hessian 可非正定（D65，§8.40）** | 干跑 I 5597.9 s（M-T1 3015.1 s / M-T3 2553.8 s）、干跑 II 3013.2 s（1696.1 / 1305.9）；干跑 II 的 `k_max` 全 0.000 而 `p_loo/n_obs` 72.7 / 48.2 ⇒ 判无效；`n_degenerate_nonfinite` 54 / 16 而 `n_nonfinite_loglik` 0；M-T1 最小特征值 −0.2031、`n_flipped` 1 |
+| 50 | ✅ **Stage 8 的输入契约立死：只吃 v4.1 逐被试 txt；历史汇总 CSV 缺 9 列、不可转换（D66，§8.41）** | 改前喂 CSV 抛未捕获 `KeyError: 'matchKey'`、exit 1；改后 exit 2 并逐条点名 9 列缺列；`check_stage8_run.py` **23/23** |
+| 51 | ✅ **Stage 1 验收的机器判据 + 合成生成器练习行 `Correct` 的缺陷（D67，§8.42）** | `check_stage1_acceptance.py` 覆盖 6-A–6-D（6-A/6-E 标为需手测）、自测 **6/6**（含历史 16 列口径守卫）；`make_fake_pilot.py` 练习行 `Correct` 由 `0` 改 NaN。**还需**：真实文件（用户侧）+ `6-A`/`6-E` 人判。 |
+| 52 | ✅ **超参数 Hessian 非正定 ⇒ 报告必须写「本次的 σ 不得解读」（D68，§8.43）** | `stage8_run.py::render_group` 新增「超参数 Hessian」行（`floor` + `1/floor` + 收敛 σ 末轮区间）；实测 M-T1 收敛 σ 末轮最大 **2.27e+03**（`1/floor` ≈ 4.37e+05）、M-T3 正定；牙齿 A11/A12 ⇒ **25/25**；**N 依赖实测**（`_probe_hess_scaling.py` + `_probe_hess_seedcheck.py`）：归一化最小特征值 **−4.202e-03（N=3）→ −1.362e-03（N=6）→ +1.394e-03（N=12）→ +1.184e-03（N=24）** ⇒ 符号翻而量级不变，且 N=3 换 seed=99 即变正（逐数据集偶发） |
+| 53 | ✅ **「共享流 CRN 配对」实测后不升格（D69，§8.44）** | 正式 `n_fim = 12`、12 个共用种子、3 个可行设计 + 锚点：`ρ` **+0.122 / +0.328 / +0.783**、实测系数 **2.650 / 2.332 / 1.316**（独立性 2.828）⇒ 带子只收窄 **1.07–2.15 倍**；且要真用必须让种子只依赖种子表 ⇒ `cache` 键全变 ⇒ 不采用 |
+| 54 | ✅ **Stage 8 的正向对照（D70，§8.45）** | `_scratch/_make_ddm_pilot.py`（223 行）按 M-T1 真值生成 v4.1 txt；`check_make_ddm_pilot.py` **12/12**；全量设计过 `qc_group.py` **G1–G9 全 PASS、剔除 0**；正向对照 PPC 全局 **69/72 = 95.8%** 在带内、分单元 **120/120**（阴性对照 37/72 = 51.4%、95/120） |
+| 55 | ✅ **Stage 6/7 的真实规模就绪实测（D71，§8.46）** | `_make_ddm_pilot.py --preset qc` 生成 8 人 × 576 试次 → `qc_group.py` G1–G9 全 PASS / 剔除 0、`analyze_pilot.py` 0 WARN；量出「待复核 5/8 人」的负担与机理；`check_pilot_ready.py` 9/9（2026-10-17） |
+| 56 | ✅ **Stage 8 组级缓存与 `--resume`（D72，§8.47）** | 每组落盘 `stage8_group_<组>.json`（含 `config`）；`--resume` 跳过已完成组并在报告里留「♻️ 复用缓存」行；坏缓存/配置不一致都`ValueError`；`check_stage8_run.py` **31/31**（E13–E15） |
+| 57 | ✅ **被试层 PSIS-LOO 不可估（D73，§8.48）** | 被试层 `p_loo` 是「profile 边际在超参数抽取间的离散度」而非参数数（`p_loo/n_obs = 496`、负 p_loo、矩阵全距 2.3e9）；试次层同批抽取 `0.138`、`k_max = 0` ⇒ PSIS 放试次层、被试层留一用 bruteforce/K-fold；`loo_matrix` 遇 Hessian 非有限记 −inf 并计 `n_hessian_fail`（`check_loo.py` 21/21） |
+| 58 | ✅ **超参数 Hessian 正定是 LOO 可用的前置条件（D74，§8.48 第 6–8 条）** | 试次层第一次端到端实跑仍越界（`p_loo/n_obs` 8.57 / 12.7），而同一次运行里 `hyper.eigval` 有 2 个负特征值、θ 逐维 SD 达 **134**、\|θ\| 达 **303** ⇒ 病态来自超参数抽样而不是「层」；正定对照配置（min eig 0.026544、`n_flipped` 0/16、θ SD ≤ 3.88）下试次层 `p_loo/n_obs` = **0.138**。`stage8_run.render_group` 的 LOO 判词新增独立理由「超参数 Hessian **非正定** ⇒ `p_loo` 不可解读（D74）」，报告口径行标注该前置条件；`check_stage8_run.py` **32 → 34/34**（A7f/A7g）。⚠️ 引用任何 `p_loo`/`ELPD` 前必须先报 `n_flipped` 与特征值谱 |
+| 59 | ✅ **超参数 Hessian 正定性不是样本量的函数（D75，§8.49）** | N=2…6 扫描（`n_em=2`、`n_x=21`、S=2、≈46 试次/人）：2/3/5 正定、4/6 非正定 ⇒ 非单调；N=4 把试次 ×4（187–191）后仍 1/16 非正定、max\|θ\| 97.9 ⇒ 加试次也不消除。失败拟合的 `λ_min` 可只到 −0.005（相对 `λ_max` 1e-5）⇒ 符号不说明程度，须与 `max_abs_theta` 并列报（正定 ≤ 7.3 vs 非正定 33.6–303，分离 5–40 倍）。`hier.hyper_draws` 增 `max_abs_theta`、报告 Hessian 行并列印；`check_stage8_run.py` **34 → 37/37**（A13/A13b/A14）。⚠️ 论文不得写「~40 人/组时 LOO 可用」 |

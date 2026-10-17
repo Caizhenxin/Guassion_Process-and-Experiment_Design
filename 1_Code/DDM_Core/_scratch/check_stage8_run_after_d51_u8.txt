@@ -1,0 +1,44 @@
+========================================================================================
+stage8_run.py 自测（廉价；不真的拟合层级模型）
+========================================================================================
+
+[准备] 造出 3 名被试；逐人 t0 上界 = [0.2988, 0.3927, 0.3541]；逐人试次 = [32, 32, 32]
+  ✅ A0 接口守卫：`stage8_run` 从源码里读的 loo 键都真实存在：源码中读到 ['elpd_loo', 'k_max', 'n_failed', 'n_k_gt_bad', 'n_k_gt_unusable', 'n_obs', 'p_loo', 'se']；`loo.psis_loo` 实际提供 ['elpd_i', 'elpd_loo', 'k_max', 'k_median', 'n_draws', 'n_failed', 'n_k_gt_bad', 'n_k_gt_unusable', 'n_obs', 'p_loo', 'pareto_k', 'se']；缺失 = 无
+  ✅ A1 逐人 t0 上界互不相同（A5 才有牙齿）：[0.298799, 0.392661, 0.354086]
+  [M-T1] 分单元 PPC …
+D:\Conda\Lib\site-packages\numpy\_core\_methods.py:222: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+D:\Conda\Lib\site-packages\numpy\_core\_methods.py:214: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+  [M-T3] 分单元 PPC …
+  ✅ A2 两个模型都出现在报告里：['M-T1', 'M-T3']
+  ✅ A3 调用了 hier.compare_models（哨兵字符串出现）
+  ✅ A4 分单元 PPC 段落齐全（n_flipped 行数 = 模型数 × 人数）：6 行
+  ✅ A5 每名被试都用**自己**的 bounds 反变换（(d) 的守卫）：max|Δ| = 0.000e+00
+  ✅ A5b 守卫可分辨（串用被试 1 的 bounds 会明显改变结果）：|Δ| = 5.619e-02
+  ✅ A6 project() 含「超参数 Hessian」且计数正确：应为 2892 次众数搜索
+      预估（实测标定：48 试次/人、`n_x=41`、单次似然 34 ms；本次人均 32 试次 ⇒ 单次评估 ×0.84）
+          人数 3、n_em 3、n_draws 20、模型 2 个、PPC 抽取 5、超参数法 fd
+          层级拟合 ≈ 2.3 min（18 次冷启动众数搜索）
+          **超参数 Hessian ≈ 194.4 min**（2892 次温启动众数搜索 —— 主导项，不随 n_em/n_draws 变小）
+          LOO 矩阵 ≈ 7.9 min、PPC ≈ 0.2 min
+          ⇒ 合计 ≈ **3.41 h**
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+  ✅ A7 k 挡位三档判定都正确
+  [M-T1] 分单元 PPC …
+  [M-T3] 分单元 PPC …
+  ✅ A7b `k_max = nan` 必须报「LOO 无效」，不得误报成「k > 1.0 不构成证据」：命中「LOO 无效」
+  ✅ A8 run_group 里 render_group 在 strip_matrices 之前（否则 compare_models KeyError）：render@421 strip@505
+  ✅ A8b strip_matrices 确实剥掉了 log_lik
+  ✅ A9 _jsonable + json.dumps 可用：5063 字符
+  ✅ A10 x_init=None 回退到区间中点（而不是 np.asarray(None) = [nan]）：size=7、n_evals=104、与中点版 max|Δ|=0.000e+00
+  ✅ A10b 非有限 x_init 显式报 ValueError：x_init 必须是长度 7 的有限向量，收到 size=7、all_finite=False
+
+========================================================================================
+共 15 项，未通过 0 项。
+========================================================================================

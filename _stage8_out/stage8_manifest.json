@@ -1,0 +1,285 @@
+{
+  "rejected": [],
+  "people": [
+    {
+      "file": "exp_group1_subject1.txt",
+      "subject": 1,
+      "group": 1,
+      "n_trials": 142,
+      "n_dropped": 2,
+      "t0_hi": 0.291,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.291
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject10.txt",
+      "subject": 10,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.218,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.218
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject11.txt",
+      "subject": 11,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.27299999999999996,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.27299999999999996
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject12.txt",
+      "subject": 12,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.168,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.168
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject13.txt",
+      "subject": 13,
+      "group": 1,
+      "n_trials": 141,
+      "n_dropped": 3,
+      "t0_hi": 0.234,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.234
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject14.txt",
+      "subject": 14,
+      "group": 1,
+      "n_trials": 142,
+      "n_dropped": 2,
+      "t0_hi": 0.24700000000000003,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.24700000000000003
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject15.txt",
+      "subject": 15,
+      "group": 1,
+      "n_trials": 140,
+      "n_dropped": 4,
+      "t0_hi": 0.231,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.231
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject16.txt",
+      "subject": 16,
+      "group": 1,
+      "n_trials": 139,
+      "n_dropped": 5,
+      "t0_hi": 0.24800000000000003,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.24800000000000003
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject17.txt",
+      "subject": 17,
+      "group": 1,
+      "n_trials": 141,
+      "n_dropped": 3,
+      "t0_hi": 0.227,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.227
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject18.txt",
+      "subject": 18,
+      "group": 1,
+      "n_trials": 141,
+      "n_dropped": 3,
+      "t0_hi": 0.292,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.292
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject19.txt",
+      "subject": 19,
+      "group": 1,
+      "n_trials": 140,
+      "n_dropped": 4,
+      "t0_hi": 0.24800000000000003,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.24800000000000003
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject2.txt",
+      "subject": 2,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.287,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.287
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject20.txt",
+      "subject": 20,
+      "group": 1,
+      "n_trials": 142,
+      "n_dropped": 2,
+      "t0_hi": 0.27899999999999997,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.27899999999999997
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject3.txt",
+      "subject": 3,
+      "group": 1,
+      "n_trials": 141,
+      "n_dropped": 3,
+      "t0_hi": 0.259,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.259
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject4.txt",
+      "subject": 4,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.231,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.231
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject5.txt",
+      "subject": 5,
+      "group": 1,
+      "n_trials": 141,
+      "n_dropped": 3,
+      "t0_hi": 0.226,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.226
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject6.txt",
+      "subject": 6,
+      "group": 1,
+      "n_trials": 142,
+      "n_dropped": 2,
+      "t0_hi": 0.193,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.193
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject7.txt",
+      "subject": 7,
+      "group": 1,
+      "n_trials": 142,
+      "n_dropped": 2,
+      "t0_hi": 0.25,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.25
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject8.txt",
+      "subject": 8,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.168,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.168
+        ]
+      }
+    },
+    {
+      "file": "exp_group1_subject9.txt",
+      "subject": 9,
+      "group": 1,
+      "n_trials": 143,
+      "n_dropped": 1,
+      "t0_hi": 0.299,
+      "t0_bounds": {
+        "t0": [
+          0.05,
+          0.299
+        ]
+      }
+    }
+  ]
+}

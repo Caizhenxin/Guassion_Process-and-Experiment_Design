@@ -11,6 +11,9 @@
 **B 组（真实 DDM）** —— 只看**行为**：数据由 M-T1（ρ=0.5）生成时，
 以被试为单位的 PSIS-LOO 是否把 M-T1 排在 M-T3 之前。
 
+**C 组（D68，机制）** —— 用纯二次 `ll_x` 把 Hessian 造死：非正特征值的方向上
+`cov` 必须恰为 `1/floor`，且负曲率方向上众数搜索会**发散**（该点不是众数）。
+
 用法：``python _scratch/check_hier.py [B 的被试数=5]``
 """
 from __future__ import annotations
@@ -235,10 +238,45 @@ def case_b(n_sub: int = 3) -> None:
     print("\n      " + compare_models(out).replace("\n", "\n      "))
 
 
+def case_c() -> None:
+    """C 组（D68）：`n_flipped > 0` 的**机制** —— 被抬平的方向方差 = 1/floor。
+
+    为什么必须单独测：报告里一句「σ 不得解读」如果没有机制支撑，就只是措辞。
+    这里用一个**纯二次**的 `ll_x` 把 Hessian 造死：`g = −½(λ1 x1² + λ2 x2²)`，
+    `λ1 = 10`、`λ2 = −5` ⇒ `A = −H = diag(10, −5)` ⇒ 有一个负特征值。
+    于是 `floor = max(1e-8·10, 1e-12) = 1e-7`，被抬方向的后验方差应恰为 `1/floor = 1e7`。
+    附带事实：负曲率方向上目标函数**无上界** ⇒ L-BFGS 会沿该方向发散（`maxiter=2`
+    就已经到 1e9 量级）—— 这说明 `n_flipped > 0` 不只是"数值毛刺"，而是"这个点不是众数"。
+    """
+    print("\n[C] 非正特征值被抬平的机制（D68：cov 该方向 = 1/floor）")
+    lam1, lam2 = 10.0, -5.0
+
+    def ll_x(x):
+        x = np.asarray(x, float)
+        return -0.5 * (lam1 * x[0] ** 2 + lam2 * x[1] ** 2)
+
+    sub = {"ll_x": ll_x, "lo": np.array([-1.0, -1.0]), "hi": np.array([1.0, 1.0])}
+    big = float(np.log(1e9))
+    floor = max(1e-8 * lam1, 1e-12)
+    r = subject_map_laplace(sub, np.array([0.1, 0.1]), np.array([0.0, 0.0]),
+                            np.array([big, big]), maxiter=2)
+    check("C1 负特征值被如实计入 n_flipped（= 1）", r["n_flipped"] == 1,
+          f"eigval = {np.round(r['eigval'], 4)}")
+    ratio = float(r["cov"][1, 1] * floor)
+    check("C2 被抬方向的方差 = 1/floor（比值 = 1）", abs(ratio - 1.0) < 1e-4,
+          f"cov[1,1]·floor = {ratio:.6f}、floor = {floor:.1e}、cov[1,1] = {r['cov'][1, 1]:.3e}")
+    check("C3 边际仍有限（退化被吸收，但 `n_flipped` 记了账）",
+          bool(np.isfinite(r["log_marginal"])), f"log_marginal = {r['log_marginal']:.3e}")
+    check("C4 负曲率方向上众数搜索会发散（该点不是众数）",
+          float(np.max(np.abs(r["mode"]))) > 1e3,
+          f"|mode|_max = {float(np.max(np.abs(r['mode']))):.3e}")
+
+
 def main() -> None:
     t0 = time.perf_counter()
     case_a()
     case_b(int(sys.argv[1]) if len(sys.argv) > 1 else 3)
+    case_c()
     print(f"\n合计：{N_FAIL} 项未通过；总耗时 {time.perf_counter() - t0:.1f}s")
     sys.exit(1 if N_FAIL else 0)
 
