@@ -43,6 +43,7 @@ sys.path.insert(0, str(ROOT / "1_Code" / "DDM_Core"))
 
 import intake as INTAKE                     # noqa: E402
 import stage6_report as S6                  # noqa: E402
+import stage8_health as H8                  # noqa: E402  # LOO 闸门（D73/D74/D75），不重写判据
 
 PROFILES = {
     # 流程验证用：1 小时量级；**数值不作结论**
@@ -154,8 +155,27 @@ def PAIRED_SE(a: dict, b: dict) -> float:
     return float(np.sqrt(d.size) * np.std(d, ddof=1))
 
 
+def assess_health(s8dir: Path) -> dict[int, dict]:
+    """对每个 `stage8_group_<组>.json` 复用 `stage8_health.assess_group` 取判词。
+
+    判据（D73/D74/D75）只写在 `stage8_health.py` 一处；这里不重写，
+    否则会重演「同一动作被复制成多个工具、各带一半判据」的老毛病（D94）。
+    """
+    health: dict[int, dict] = {}
+    for p in sorted(s8dir.glob("stage8_group_*.json")):
+        try:
+            gid = int(p.stem.rsplit("_", 1)[-1])
+        except ValueError:
+            continue
+        try:
+            health[gid] = H8.assess_group(p)
+        except (ValueError, KeyError, json.JSONDecodeError) as exc:
+            print(f"[warn] {p.name} 判词失败：{exc}", file=sys.stderr)
+    return health
+
+
 def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict,
-                           truth: dict | None) -> Path:
+                           truth: dict | None, health: dict[int, dict] | None = None) -> Path:
     from mapping import PARAM_BOUNDS, WITHIN_FREE_LIN
     from twophase import MASK_RHO_BOUNDS
     from likelihood import _from_x
@@ -179,9 +199,16 @@ def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict
     L += ["", "【待写】纳入 N、剔除理由、各组人数是否平衡。", ""]
 
     if groups:
-        L += ["## 2. 模型比较（PSIS-LOO，试次层）", "",
-              "| 组 | elpd(M-T1) | elpd(M-T3) | Δelpd（正 = 支持两阶段） | SE | k 诊断可用 |",
-              "|---|---|---|---|---|---|"]
+        health = health or {}
+        n_bad = sum(1 for h in health.values() if h.get("status") == H8.BAD)
+        L += ["## 2. 模型比较（PSIS-LOO，试次层）", ""]
+        if n_bad:
+            L += [f"> ⛔ **本段数值不可引用**：{n_bad}/{len(health)} 组未过 LOO 健康闸门"
+                  "（D73 口径 / D74 超参数 Hessian 正定 / `p_loo` ∈ [0, `n_obs`] / "
+                  "`n_draws` ≥ 25）。Δelpd 只能当流程验证，不得写成模型比较证据。", ""]
+        L += ["| 组 | elpd(M-T1) | elpd(M-T3) | Δelpd（正 = 支持两阶段） | SE（配对） "
+              "| `p_loo`÷`n_obs` | `n_flipped` | k 诊断 | 判定 | 原因 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
         for g in sorted(groups):
             res = groups[g].get("results") or {}
             a = (res.get("M-T1") or {}).get("loo") or {}
@@ -191,10 +218,18 @@ def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict
             # Δ 的 SE 必须是**配对**口径（逐观测贡献之差的 SD × √n）；
             # 把两个 SE 平方相加会把同一批数据的共同变异算两遍（实测放大 ~35 倍）。
             se = PAIRED_SE(a, b)
+            h = health.get(g) or {}
+            mt1 = (h.get("modes") or {}).get("M-T1") or {}
+            ratio = mt1.get("p_loo_ratio")
+            nflip = f"{mt1.get('n_flipped', '?')}/{mt1.get('n_eig', '?')}"
+            why = "；".join((h.get("modes", {}).get("M-T1") or {}).get("reasons") or []) or "—"
+            verdict = {"OK": "✅ 可引用", "WARN": "⚠️ 仅提示", "BAD": "⛔ 不可引用"}.get(
+                h.get("status"), "—")
             L.append(f"| {g} | {ea:.1f} | {eb:.1f} | {d:+.1f} | {se:.1f} | "
-                     f"{'是' if a.get('k_diag_ok') else '否（抽样 < 25）'} |")
-        L += ["", "【待写】Δelpd 的解读与「M-T1 是否被支持」的结论；若 k 诊断不可用，"
-                  "必须写明这只是流程验证、不能作为模型比较证据。", ""]
+                     f"{('%.3f' % ratio) if ratio is not None else '—'} | {nflip} | "
+                     f"{'是' if a.get('k_diag_ok') else '否（抽样 < 25）'} | {verdict} | {why} |")
+        L += ["", "【待写】Δelpd 的解读与「M-T1 是否被支持」的结论；判定为「不可引用」的组"
+                  "一律不得进入结论，只能写进流程验证记录。", ""]
 
         L += ["## 3. 组层参数（M-T1）", "",
               "| 组 | " + " | ".join(names) + " |",
@@ -280,6 +315,19 @@ def main() -> int:
                       "product": str(log)})
         print(f"[3/4] 层级拟合：{'完成' if ok8 else '失败'}（{meta['seconds'] / 60:.1f} min）-> {log}")
 
+    health: dict[int, dict] = {}
+    if not args.skip_stage8:
+        health = assess_health(out / "stage8")
+    if health:
+        n_bad = sum(1 for h in health.values() if h.get("status") == H8.BAD)
+        okh = n_bad == 0
+        detail = f"可引用 {len(health) - n_bad}/{len(health)} 组"
+        if n_bad:
+            detail += f"、{n_bad} 组不可引用（判据 D73/D74/D75）"
+        steps.append({"name": "3.5 LOO 健康", "ok": okh, "detail": detail,
+                      "product": str(out / "results_skeleton.md")})
+        print(f"[3.5/4] LOO 健康：{detail}")
+
     if not args.skip_stage8:
         okf, pidx, metaf = step_figures(data, out)
         steps.append({"name": "4 图", "ok": okf,
@@ -292,7 +340,7 @@ def main() -> int:
             gt = t.get("group_truth") or {}
             truth = next(iter(gt.values()), None)
 
-    skel = write_results_skeleton(data, out, rows, groups, truth)
+    skel = write_results_skeleton(data, out, rows, groups, truth, health)
 
     total = time.time() - t_all
     L = ["# 流水线报告", "", f"- 数据目录：`{data}`", f"- 输出目录：`{out}`",

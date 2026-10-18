@@ -262,7 +262,7 @@ def paired_se(a: dict, b: dict) -> float:
 
 def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[Path, dict]:
     ps = sorted(groups)
-    d_elpd, se, kdiag, se_kind = [], [], [], []
+    d_elpd, se, kdiag, se_kind, citable = [], [], [], [], []
     for g in ps:
         res = groups[g].get("results") or {}
         a = (res.get("M-T1") or {}).get("loo") or {}
@@ -280,13 +280,24 @@ def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[P
             se_kind.append("unpaired")
         se.append(s)
         kdiag.append(bool(a.get("k_diag_ok", False)) and bool(b.get("k_diag_ok", False)))
+        # LOO 闸门（D73/D74/D75）只从 stage8_health 取，不在本文件重写判据
+        try:
+            import stage8_health as _H8
+            st = _H8.assess_mode("M-T1", res.get("M-T1") or {})["status"]
+        except Exception:                                    # noqa: BLE001
+            st = "?"
+        citable.append(st == "OK")
 
     fig, ax = plt.subplots(figsize=(6.4, 3.6))
     x = np.arange(len(ps))
     vals = np.array(d_elpd, dtype=float)
     errs = np.array(se, dtype=float)
     colors = ["tab:green" if v > 0 else "tab:red" for v in vals]
-    ax.bar(x, vals, color=colors, width=0.55)
+    bars = ax.bar(x, vals, color=colors, width=0.55)
+    for bar, ok in zip(bars, citable):
+        if not ok:                     # 不可引用的组加斜线并降透明度
+            bar.set_hatch("///")
+            bar.set_alpha(0.45)
     if np.all(np.isfinite(errs)):
         ax.errorbar(x, vals, yerr=errs, fmt="none", ecolor="0.3", capsize=3, lw=1)
     ax.axhline(0, color="0.3", lw=1)
@@ -299,6 +310,12 @@ def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[P
                 if lang == "zh" else
                 "(!) draws < 25 -> Pareto-k diagnostics unavailable; smoke check only")
         ax.text(0.02, 0.02, note, transform=ax.transAxes, fontsize=7.5, color="tab:red")
+    n_bad = sum(1 for ok in citable if not ok)
+    if n_bad:
+        note = (f"(!) {n_bad}/{len(citable)} 组未过 LOO 闸门（斜线柱 = 不可引用）"
+                if lang == "zh" else
+                f"(!) {n_bad}/{len(citable)} groups fail the LOO gate (hatched = not citable)")
+        ax.text(0.02, 0.12, note, transform=ax.transAxes, fontsize=7.5, color="tab:red")
     if "unpaired" in se_kind:
         note = ("(!) 分不出逐观测贡献 -> Δ 的 SE 按独立相加，偏大"
                 if lang == "zh" else

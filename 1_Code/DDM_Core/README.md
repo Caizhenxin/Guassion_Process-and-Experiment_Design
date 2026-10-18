@@ -4021,6 +4021,14 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
   **不改代码**；目录里没有 `synth_truth.json` 时图里不画真值线、骨架不带合成数据声明。
 - 单独重出图用 `--reuse-stage8`（跳过拟合，只跑第 4、5 步），避免几十小时的重跑。
 
+## 8.70 LOO 闸门必须自动跑：quick 配置下四组全不可引用（D99）
+
+- 事实：`stage8_run.py` 在 quick 配置上跑完 8 人 4 组（3.2 h），`stage8_health.py --strict` 判 **4/4 组「不可引用」** ——`n_flipped` = 1/16、2/16、3/16、3/16（D74），`p_loo÷n_obs` = 0.009、2.16、3.22、2.33。
+- **`k_max = 0` 与 `p_loo` 都不是充分判据**：组 1 的 `p_loo` = 10.07（÷`n_obs` = 0.009）看着很健康，仍因超参数 Hessian 非正定被判死。判据只有一处：`stage8_health.assess_mode/assess_group`。
+- 已犯的错：`run_pipeline.py` 的结果节骨架只印 elpd/Δelpd/SE/「k 诊断可用」，不读健康判词 ⇒ 把不可引用的 Δelpd 摆在「模型比较」标题下（D52 的老毛病换了个外壳）。
+- 现在的行为：① 新增 `assess_health()`（复用 `H8.assess_group`，**不重写判据**）；② 流水线多一个「3.5 LOO 健康」步骤，任一组 BAD ⇒ `ok=False` 且整体退出码 1；③ 骨架 §2 增 `p_loo÷n_obs`、`n_flipped`、判定、原因四列 + 段首横幅；④ `fig3` 对不可引用组加斜线并标注「N/M 组未过闸门」。
+- 口径：quick（`n_draws=12`）**只验证机制**；要出结论必须 `--profile formal`（`n_draws=50` ≥ 25 才有 Pareto-k 诊断）并先过 `stage8_health.py --strict`。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
