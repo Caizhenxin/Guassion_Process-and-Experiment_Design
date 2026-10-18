@@ -4043,7 +4043,7 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 | 8 人 quick 组 3 | 2 | 3 | 12 | 3.221 | 3/16 | 0.000 | 68.0 | ⛔ |
 | 8 人 quick 组 4 | 2 | 3 | 12 | 2.330 | 3/16 | 0.000 | 72.1 | ⛔ |
 
-**为什么不是抽样配置**：探针把 `n_em` 从 3 提到 6、`n_draws` 从 12 提到 25（跨过 PSIS 的 25 门槛），判词一点没变好 —— `n_flipped` 仍是 2/16、`p_loo` 反而更离谱（2839.686 对 `n_obs` 555）、`max_abs_theta` 冲到 100.8（`stage8_health.MAXABS_WARN = 20`，D75 实测正定 ≤ 7.3）。组层回归要估 `beta_P`（4 个 P 水平），2 人/组时该回归欠定，超参数 Hessian 自然非正定。
+**为什么不是抽样配置**：探针把 `n_em` 从 3 提到 6、`n_draws` 从 12 提到 25（跨过 PSIS 的 25 门槛），判词一点没变好 —— `n_flipped` 仍是 2/16、`p_loo` 反而更离谱（2839.686 对 `n_obs` 555）、`max_abs_theta` 冲到 100.8（`stage8_health.MAXABS_WARN = 20`，D75 实测正定 ≤ 7.3）。组层超参数的 Hessian 是在 **2K = 16 维**上算的（K = `WITHIN_FREE_LIN` 的 7 个 + `rho`，`stage8_run.py` 里 `k = nw + (1 if rho_free else 0)`；`mu` 与 `log_sigma` 各 8 维）：2 个人无法识别 7 个参数的**被试间 SD**（`log_sigma`），`mu` 与 `log_sigma` 互相补偿 ⇒ `max_abs_theta` 冲到 70–100、Hessian 出现负特征值。**机制更正（2026-10-18 复核代码）**：这里原先写「组层回归要估 `beta_P`、2 人/组时该回归欠定」——**错的**，`beta_P` 不在这套逐组拟合里（`BETWEEN_FREE` 只在 `mapping.py` 声明、层级拟合没有用）；根因是「16 维组层超参数与被试数不匹配」。
 
 **落地**：`run_pipeline.py` 的 `MIN_N_HIER = 10` + 骨架 §2 横幅「⚠️ **组层样本量不足**：最少 N 人/组 < 10（D100）……」；`exp_Check/check_run_pipeline.py` 的 **P6** 钉死「2 人/组出提示、12 人/组不出」（现 **9/9**）。
 
@@ -4066,6 +4066,27 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 
 自测：`check_run_pipeline.py` **11/11**（P7 四块表 + ⛔ 横幅 + 合成警示 + 无 `{{` 残留；P8 缺块必报错）。
 章号：模板写明「章号待定：插为第 9 章，原总讨论/结论后移为 10/11 章」——插入 `_v3_正文.md` 前需人工确认编号。
+
+## 8.73 「多少人/组才让 LOO 转绿」的扫描（D102）
+
+**问题**：D100 只证明「2 人/组必红、加抽样不救」，没有回答「多少人/组能绿」。
+
+**工具**：`1_Code/Experiment/scan_min_n.py`
+
+```bash
+python -X utf8 1_Code/Experiment/scan_min_n.py --n-list 4 8 12     # 全阶梯 ≈ 9.6 h
+python -X utf8 1_Code/Experiment/scan_min_n.py --n-list 4 --reuse  # 只补缺的 N
+```
+
+对每个 N：`_make_ddm_pilot.py` 生成 N 名合成被试（组 1、`--rho 0.8`、`--anticipation 0.03`）→ `stage8_run.py` 单组 quick 拟合 → `stage8_health.assess_group` 取判词 → 追加进 `scan_min_n.json` / `scan_min_n.md`（同一 N 重跑覆盖，不新增行）。
+
+**为什么单组就够**：逐组拟合的参数集是 `WITHIN_FREE_LIN`（7 个）+ `rho`，`k = nw + (1 if rho_free else 0)`，超参数 Hessian 维数 **2K = 16**（`mu`、`log_sigma` 各 8）。`beta_P` **不参与**逐组拟合（`BETWEEN_FREE` 只在 `mapping.py:70` 声明、层级拟合没用它）——所以瓶颈是「16 维组层超参数 vs 被试数」，与 P 的组间回归无关。
+
+**判词只从 `stage8_health` 取**（D94/D98 的教训：判据一旦复制就会分叉）。
+
+**读法**：N 增大仍 `BAD` ⇒ 查判据（不是样本量问题）；首次 `OK` 的 N = 可辨识下限的粗估，再乘真实数据的噪声余量才是 Stage 7 的处方人数。
+
+**成本**：8 人 quick 实测 11594.3 s ⇒ ≈ 24 min/人（两模型），N=4/8/12 合计 ≈ 9.6 h。
 
 ## 9. 尚未做
 
@@ -4155,3 +4176,4 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 | 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出。**D99 补**：LOO 闸门进流水线（3.5 步）、骨架四列 + 不可引用横幅、`fig3` 斜线，并有 `check_run_pipeline.py` **7/7** | **尚未做**：没进 `run_selftest.bat`（那是实验室机的 MATLAB 自测，故意不掺分析代码）；Stage 8 的 8 人 quick 全量已跑完但**四组全不可引用**（D99），formal 全量未跑 |
 | 83 | ❌ **未做**：`--profile formal` 的**实测**耗时（现只有 `--plan-only` 的 4.30 h 估算）；2 人/组的红是样本量（D100），但「要多少人/组才转绿」**未做扫描**（现只有 1 人与 2 人的两点证据），40 人/组的拟合也没有真跑过。 | 下一步：先用 4 人/组与 8 人/组合成数据各跑一次 formal，把「多少人/组才转绿」画成一条曲线 |
 | 84 | ❌ **未做**：`论文_结果章_模板.md` 尚未真正插入 `5_Reference/03_论文写作/_v3_正文.md`（章号、上下章衔接、表号重编都要人工定）；且模板里的 `【待写】` 10 处没有真实数据可填 | 现在只有模板与自动填表，缺的是「插进正文 + 用真数据填论述」 |
+| 85 | 🟡 **进行中** | D102 的 N=4/8/12 扫描（后台 `pwsh-577`）——结果回填 `2_Data/Real_Data/_SYNTHETIC_SCAN/scan_min_n.md`；「首次转 OK 的 N」写进 D102 ⑥ 与 §8.73 |
