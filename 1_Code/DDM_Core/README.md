@@ -4027,6 +4027,7 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 - **`k_max = 0` 与 `p_loo` 都不是充分判据**：组 1 的 `p_loo` = 10.07（÷`n_obs` = 0.009）看着很健康，仍因超参数 Hessian 非正定被判死。判据只有一处：`stage8_health.assess_mode/assess_group`。
 - 已犯的错：`run_pipeline.py` 的结果节骨架只印 elpd/Δelpd/SE/「k 诊断可用」，不读健康判词 ⇒ 把不可引用的 Δelpd 摆在「模型比较」标题下（D52 的老毛病换了个外壳）。
 - 现在的行为：① 新增 `assess_health()`（复用 `H8.assess_group`，**不重写判据**）；② 流水线多一个「3.5 LOO 健康」步骤，任一组 BAD ⇒ `ok=False` 且整体退出码 1；③ 骨架 §2 增 `p_loo÷n_obs`、`n_flipped`、判定、原因四列 + 段首横幅；④ `fig3` 对不可引用组加斜线并标注「N/M 组未过闸门」。
+- 自测：`1_Code/Experiment/exp_Check/check_run_pipeline.py`（179 行，**7/7**）—— P1/P2 钉死「判词 + 骨架横幅」（P2 的假 JSON `n_flipped` = 2/16，而 `k_max` = 0.000、`p_loo` = 10 都好看），P3 钉死「不拟合就不判」，P4/P5 钉死健康组放行（退出码 0）与病组拦截（退出码 1）。
 - 口径：quick（`n_draws=12`）**只验证机制**；要出结论必须 `--profile formal`（`n_draws=50` ≥ 25 才有 Pareto-k 诊断）并先过 `stage8_health.py --strict`。
 
 ## 9. 尚未做
@@ -4114,4 +4115,4 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 | 79 | ✅ **一场数据能不能计入 N：三层合成一条命令（D95，§8.66）** | `1_Code/Experiment/intake.py`（251 行，零依赖、只 import 既有判据）把技术层 / 结构层 / 一致层合并判 EXCLUDE·REVIEW·KEEP，退出码 0/1/2；`check_intake.py` **14/14**（含「干净场次必须判 KEEP」）；修掉自己两个坑：**同名快照静默覆盖**（改层级最浅优先 + `shadowed` 点名）、拿 numpy 数组当标量判真值 |
 | 80 | ✅ **Pilot 达标报告器：判据汇总 + §8 决策分支 + 可/不可进 Stage 7（D96，§8.67）** | `1_Code/Experiment/stage6_report.py`（221 行）只做聚合与决策映射：单场裁决复用 `intake`、逐条 S1/S6 裁决复用 `qc_group.run_subject_check`；判据计数只统计 KEEP 场次，不计入场次的非 PASS 裁决单独显形；自测 **22/22**。**尚未做**：Python 侧自测未进 `run_selftest.bat`；无按 P 档的横向比较视图（§3 要求四个 P 档各 ≥1 人） |
 | 81 | ✅ **效应量验证分三层：G\*Power 只管行为层，参数层靠 CRLB，终局靠 Savage–Dickey（D97，§8.68）** | 4 组 × 40 ⇒ `f_min = 0.264`（η² = 6.5%）；`beta_ST` 是「行为显著但参数不可估」的反例。**尚未做**：Savage–Dickey BF 与 BFDA 模拟脚本**都还没写**（当前只有后验抽样与 PSIS-LOO）；定稿文档里的 `f_min` 是本次用非中心 F 复算，未用 G*Power 软件本体 |
-| 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出 | **尚未做**：`run_pipeline.py` 没有 `check_run_pipeline.py` 自测、也没进 `run_selftest.bat`；Stage 8 的 8 人全量（quick 配置约 5 h）尚未跑完，当前只有组 1（2 人）落盘 |
+| 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出。**D99 补**：LOO 闸门进流水线（3.5 步）、骨架四列 + 不可引用横幅、`fig3` 斜线，并有 `check_run_pipeline.py` **7/7** | **尚未做**：没进 `run_selftest.bat`（那是实验室机的 MATLAB 自测，故意不掺分析代码）；Stage 8 的 8 人 quick 全量已跑完但**四组全不可引用**（D99），formal 全量未跑 |
