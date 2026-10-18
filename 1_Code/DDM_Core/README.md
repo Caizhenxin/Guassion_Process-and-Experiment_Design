@@ -4013,10 +4013,10 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 
 - **实测（合成数据 8 人、quick 配置）**：`M-T1 ELPD -536.7（`p_loo` 10.07、`n_obs` 1119、`k_max` 0.00、`k_diag_ok` None、3 轮 EM）；M-T3 ELPD -537.4（`p_loo` 9.85、`n_obs` 1119、`k_max` 0.00、`k_diag_ok` None、3 轮 EM）`；单模型单人 ≈41 min ⇒
   8 人 × 2 模型是**小时级批处理**，正式规模按 §11 第 5/12 条留余量。
-- **三个自坑**：① `stage8_run.py` 只吃 txt（CSV 只够过前两步）；② `--profile quick` 的
+- **四个自坑**：① `stage8_run.py` 只吃 txt（CSV 只够过前两步）；② `--profile quick` 的
   参数不可解释（EM 3 轮远未收敛），`k_diag_ok = false` 时 Δelpd 只能作流程验证；
   ③ 早前 `make_figures.py` 拿 `fit.covs[s]`（**单个被试**的拉普拉斯协方差）当组层区间，
-  现改为「被试层众数灰点 + 组均值 ± 被试间 SEM」。
+  现改为「被试层众数灰点 + 组均值 ± 被试间 SEM」；④ Δelpd 的 SE 曾按 `√(se_a² + se_b²)` 相加，把同一批数据的共同变异算了两遍（实测 1.1 → 38.2），现用配对口径 `√n · sd(elpd_i^A − elpd_i^B)`。
 - 换真数据：CSV/txt 放进 `2_Data/Real_Data/<新批次>/`，同一条命令换目录重跑，
   **不改代码**；目录里没有 `synth_truth.json` 时图里不画真值线、骨架不带合成数据声明。
 - 单独重出图用 `--reuse-stage8`（跳过拟合，只跑第 4、5 步），避免几十小时的重跑。

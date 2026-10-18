@@ -135,6 +135,25 @@ def load_groups(s8: Path) -> dict[int, dict]:
     return out
 
 
+def PAIRED_SE(a: dict, b: dict) -> float:
+    """Δelpd 的配对标准误（PSIS-LOO 的 `se_diff` 口径）。
+
+    两个模型在同一批观测上做 LOO，逐观测贡献 `elpd_i` 之差才是正确口径：
+    `SE = √n · sd(elpd_i^A − elpd_i^B)`。把两个 SE 平方相加等于把同一批
+    数据的共同变异算了两遍，实测会放大一个量级以上。
+    """
+    import numpy as np
+
+    ea, eb = a.get("elpd_i"), b.get("elpd_i")
+    if ea is None or eb is None or len(ea) != len(eb) or not ea:
+        return float("nan")
+    d = np.asarray(ea, dtype=float) - np.asarray(eb, dtype=float)
+    d = d[np.isfinite(d)]
+    if d.size < 2:
+        return float("nan")
+    return float(np.sqrt(d.size) * np.std(d, ddof=1))
+
+
 def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict,
                            truth: dict | None) -> Path:
     from mapping import PARAM_BOUNDS, WITHIN_FREE_LIN
@@ -169,7 +188,9 @@ def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict
             b = (res.get("M-T3") or {}).get("loo") or {}
             ea, eb = a.get("elpd_loo"), b.get("elpd_loo")
             d = (ea - eb) if (ea is not None and eb is not None) else float("nan")
-            se = float(np.sqrt(np.nansum([a.get("se"), b.get("se")])))
+            # Δ 的 SE 必须是**配对**口径（逐观测贡献之差的 SD × √n）；
+            # 把两个 SE 平方相加会把同一批数据的共同变异算两遍（实测放大 ~35 倍）。
+            se = PAIRED_SE(a, b)
             L.append(f"| {g} | {ea:.1f} | {eb:.1f} | {d:+.1f} | {se:.1f} | "
                      f"{'是' if a.get('k_diag_ok') else '否（抽样 < 25）'} |")
         L += ["", "【待写】Δelpd 的解读与「M-T1 是否被支持」的结论；若 k 诊断不可用，"

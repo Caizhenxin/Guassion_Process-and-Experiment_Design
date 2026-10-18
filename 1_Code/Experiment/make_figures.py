@@ -241,9 +241,28 @@ def fig_recovery(plt, groups: dict[int, dict], truth: dict | None, out: Path,
     return path
 
 
+def paired_se(a: dict, b: dict) -> float:
+    """Δelpd 的**配对**标准误（PSIS-LOO 口径）。
+
+    两个模型在同一批观测上算 LOO，`elpd_i` 是逐观测贡献，因此
+    Δ 的 SE = sqrt(n) · sd(elpd_i^A − elpd_i^B)（Vehtari 等 2017 的
+    `se_diff`），**不能**把两个 SE 平方相加——那样把「同一批数据的
+    共同变异」算了两遍，会把区间放大到接近 √2 倍甚至更多。
+    """
+    ea = a.get("elpd_i")
+    eb = b.get("elpd_i")
+    if ea is None or eb is None or len(ea) != len(eb) or not ea:
+        return float("nan")
+    d = np.asarray(ea, dtype=float) - np.asarray(eb, dtype=float)
+    d = d[np.isfinite(d)]
+    if d.size < 2:
+        return float("nan")
+    return float(np.sqrt(d.size) * np.std(d, ddof=1))
+
+
 def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[Path, dict]:
     ps = sorted(groups)
-    d_elpd, se, kdiag = [], [], []
+    d_elpd, se, kdiag, se_kind = [], [], [], []
     for g in ps:
         res = groups[g].get("results") or {}
         a = (res.get("M-T1") or {}).get("loo") or {}
@@ -251,9 +270,15 @@ def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[P
         ea = float(a.get("elpd_loo", float("nan")))
         eb = float(b.get("elpd_loo", float("nan")))
         d_elpd.append(ea - eb)
-        sa = float(a.get("se", float("nan")))
-        sb = float(b.get("se", float("nan")))
-        se.append(float(np.sqrt(np.nansum([sa ** 2, sb ** 2]))))
+        s = paired_se(a, b)
+        if np.isfinite(s):
+            se_kind.append("paired")
+        else:                      # 拿不到逐观测贡献才退回（并显式标注）
+            sa = float(a.get("se", float("nan")))
+            sb = float(b.get("se", float("nan")))
+            s = float(np.sqrt(np.nansum([sa ** 2, sb ** 2])))
+            se_kind.append("unpaired")
+        se.append(s)
         kdiag.append(bool(a.get("k_diag_ok", False)) and bool(b.get("k_diag_ok", False)))
 
     fig, ax = plt.subplots(figsize=(6.4, 3.6))
@@ -274,12 +299,18 @@ def fig_model_cmp(plt, groups: dict[int, dict], out: Path, lang: str) -> tuple[P
                 if lang == "zh" else
                 "(!) draws < 25 -> Pareto-k diagnostics unavailable; smoke check only")
         ax.text(0.02, 0.02, note, transform=ax.transAxes, fontsize=7.5, color="tab:red")
+    if "unpaired" in se_kind:
+        note = ("(!) 分不出逐观测贡献 -> Δ 的 SE 按独立相加，偏大"
+                if lang == "zh" else
+                "(!) pointwise contributions missing -> SE of Δ summed as independent (too wide)")
+        ax.text(0.02, 0.14, note, transform=ax.transAxes, fontsize=7.5, color="tab:orange")
     ax.grid(alpha=0.25, axis="y")
     fig.tight_layout()
     path = out / "fig3_model_comparison.png"
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
-    return path, {"d_elpd": vals.tolist(), "se": errs.tolist(), "k_diag_ok": kdiag}
+    return path, {"d_elpd": vals.tolist(), "se": errs.tolist(), "k_diag_ok": kdiag,
+                  "se_kind": se_kind}
 
 
 def main() -> int:
@@ -324,7 +355,7 @@ def main() -> int:
         print("[warn] 数据目录里没读到正式文件，跳过 fig1")
 
     figs.append(("fig2_param_recovery.png", fig_recovery(plt, groups, truth, out, lang),
-                 "组层参数估计（自然尺度）与真值对照；区间为 mu ± 1.96·se 的反变换近似"))
+                 "组层参数估计（自然尺度）；灰点 = 被试层众数、蓝点 = 组均值 ± 被试间 SEM；红虚线 = 合成真值（真数据没有）"))
     p3, cmp_stats = fig_model_cmp(plt, groups, out, lang)
     figs.append(("fig3_model_comparison.png", p3,
                  "模型比较：Δelpd = elpd(M-T1) − elpd(M-T3)；正值支持两阶段"))
