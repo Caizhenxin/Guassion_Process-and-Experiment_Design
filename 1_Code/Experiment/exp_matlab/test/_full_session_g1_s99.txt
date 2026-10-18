@@ -25,7 +25,7 @@
 [PASS] B17 组1 只有 formal（无练习）
 [PASS] B18 txt 长表行数 = 表头 1 + 576（实测 577）
 [PASS] B19 txt 表头与 CSV 列名一致
-SUMMARY pass=27 fail=0 seconds=2.9
+SUMMARY pass=27 fail=0 seconds=2.3
 
 ans = 
 
@@ -33,7 +33,7 @@ ans =
 
          ok: 1
         err: ''
-    seconds: 2.9310
+    seconds: 2.3011
         csv: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\EXP_data_group1_99.csv'
         txt: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\exp_group1_subject99.txt'
      n_rows: 576

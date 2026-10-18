@@ -1,7 +1,11 @@
-function res = run_full_session(groupID, subjectID, outDir)
+function res = run_full_session(groupID, subjectID, outDir, runInProgramDir)
 % RUN_FULL_SESSION  用 PTB 桩把 Exp_Design_Formal.m 整场跑完（无屏幕、无被试、无真实计时）
 %
-%   res = run_full_session(groupID, subjectID[, outDir])
+%   res = run_full_session(groupID, subjectID[, outDir[, runInProgramDir]])
+%
+%   runInProgramDir（★ v4.8 / D92）：默认 true = 先 cd 到程序目录再跑（D79 起的原行为）。
+%     false = 就在【当前目录】跑（脚本按名调用，不改变当前目录），用来验证路径可移植性：
+%     掩蔽纹理仍从程序目录解析（v4.8 的 progDir），而 CSV/txt 落进当前目录。
 %
 %   为什么存在（2026-10-18 / D79）：
 %     2026-10-17 一天之内连续两次实机崩溃（组别越界、table 列宽锁死），两次都发生在
@@ -17,6 +21,7 @@ function res = run_full_session(groupID, subjectID, outDir)
 here = fileparts(mfilename('fullpath'));   % .../exp_matlab/test
 expDir = fileparts(here);                  % .../exp_matlab
 if nargin < 3 || isempty(outDir), outDir = fullfile(here, '_full_session_out'); end
+if nargin < 4 || isempty(runInProgramDir), runInProgramDir = true; end
 if ~exist(outDir, 'dir'), mkdir(outDir); end
 
 warning('off', 'MATLAB:dispatcher:nameConflict');   % input.m 桩会与内置同名，属预期
@@ -33,10 +38,19 @@ res = struct('ok', true, 'err', '', 'seconds', NaN, 'csv', '', 'txt', '', ...
              'n_rows', NaN, 'checks', {{}});
 c = onCleanup(@() cleanup_run(here));
 
-oldDir = cd(expDir);
+if runInProgramDir
+    oldDir = cd(expDir);
+    runCall = "run('Exp_Design_Formal.m')";
+else
+    % 按名调用脚本：MATLAB 不会因此改当前目录（run() 会改），这正是要测的场景
+    addpath(expDir, '-begin');
+    oldDir = cd(pwd);
+    runCall = 'Exp_Design_Formal';
+end
+runDir = pwd;          % 数据落点 = 运行时的当前目录
 t0 = tic;
 try
-    s = evalc("run('Exp_Design_Formal.m')");
+    s = evalc(runCall);
 catch err
     res.ok = false;
     if numel(err.stack) >= 1
@@ -59,8 +73,8 @@ cd(oldDir);
 fid = fopen(fullfile(outDir, 'session_stdout.txt'), 'w', 'n', 'UTF-8');
 if fid > 0, fwrite(fid, s); fclose(fid); end
 
-csvFile = fullfile(expDir, sprintf('EXP_data_group%d_%d.csv', groupID, subjectID));
-txtFile = fullfile(expDir, sprintf('exp_group%d_subject%d.txt', groupID, subjectID));
+csvFile = fullfile(runDir, sprintf('EXP_data_group%d_%d.csv', groupID, subjectID));
+txtFile = fullfile(runDir, sprintf('exp_group%d_subject%d.txt', groupID, subjectID));
 res.csv = csvFile;
 res.txt = txtFile;
 

@@ -202,7 +202,7 @@ D4 只有 4 个 P 组，旧手册（v1.2）整本还是 9 条件设计（520 试
 |---|---|---|---|
 | 程序 | `exp_ask_subject_info.m`（新） | 组别只接受 1–4；越界/留空/非整数 ⇒ 弹「4 个 P 组速查」后重填；只有「取消」才终止；回显「groupID ⇒ 本组 P」；确认时可输入 `r` 重填 | `test/check_ask_info.m` **40/40**（含「填 7 → 拒 → 改 1 → 通过」与连续 3 次非法） |
 | 校验 | `exp_check_subject_info.m` | 五项（组别/编号/性别/年龄/惯用手）逐项校验，返回逐条中文说明 | `test/check_input_validation.m` **51/51** |
-| 文档 | `主试培训手册_Exp_Design_Formal.md`（v2.5，395 行）+ `.docx`（16647 B） | 4 组速查、576 试次 / 3 block / 25 列、第 0 节写明「填 7 会被拒绝并要求重填」、第 3.2 节六条自测（含整场冒烟） | `test/check_manual_d4.py` **40/40**（程序常量 vs 手册 vs Word vs 自测） |
+| 文档 | `主试培训手册_Exp_Design_Formal.md`（v2.7，421 行）+ `.docx`（18307 B） | 4 组速查、576 试次 / 3 block / 25 列、第 0 节写明「填 7 会被拒绝并要求重填」、第 3.2 节六条自测（含整场冒烟） | `test/check_manual_d4.py` **40/40**（程序常量 vs 手册 vs Word vs 自测） |
 | **数据写入** | `exp_new_data.m`（新）+ `exp_data_table.m`（新）+ `Exp_Design_Formal.m` v4.4 | 累积容器是 cell（不是 `table()`）；保存时一次性 `cell2table`，char 列转 `string`（去补齐空格）；保存前核对 `size(data,1) == trialIndex-1` | `test/check_data_accum.m` **33/33**（含「先 f 后 NA」崩溃复现、不等长标签、静态守卫、写读回环、按行号写入（F 组）） |
 | **整场冒烟** | `test/stubs/`（24 个 PTB 桩，新）+ `test/run_full_session.m`（新）+ `test/runbatch_full_session.m`（新）+ `Exp_Design_Formal.m` v4.5 | 无屏幕跑完整场（组 1 576 试次 / 组 2 584），再把产物喂回 `read_formal_data.py`；专钉「刺激期内按键 = `min(T, RT)`」「无负 RT」「抢按不算反应」「txt 通道已落盘」 | `test/check_full_session.py` **23/23** + 冒烟自身 **27/27**（两组） |
 
@@ -212,9 +212,12 @@ D4 只有 4 个 P 组，旧手册（v1.2）整本还是 9 条件设计（520 试
 matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_ask_info"
 matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_input_validation"
 matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_data_accum"
-matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); runbatch_full_session(1, 99)"
-python -X utf8 1_Code\Experiment\exp_matlab\test\check_full_session.py
-python -X utf8 1_Code\Experiment\exp_matlab\test\check_manual_d4.py
+:: 路径无关做法（v2.7 / D92）：在 exp_matlab 里双击这个文件，八条一次跑完
+test\run_selftest.bat
+:: 等价的手动版（都在 exp_matlab 目录下执行）
+matlab -batch "addpath('test'); runbatch_full_session(1, 99)"
+python -X utf8 test\check_full_session.py
+python -X utf8 test\check_manual_d4.py
 ```
 
 六条全过才动机器；任一条 ❌ ⇒ 说明程序、校验/累积逻辑或手册之一被改过且没同步，**不得**开始正式采集。

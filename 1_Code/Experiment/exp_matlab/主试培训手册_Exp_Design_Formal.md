@@ -1,7 +1,7 @@
 # 主试培训手册：Exp_Design_Formal（D4 正式数据采集）
 
-> 适用程序：`1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`（v4.6）
-> 版本：v2.5（2026-10-18，v2.5 补「onset 之前的按键」症状与 v4.6；v2.4 随 D4 设计定稿 + 程序 v4.5；v2.1 补第 3.2 节自测；v2.2 增至四条并补 6.6 已知崩溃症状；v2.3 增至六条并加「整场冒烟」，对应程序 v4.5；v2.4 把刷新率从「≥ 60 Hz」收紧为**必须 60.004 Hz**、并补 §7 的「高刷屏症状」与 §8 的 Word 版生成办法。上一版 v1.2 还是旧的「9 条件」设计）｜培训对象：所有参与正式采集的主试
+> 适用程序：`1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`（v4.8）
+> 版本：v2.7（2026-10-18，v2.7 把六条自测改成路径无关的 `test\run_selftest.bat`、补 §7.w「把整个文件夹拷到实验室机」并对应程序 v4.8；v2.6 补「指导语一闪而过」症状与 v4.7 松键门槛；v2.5 补「onset 之前的按键」症状与 v4.6；v2.4 随 D4 设计定稿 + 程序 v4.5；v2.1 补第 3.2 节自测；v2.2 增至四条并补 6.6 已知崩溃症状；v2.3 增至六条并加「整场冒烟」，对应程序 v4.5；v2.4 把刷新率从「≥ 60 Hz」收紧为**必须 60.004 Hz**、并补 §7 的「高刷屏症状」与 §8 的 Word 版生成办法。上一版 v1.2 还是旧的「9 条件」设计）｜培训对象：所有参与正式采集的主试
 > 数据目标：D4 —— **4 个 P 组（被试间）× 每组约 40 名被试**
 > 本手册与 Word 版内容一致；Word 版用于日常打印，本 Markdown 为存档母版。
 
@@ -120,6 +120,7 @@
 每次开机后（或换一台采集电脑时），在 MATLAB 中执行一次：
 
 ```matlab
+% 路径换成你这台机器上 exp_matlab 的实际位置（本行只是示例；实验室机不一样）
 cd 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab'
 setup_paths
 ```
@@ -141,26 +142,31 @@ Screen 加载成功 —— 环境就绪，可以运行 Exp_Design_Formal。
 
 程序、累积/保存函数和本手册是**几个独立文件**，任何一方改了而另一方没跟上，症状就是主试被弹窗拒绝
 或跑到一半崩掉（2026-10-18 就发生过两次：手册还是旧版，按它填「组别 7」被拒；以及 V4.3 的数据表
-在第一个「未响应」试次崩掉，见 6.6）。所以开机前先跑这六条，在 **Windows 命令行**里执行
-（约 35 s，不需要被试在场）：
+在第一个「未响应」试次崩掉，见 6.6）。所以开机前先跑这六条，不需要被试在场（约 50 s）。
+
+**做法（v2.7 起，路径无关）**：在 `exp_matlab` 文件夹里双击
 
 ```bat
-matlab -batch "cd('D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab'); addpath('test'); check_ask_info"
-matlab -batch "cd('D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab'); addpath('test'); check_input_validation"
-matlab -batch "cd('D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab'); addpath('test'); check_data_accum"
-matlab -batch "cd('D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab'); addpath('test'); runbatch_full_session(1, 99)"
-python -X utf8 D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\test\check_full_session.py
-python -X utf8 D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\test\check_manual_d4.py
+test\run_selftest.bat
 ```
+
+它会自己切到程序目录（用 `%~dp0..`），把六条依次跑完，最后一行明确告诉你
+`all six commands returned 0`（六条都返回 0）还是 `SOME STEP RETURNED NON-ZERO`（后者**不要开始采集**）。
+**整个 `exp_matlab` 文件夹拷到实验室机也不用改任何路径**——这正是 v2.7 要解决的问题。
+
+**要一条一条手动跑，或想看清每条在测什么**（都在 `exp_matlab` 目录下执行）：
 
 | 命令 | 看到什么算通过 |
 |---|---|
-| `check_ask_info` | 末行 `通过 40 / 未通过 0` |
-| `check_input_validation` | 末行 `结果：51 通过 / 0 失败` |
-| `check_data_accum` | 末行 `通过 33 / 未通过 0` |
-| `runbatch_full_session(1, 99)` | 末行 `SUMMARY pass=27 fail=0`（**整场冒烟**：用 24 个假 PTB 桩在无屏幕环境真的跑完 576 试次，约 3 秒） |
-| `check_full_session.py` | 末行 `== 通过 23 / 未通过 0 ==` |
-| `check_manual_d4.py` | 末行 `共 40 项：通过 40 / 未通过 0` |
+| `matlab -batch "addpath('test'); check_ask_info"` | 末行 `通过 40 / 未通过 0` |
+| `matlab -batch "addpath('test'); check_input_validation"` | 末行 `结果：51 通过 / 0 失败` |
+| `matlab -batch "addpath('test'); check_data_accum"` | 末行 `通过 33 / 未通过 0` |
+| `matlab -batch "addpath('test'); runbatch_full_session(1, 99)"` | 末行 `SUMMARY pass=27 fail=0`（**整场冒烟**：24 个假 PTB 桩、无屏幕真跑 576 试次，约 3 秒） |
+| `python -X utf8 test\check_full_session.py` | 末行 `== 通过 32 / 未通过 0 ==` |
+| `python -X utf8 test\check_manual_d4.py` | 末行 `== 共 40 项：通过 40 / 未通过 0 ==` |
+
+MATLAB 与 Python 必须已在 PATH 里。实验室机若提示"不是内部或外部命令"，用 MATLAB 的全路径
+（例如 `E:\matlab2023b\bin\matlab.exe -batch "addpath('test'); check_ask_info"`），Python 同理。
 
 六条全过才动机器。任一条 ❌ ⇒ 把整屏输出**截屏发给实验负责人**，不要自己修、也不要跳过。
 
@@ -332,10 +338,30 @@ python -X utf8 D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Co
 - **成因**（v4.5 及更早）：注视期抢按是在 kqCountPresses() 处读的，而它离真正 onset 还隔着一次
   Screen('Flip') 的 vsync 等待；这条缝隙里按下的第二个键不会被抢按计数看到，却被刺激期的
   kqFirstPressUntil 立刻取走 ⇒ 刺激在 0–1 帧内被敲掉，试次变成漏答（实测 5/576 = 0.87%）。
-- **v4.6 已修**：kqFirstPressUntil(deadline, tFloor) 只接受 	Floor < 时间戳 ≤ deadline 的按键，
+- **v4.6 已修**：kqFirstPressUntil(deadline, tFloor) 只接受 `tFloor` < 时间戳 ≤ deadline 的按键，
   四个调用点（练习/正式 × 刺激期/反应窗）都传 stimulusFlipTime。
-- **怎么确认跑的是 v4.6**：	ype Exp_Design_Formal.m | findstr "v4.6"，应打印 ★★ v4.6 本次修正 段头注。
+- **怎么确认跑的是 v4.8**：`type Exp_Design_Formal.m | findstr "v4.8"`，应打印 ★★ v4.8 本次修正 段头注。
 - **已生成的数据怎么办**：这 5 行**不改判据去迁就**；若在 v4.5 上跑过技术被试，用 v4.6 复跑一场再回填 §6。
+
+### 7.z 「块首指导语一闪而过、没按空格就进了正式实验」（v2.6 新增，2026-10-18）
+
+- **现象**：每组开始前那张「本组反应窗口：800 毫秒 / 准备好后按空格键开始本组」的指导语只闪一下，被试还没读完就进了第一个试次；被试因此不知道本组窗口是多少，那一个试次通常白丢。
+- **成因**（v4.6 及更早）：相邻两处「按空格继续」都用 `KbCheck` 忙等「此刻空格是否按着」，没有「按下沿」的概念。上一屏（练习结束休息屏）确认用的空格若还按着，下一屏的循环立刻被穿透——两屏之间只隔一次 `Screen('Flip')` 与几十毫秒建表时间，**按住 50 ms 就够**。
+- **v4.7 已修**：新增 `waitForSpaceRelease()`，8 处空格等待之前都先等一次「所有键都松开」（最多等 5 s，防键卡死）再等新的按下。
+- **怎么确认跑的是 v4.8**：`type Exp_Design_Formal.m | findstr "v4.8"`，应打印 ★★ v4.8 本次修正 段头注。
+- **已生成的数据怎么办**：v4.6 及更早的场次里，若某组的第一个试次是 `timeout` 或 `premature_press=1`，可能就是这条造成的。不用作废整场，但在分析里备注「该组首个试次的反应窗口可能未被读到」；v4.7 起不再出现。
+
+### 7.w 把整个文件夹拷到实验室机（v2.7 新增，D92）
+
+- **只拷 `exp_matlab` 这一个文件夹**（含 `test\`、10 张掩蔽 PNG、`setup_paths.m`）到任意位置即可，不必拷整个仓库。
+- **程序资源跟着程序目录走**（v4.8 起）：10 张掩蔽纹理按 `fileparts(mfilename('fullpath'))` 解析，
+  所以 MATLAB 的当前文件夹**不需要**是程序目录；数据仍然写在**当前文件夹**（照本文第 7 节把当前文件夹设成本轮数据文件夹）。
+- 启动会打印两行自检，**每次开机扫一眼**：
+  `[路径] 程序目录（掩蔽纹理） = …` 与 `[路径] 输出目录（CSV/txt） = …`。
+  若报「掩蔽纹理缺失（程序目录 = …）：xxx.png」，说明 PNG 没拷全（缺哪张会一次列全），当场补上再跑。
+- 数据必须落在你设的那个数据文件夹里；如果打印的「输出目录」不是它，说明当前文件夹设错了，**当场停下改好再重跑**。
+
+---
 
 ## 8. 数据当场核对清单（每名被试结束后 5 分钟内完成）
 

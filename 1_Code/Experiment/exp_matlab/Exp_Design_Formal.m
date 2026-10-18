@@ -143,6 +143,28 @@ Screen('Preference', 'SkipSyncTests', 0);
 %   反向查询 KbName(70)/KbName(74) 在两种方案下均返回 'f'/'j'，f/j 判定不受影响，故无需开启。
 InitializeMatlabOpenGL;
 
+%
+% ★★ v4.7 本次修正（2026-10-18，主试实机报告"块首指导语一闪而过"；D90）★★
+%   (#1) 8 处「按空格继续」缺"松键门槛"：这些等待都用 KbCheck 忙等"此刻空格是否按着"，
+%        没有按下沿的概念。相邻两屏（练习结束休息屏 → 块首 C6 指导语）之间只隔一次
+%        Screen('Flip') 与几十毫秒建表时间；上一屏确认用的空格若还按着（≥50 ms 即够），
+%        下一屏的 while 会立刻被这个"残留按下"穿透 ⇒ 指导语一闪而过、被试还没读完就进了
+%        正式试次（该块首个试次被白白消耗，且被试不知道本组反应窗口是多少）。
+%        修法：新增局部函数 waitForSpaceRelease()，在每个 while 空格等待之前先等一次
+%        "所有键都松开"（最多 5 s，防键卡住时死结），再等一次新的按下。
+%        只改等待方式，不动试次时序、不动数据列。
+%
+
+% ★★ v4.8 本次修正（2026-10-18，路径可移植性；D92）★★
+%   (#1) 掩蔽纹理用裸文件名 imread('self10-1.png') ⇒ 解析依据是【当前目录】。而手册第 7 节
+%        要求把当前目录设成本轮数据文件夹，两者冲突：照着手册做，预加载就会报”文件不存在”。
+%        用户的实际习惯是把 exp_matlab 整个文件夹拷到实验室机器，路径与本机不同。
+%        修法：progDir = fileparts(mfilename('fullpath'))，10 张掩蔽纹理一律用
+%        fullfile(progDir, ...) 解析；数据仍写【当前目录】（不改变”数据存本轮文件夹”的用法）。
+%   (#2) 启动时打印【程序目录】与【输出目录】，并自检 10 张 PNG 是否齐全，
+%        缺哪张一次性报出（旧版要等到掩蔽预加载才报，且只说第一个）。
+%
+
 %% 被试基础信息
 % 逐试次累积容器：**必须用 cell 而不是 table()**（★ v4.4 / D78）
 % table 的变量类型由第一次赋值锁定：第一行写 'f'（宽度 1）就把 Response 列固化成
@@ -150,6 +172,19 @@ InitializeMatlabOpenGL;
 % 「赋值右侧的值的宽度错误。赋值需要宽度为 1 的值」并整场退出（2026-10-18 实机踩到）。
 % cell 不锁宽度；保存时用 exp_data_table 一次性转换。
 data = exp_new_data(25);
+
+% 路径锚定（★ v4.8 / D92）：程序资源跟着【本文件所在目录】走，数据仍写【当前目录】
+progDir = fileparts(mfilename('fullpath'));
+if isempty(progDir), progDir = pwd; end
+dataDir = pwd;
+maskFiles = {'self10-1.png', 'self10-2.png', 'self10-3.png', 'self10-4.png', 'self10-5.png', ...
+             'stranger10-1.png', 'stranger10-2.png', 'stranger10-3.png', 'stranger10-4.png', 'stranger10-5.png'};
+missingMask = maskFiles(~cellfun(@(f) exist(fullfile(progDir, f), 'file') == 2, maskFiles));
+assert(isempty(missingMask), 'Exp_Design_Formal:maskMissing', ...
+    '掩蔽纹理缺失（程序目录 = %s）：%s', progDir, strjoin(missingMask, ', '));
+fprintf('[路径] 程序目录（掩蔽纹理） = %s\n', progDir);
+fprintf('[路径] 输出目录（CSV/txt） = %s\n', dataDir);
+
 
 % 基本信息收集（★ v4.2：D4 只有 4 个 P 组，任何一项非法都在弹窗里重填，不再 error 退出）
 P_groups = [0; 8; 32; 120];            % D4 的 4 个组（被试间），按 groupID 取
@@ -259,8 +294,8 @@ end
 stimuli = [matchingStimuli; nonMatchingStimuli];
 
 % 掩蔽刺激
-selfMaskImages = {'self10-1.png', 'self10-2.png', 'self10-3.png', 'self10-4.png', 'self10-5.png'};
-strangerMaskImages = {'stranger10-1.png', 'stranger10-2.png', 'stranger10-3.png', 'stranger10-4.png', 'stranger10-5.png'};
+selfMaskImages     = cellfun(@(f) fullfile(progDir, f), maskFiles(1:5),  'UniformOutput', false);
+strangerMaskImages = cellfun(@(f) fullfile(progDir, f), maskFiles(6:10), 'UniformOutput', false);
 
 % =========================================================================
 % D4 设计（2026-10-14 定稿；依据 5_Reference/08_工作流/正式采集_候选设计_v2_定稿.md）
@@ -416,6 +451,7 @@ Screen('Flip', window);
 
 % 等待被试按空格键继续
 waitForSpace = true;
+waitForSpaceRelease();
 while waitForSpace
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
@@ -458,6 +494,7 @@ Screen('Flip', window);
 
 % 等待被试按空格键继续
 waitForSpace = true;
+waitForSpaceRelease();
 while waitForSpace
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
@@ -493,6 +530,7 @@ Screen('Flip', window);
 
 % 等待被试按空格键继续
 waitForSpace = true;
+waitForSpaceRelease();
 while waitForSpace
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
@@ -823,6 +861,7 @@ Screen('Flip', window);  % 显示休息提示
 
 % 等待被试按空格键继续
 waitForSpace = true;
+waitForSpaceRelease();
 while waitForSpace
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
@@ -878,6 +917,7 @@ for b = 1:block
     DrawFormattedText(window, double('准备好后按空格键开始本组。'), 'center', centerY + 150, stimColor);
     Screen('Flip', window);
     waitingForSpace = true;
+    waitForSpaceRelease();
     while waitingForSpace
         [keyIsDown, ~, keyCode] = KbCheck;
         if keyIsDown
@@ -1155,6 +1195,7 @@ for b = 1:block
 
     % 等待被试按回车键继续
     waitForSpace = true;
+    waitForSpaceRelease();
     while waitForSpace
         [keyIsDown, ~, keyCode] = KbCheck;
         if keyIsDown
@@ -1176,6 +1217,7 @@ for b = 1:block
     
     % 等待被试按空格键继续
     waitForSpace = true;
+    waitForSpaceRelease();
     while waitForSpace
         [keyIsDown, ~, keyCode] = KbCheck;
         if keyIsDown
@@ -1201,6 +1243,7 @@ Screen('Flip', window);
 
 % 等待被试按空格键继续
 waitForSpace = true;
+waitForSpaceRelease();
 while waitForSpace
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
@@ -1423,3 +1466,18 @@ end
 
          
  
+
+function waitForSpaceRelease()
+% v4.7（D90）：直到所有键都松开才返回（最多等 5 s，防止键卡住时死结）。
+%   目的：挡住"上一屏的确认键还没松开"穿透下一屏的空格等待——症状是指导语一闪而过。
+%   用法：放在每个 `while waitForSpace` / `while waitingForSpace` 之前。
+    t0 = GetSecs();
+    while GetSecs() - t0 < 5
+        [keyIsDown, ~, ~] = KbCheck;
+        if ~keyIsDown
+            return
+        end
+        WaitSecs(0.005);
+        checkEscape();
+    end
+end

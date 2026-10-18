@@ -325,14 +325,26 @@ Exp_Design_Formal.m: 行数 = 1313
 2026-10-18 主试在实验机填「组别 7」直接报错退出（D77），根因是**培训手册还是旧的 9 条件设计**、
 而程序早已 D4。这类"文档与代码漂移"不会自己报错，只能靠对照。**跑实验之前先在实验机执行这六条**：
 
+**做法（v2.7 / D92 起路径无关）**：在 `1_Code\Experiment\exp_matlab` 里双击
+
 ```bat
-matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_ask_info"
-matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_input_validation"
-matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); check_data_accum"
-matlab -batch "cd('<仓库>\1_Code\Experiment\exp_matlab'); addpath('test'); runbatch_full_session(1, 99)"
-python -X utf8 1_Code\Experiment\exp_matlab\test\check_manual_d4.py
-python -X utf8 1_Code\Experiment\exp_matlab\test\check_full_session.py
+test\run_selftest.bat
 ```
+
+它用 `%~dp0..` 自己切到程序目录，把下面六条（另加两条开发者回归）依次跑完，末行给出 `all six commands returned 0`
+或 `SOME STEP RETURNED NON-ZERO`。**整个 `exp_matlab` 文件夹拷到实验室机也不需要改任何路径。**
+
+<details><summary>一条一条手动跑（都在 exp_matlab 目录下执行）</summary>
+
+```bat
+matlab -batch "addpath('test'); check_ask_info"
+matlab -batch "addpath('test'); check_input_validation"
+matlab -batch "addpath('test'); check_data_accum"
+matlab -batch "addpath('test'); runbatch_full_session(1, 99)"
+python -X utf8 test\check_manual_d4.py
+python -X utf8 test\check_full_session.py
+```
+</details>
 
 | 命令 | 期望末行 | 它守住什么 |
 |---|---|---|
@@ -341,7 +353,7 @@ python -X utf8 1_Code\Experiment\exp_matlab\test\check_full_session.py
 | `check_data_accum` | `通过 33 / 未通过 0` | 数据累积与保存：`f` 之后写 `NA` 不崩（D78 的复现）、不等长标签无补齐空格、`data = table()` 等旧写法静态拦下、写 CSV 再读回逐列核对 |
 | `check_manual_d4.py` | `共 40 项：通过 40 / 未通过 0` | 程序常量 / 手册 / Word 版 / 自测**四者口径一致**（4 组、576 试次、3 block、25 列） |
 | `runbatch_full_session(1, 99)` | `SUMMARY pass=27 fail=0` | **整场冒烟**（D79）：用 24 个 PTB 桩在无屏幕环境跑完整场 576 试次，再把产物喂回 `read_formal_data.py`；B20–B23 专钉「刺激期内按键 = min(T, RT)」「无负 RT」「RT 与 responded_by_deadline 一致」 |
-| `check_full_session.py` | `== 通过 29 / 未通过 0 ==` | 上面那次冒烟的**仓库侧**牙齿：程序里三处 v4.5 修正仍在、驱动判据仍在、两组日志 `pass=27 fail=0`、产物已回读通过；含 2 条反例自检，以及 D84 的 B27–B29（tFloor 契约测试三条牙齿） |
+| `check_full_session.py` | `== 通过 32 / 未通过 0 ==` | 上面那次冒烟的**仓库侧**牙齿：程序里三处 v4.5 修正仍在、驱动判据仍在、两组日志 `pass=27 fail=0`、产物已回读通过；含 2 条反例自检，以及 D84 的 B27–B29（tFloor 契约测试三条牙齿） |
 
 六条全过才动机器（另有一条**开发者回归** `check_kq_floor` 见下，不进现场纪律）。任一条 ❌ ⇒ 程序、校验/累积逻辑或手册之一被改过且没同步，**不得**开始正式采集
 （`check_manual_d4.py` 会把不一致项逐条打出来，例如手册里还写着旧版的 520 试次／16 列）。
@@ -353,7 +365,7 @@ python -X utf8 1_Code\Experiment\exp_matlab\test\check_full_session.py
 另（D78）：v4.3 的数据表用 `table()` 逐行累积，第一个**未响应**试次写 `NA` 就崩（`赋值右侧的值的宽度错误`），
 2026-10-18 实机踩到；v4.4 改为 cell 累积 + 保存时 `cell2table`，由 `check_data_accum` 33/33 钉住。
 另（D79）：v4.4 之前还把抢按当成反应（负 RT）、且逐试次 txt 通道从不 `fclose`；v4.5 修掉，
-由「整场无屏幕冒烟」`runbatch_full_session` 27/27 + `check_full_session.py` 29/29 钉住。
+由「整场无屏幕冒烟」`runbatch_full_session` 27/27 + `check_full_session.py` 32/32（含 D92 的 A14/B30）钉住。
 
 另（D84）：v4.6 的修法只体现在一行 `> tFloor` 上，改回 `>=` 或删掉参数时**整场冒烟照样全绿**
 （桩的按键时刻与铺助线无关）。因此补了一条**契约测试**，它不进现场六条、只在改程序后跑：

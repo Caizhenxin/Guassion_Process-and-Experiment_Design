@@ -36,6 +36,8 @@ README = REPO / "1_Code" / "DDM_Core" / "README.md"
 
 # 运行时才存在 / 本机特有的产物：不检查存在性，但必须在输出里列出来
 RUNTIME_WHITELIST = (
+    # 由 check_read_formal_data.py 运行时生成的负样例夹具（第 13 列 f↔j 互换），不入仓
+    "exp_group1_subject1_keyflip.txt",
     "test/_full_session_out",
     "test/_kq_floor_tmp",
     "test/_full_session_g",
@@ -53,7 +55,9 @@ SEC_REF_RE = re.compile(r"§(8\.\d+)")
 SEC_DEF_RE = re.compile(r"^#{2,6} (8\.\d+)[ ：:.、]")
 # 早期决策行没有加粗（`| D1 | … |`），被撤回的是删除线（`| ~~D21~~ | … |`）。
 # 首跑时只认加粗，把 D1–D4 与已撤回的 D21 判成「缺号」——同样是判据错，不是文档错。
-D_ROW_RE = re.compile(r"^\| (?:\*\*|~~)?D(\d+)(?:\*\*|~~)? \|")
+D_ROW_RE = re.compile(r"^\|\s*(?:\*\*|~~)?D(\d+)(?:\*\*|~~)?\s*\|")
+# ↑ D92：表格是按列宽填充过的（`| D1           |`、`| **D9**  |`、`| ~~D21~~      |`），
+#   要求「单个空格」会把 D1–D4 / D9 / D21 整行漏掉 ⇒ 误报编号不连续。允许任意空白。
 ITEM_ROW_RE = re.compile(r"^\| (\d+) \| ")
 
 

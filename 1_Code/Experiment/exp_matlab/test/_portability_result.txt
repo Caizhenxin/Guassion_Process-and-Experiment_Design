@@ -1,0 +1,9 @@
+程序目录 = D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab
+运行目录 = C:\Users\蔡振辛\AppData\Local\Temp\d92_port_20261018_122746
+PASS P1 当前目录 ≠ 程序目录时整场无异常
+PASS P2 行数 = 576（组 1 + 被试 98）
+PASS P3 CSV/txt 落在【运行目录】而不是程序目录
+PASS P4 程序目录里没有留下产物（没污染 exp_matlab）
+PASS P5 启动回显报出程序目录与输出目录，且程序目录 = exp_matlab
+PASS P6 掩蔽纹理没有被拷进工作目录（10 张仍在程序目录）
+SUMMARY pass=6 fail=0
