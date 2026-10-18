@@ -4051,6 +4051,22 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 
 **纪律**：Pilot（N≈8）只验证**机制**；可引用的 LOO / 模型比较要等 Stage 7 的 ~40 人/组 + `--profile formal`。
 
+### 8.72 论文结果章模板与自动填表（D101）
+
+`5_Reference/03_论文写作/论文_结果章_模板.md`（第 9 章框架、7 节）由 `1_Code/Experiment/manuscript.py` 填成 `_pipeline/manuscript_draft.md`，作为 `run_pipeline.py` 的第 5 步。
+
+| 要点 | 做法 | 为什么 |
+|---|---|---|
+| 表格单一来源 | 把 `write_results_skeleton` 的渲染抽成 `run_pipeline.build_blocks`，返回 `intake_table` / `model_block` / `param_block` 三块，骨架与草稿共用 | D98 配对 SE、D99 闸门都是「两处各自渲染」漏的 |
+| 判据不重算 | `s6_table` 从已有 `stage6_report.md` 的 `## 2.` 小节抽 | 判据只写在 `stage6_report.py` 一处（D94 教训） |
+| 占位缺失即炸 | `render()` 对模板里每个 `{{name}}` 要求有块，缺一个抛 `KeyError` | 静默留空会让论文里出现空表 |
+| 合成数据警示 | 数据目录含 `synth_truth.json` 时正文顶部插警示条 | 合成数字进正文是本项目最容易犯的错（D98） |
+| 论述留槽 | 表与统计量自动填，论述一律 `【待写】`（首稿 10 处） | 数字可自动、解释不可自动 |
+| DB 口径写进正文 | 9.5 明说区间是**被试间 SEM**；9.4 明说 SE 必须配对 | 读者不复现就等于没报 |
+
+自测：`check_run_pipeline.py` **11/11**（P7 四块表 + ⛔ 横幅 + 合成警示 + 无 `{{` 残留；P8 缺块必报错）。
+章号：模板写明「章号待定：插为第 9 章，原总讨论/结论后移为 10/11 章」——插入 `_v3_正文.md` 前需人工确认编号。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
@@ -4138,3 +4154,4 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 | 81 | ✅ **效应量验证分三层：G\*Power 只管行为层，参数层靠 CRLB，终局靠 Savage–Dickey（D97，§8.68）** | 4 组 × 40 ⇒ `f_min = 0.264`（η² = 6.5%）；`beta_ST` 是「行为显著但参数不可估」的反例。**尚未做**：Savage–Dickey BF 与 BFDA 模拟脚本**都还没写**（当前只有后验抽样与 PSIS-LOO）；定稿文档里的 `f_min` 是本次用非中心 F 复算，未用 G*Power 软件本体 |
 | 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出。**D99 补**：LOO 闸门进流水线（3.5 步）、骨架四列 + 不可引用横幅、`fig3` 斜线，并有 `check_run_pipeline.py` **7/7** | **尚未做**：没进 `run_selftest.bat`（那是实验室机的 MATLAB 自测，故意不掺分析代码）；Stage 8 的 8 人 quick 全量已跑完但**四组全不可引用**（D99），formal 全量未跑 |
 | 83 | ❌ **未做**：`--profile formal` 的**实测**耗时（现只有 `--plan-only` 的 4.30 h 估算）；2 人/组的红是样本量（D100），但「要多少人/组才转绿」**未做扫描**（现只有 1 人与 2 人的两点证据），40 人/组的拟合也没有真跑过。 | 下一步：先用 4 人/组与 8 人/组合成数据各跑一次 formal，把「多少人/组才转绿」画成一条曲线 |
+| 84 | ❌ **未做**：`论文_结果章_模板.md` 尚未真正插入 `5_Reference/03_论文写作/_v3_正文.md`（章号、上下章衔接、表号重编都要人工定）；且模板里的 `【待写】` 10 处没有真实数据可填 | 现在只有模板与自动填表，缺的是「插进正文 + 用真数据填论述」 |

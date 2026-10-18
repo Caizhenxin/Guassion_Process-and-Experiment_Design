@@ -16,6 +16,8 @@
 | P4 | `--reuse-stage8` + 健康 JSON | 退出码 0；报告「3.5 LOO 健康」= ✅、可引用 1/1 |
 | P5 | `--reuse-stage8` + 病 JSON | 退出码 **1**；报告 3.5 = ❌；`stderr` 点名 3.5 |
 | P6 | 组层 2 人 vs 12 人 | 2 人/组 ⇒ 骨架点名「组层样本量不足」；12 人/组 ⇒ 无提示、判词 `OK`（D100） |
+| P7 | 用模板生成论文草稿（D101） | 四块表（结果-1/2/3 + 图）+ ⛔ 横幅 + 合成警示都在；没有 `{{` 残留 |
+| P8 | 模板占位没有对应数据块 | `render` 抛 `KeyError` 点名该占位（不许静默留空） |
 
 P2 是关键：`k_max = 0.000`、`p_loo` = 10（÷`n_obs` = 0.017）都像健康读数，
 只有 D74 的 Hessian 正定性会判死它 —— 这正是 D52/D99 说过的「单看任一指标都会误判可报」。
@@ -178,6 +180,36 @@ def main() -> int:
         row5 = [x for x in t5.split("\n") if "3.5 LOO 健康" in x]
         check("P5 病组拦截", rc5 == 1 and row5 and "❌" in row5[0] and "3.5" in err5,
               f"exit={rc5}、行 = {row5[0][:60] if row5 else '无'}、stderr 点名 = {'3.5' in err5}")
+
+        # ---- P7 / P8：论文结果章草稿（D101）----
+        import manuscript as MS
+        out7 = write_out(tmp / "ms", bad=True, with_data=None)
+        (out7 / "stage6_report.md").write_text(
+            "# Stage 6 ｜Pilot 达标报告\n\n## 2. 判据汇总（仅计入场次）\n\n"
+            "| 判据 | PASS | WARN | FAIL | INFO | 未取到 |\n|---|---|---|---|---|---|\n"
+            "| **S6-1** | 1 | 0 | 0 | 0 | 0 |\n", encoding="utf-8", newline="\n")
+        fake_data = tmp / "data7"
+        fake_data.mkdir(parents=True, exist_ok=True)
+        (fake_data / "synth_truth.json").write_text(
+            json.dumps({"generator": "self-test", "sessions": [1, 2]}, ensure_ascii=False),
+            encoding="utf-8", newline="\n")
+        g7 = RP.load_groups(out7 / "stage8")
+        h7 = RP.assess_health(out7 / "stage8")
+        p7 = MS.write_draft(fake_data, out7, [], g7, None, h7)
+        t7 = p7.read_text(encoding="utf-8")
+        need = ("表 结果-1", "表 结果-2", "表 结果-3", "本段数值不可引用",
+                "figures/fig2_param_recovery.png", "本文件由合成数据生成",
+                "被试间 SEM")
+        check("P7 草稿四块 + 横幅 + 合成警示",
+              all(x in t7 for x in need) and "{{" not in t7,
+              f"{len(t7.splitlines())} 行、{p7.stat().st_size} B、占位残留 = {'{{' in t7}")
+
+        try:
+            MS.render("{{nope}}", {"other": ["y"]})
+            ok_p8 = False
+        except KeyError as exc:
+            ok_p8 = "nope" in str(exc)
+        check("P8 缺块必报错", ok_p8, "模板占位没有数据块 ⇒ KeyError，不许静默留空")
     finally:
         import shutil
         shutil.rmtree(tmp, ignore_errors=True)
