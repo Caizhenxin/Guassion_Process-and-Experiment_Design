@@ -48,9 +48,14 @@ import stage8_health as H8                  # noqa: E402  # LOO 闸门（D73/D74
 PROFILES = {
     # 流程验证用：1 小时量级；**数值不作结论**
     "quick": {"n_em": 3, "n_draws": 12, "n_x": 21, "n_ppc": 1},
-    # 正式采集用（Stage8 方案 §5 的配置）；在 8 人 × 561 试次上约数十小时
+    # 正式采集用（Stage8 方案 §5 的配置）；8 人 × 561 试次上 --plan-only 估 4.30 h
     "formal": {"n_em": 12, "n_draws": 50, "n_x": 81, "n_ppc": 10},
 }
+
+# 组层可引用的**经验**起始人数（D100）。实测：n=1 人/组时把 `n_em` 提到 6、`n_draws` 提到 25
+# 仍然是 `n_flipped` 2/16、`p_loo`÷`n_obs` 5.12、`k_max` 1.213、`max|θ|` 100.8 ⇒ ⛔；
+# n=2 人/组（quick，四组）4/4 全红。⇒ 红的原因是**组层样本量**，不是抽样配置。
+MIN_N_HIER = 10
 
 
 def _run(cmd: list[str], log: Path) -> tuple[int, float]:
@@ -206,6 +211,14 @@ def write_results_skeleton(data: Path, out: Path, rows: list[dict], groups: dict
             L += [f"> ⛔ **本段数值不可引用**：{n_bad}/{len(health)} 组未过 LOO 健康闸门"
                   "（D73 口径 / D74 超参数 Hessian 正定 / `p_loo` ∈ [0, `n_obs`] / "
                   "`n_draws` ≥ 25）。Δelpd 只能当流程验证，不得写成模型比较证据。", ""]
+        nmin = min((int((h.get("modes", {}).get("M-T1") or {}).get("n_subjects") or 0)
+                    for h in health.values()), default=0)
+        if 0 < nmin < MIN_N_HIER:
+            L += [f"> ⚠️ **组层样本量不足**：最少 {nmin} 人/组 < {MIN_N_HIER}（D100）。"
+                  "实测：n=1 人/组时即使把 `n_em` 提到 6、`n_draws` 提到 25，仍是 "
+                  "`n_flipped` 2/16、`p_loo`÷`n_obs` 5.12、`k_max` 1.213、`max|θ|` 100.8；"
+                  "n=2 人/组（quick，四组）4/4 组红。⇒ 红的是**组层样本量**，不是抽样配置："
+                  "加 `n_em`／`n_draws` 救不回来，只有加人或加试次。", ""]
         L += ["| 组 | elpd(M-T1) | elpd(M-T3) | Δelpd（正 = 支持两阶段） | SE（配对） "
               "| `p_loo`÷`n_obs` | `n_flipped` | k 诊断 | 判定 | 原因 |",
               "|---|---|---|---|---|---|---|---|---|---|"]

@@ -3628,8 +3628,8 @@ S6-5 合理区间下界 0.3 s ⇒ **真由 DDM 生成**的数据也会被 QC 判
 2. **实现**：`1_Code/DDM_Core/stage8_health.py`（267 行，零依赖，`assess_mode` / `assess_group` / `collect` / `render` / `main`）。三条硬闸：H1 `n_flipped > 0`（D74）、H2 `loo_level != trial`（D73）、H3 `p_loo ∉ [0, n_obs]` 或 `k_max` 非有限或失败率 > 20%（D52/D73）、H4 `n_draws < 10`（`loo.psis_one` 不做 GPD 平滑）；两条软告警：W1 `max_abs_theta ≥ 20`（D75 实测分离：正定 ≤ 7.3 vs 非正定 33.6–303）或该字段缺失 ⇒ 按「未落盘」告警、W2 `0.7 < k_max ≤ 1.0`（降级为提示性）。
 3. **混口径**：`levels` 有多个值 ⇒ `comparable = False` 且整组直接判「不可引用」——因为 `ΔELPD` 在两个口径的 `n_obs` 语义下不是同一个量（D73）。
 4. **输出**：Markdown 概览表（列含**来源目录**，避免同 tag 撞名）+ 逐组明细（ELPD ± SE、`p_loo`、`n_obs`、`k_max`、失败数、Hessian、`max\|θ\|`、逐条理由）+ `--json` 机器可读汇总；`--strict` 时有任一「不可引用」就以 1 退出（CI/批处理用）。
-5. **实测**：两组病态缓存都判「⛔ 不可引用」，理由与两次报告里的判词逐条对得上 —— `_scratch/stage8_trial_s15`（试次层、`n_flipped` 2/16、`p_loo` 797 / `n_obs` 93）、`_scratch/stage8_d75_gate`（`p_loo` −242.9、`k_max` nan、`max|θ|` 269.1）。
-6. **牙齿**：`1_Code/DDM_Core/_scratch/check_stage8_health.py` **27/27、exit 0** —— A 组 12 项单块判据（健康 / 非正定 / 被试层 / `p_loo` < 0 / `p_loo` > `n_obs` / `k_max` nan / 失败率 / `n_draws` / `max|θ|` / 缺字段 / `k_max` 0.85 / 缺 loo·hyper）、B 组混口径与渲染、C 组 `--strict`·`--json` 端到端、D 组坏输入必须响亮（`FileNotFoundError` / `ValueError` 含「缺字段」）。
+5. **实测**：两组病态缓存都判「⛔ 不可引用」，理由与两次报告里的判词逐条对得上 —— `_scratch/stage8_trial_s15`（试次层、`n_flipped` 2/16、`p_loo` 797 / `n_obs` 93）、`_scratch/stage8_d75_gate`（`p_loo` −242.9、`k_max` nan、`max_abs_theta` 269.1）。
+6. **牙齿**：`1_Code/DDM_Core/_scratch/check_stage8_health.py` **27/27、exit 0** —— A 组 12 项单块判据（健康 / 非正定 / 被试层 / `p_loo` < 0 / `p_loo` > `n_obs` / `k_max` nan / 失败率 / `n_draws` / `max_abs_theta` / 缺字段 / `k_max` 0.85 / 缺 loo·hyper）、B 组混口径与渲染、C 组 `--strict`·`--json` 端到端、D 组坏输入必须响亮（`FileNotFoundError` / `ValueError` 含「缺字段」）。
 
 ### 8.51 主试侧输入防线：组别越界不再 error 退出（2026-10-18，D77）
 
@@ -4030,6 +4030,27 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 - 自测：`1_Code/Experiment/exp_Check/check_run_pipeline.py`（179 行，**7/7**）—— P1/P2 钉死「判词 + 骨架横幅」（P2 的假 JSON `n_flipped` = 2/16，而 `k_max` = 0.000、`p_loo` = 10 都好看），P3 钉死「不拟合就不判」，P4/P5 钉死健康组放行（退出码 0）与病组拦截（退出码 1）。
 - 口径：quick（`n_draws=12`）**只验证机制**；要出结论必须 `--profile formal`（`n_draws=50` ≥ 25 才有 Pareto-k 诊断）并先过 `stage8_health.py --strict`。
 
+### 8.71 为什么 Pilot 规模的 LOO 一定不可引用（D100）
+
+**结论**：2 人/组的组层 LOO 健康闸门**必然红**，原因是**组层样本量**，不是 `n_em` / `n_draws`。
+
+| 配置 | 人/组 | `n_em` | `n_draws` | `p_loo`÷`n_obs` | `n_flipped` | `k_max` | `max_abs_theta` | 判词 |
+|---|---|---|---|---|---|---|---|---|
+| 探针（组 1） | **1** | 6 | 25 | **5.12** | **2/16** | 1.213 | 100.782 | ⛔ |
+| 探针（组 1）M-T3 | **1** | 6 | 25 | **8.93** | 2/14 | 2.940 | 111.562 | ⛔ |
+| 8 人 quick 组 1 | 2 | 3 | 12 | 0.009 | 1/16 | 0.000 | 71.9 | ⛔（只看 `p_loo` 会误判） |
+| 8 人 quick 组 2 | 2 | 3 | 12 | 2.156 | 2/16 | 0.000 | 71.1 | ⛔ |
+| 8 人 quick 组 3 | 2 | 3 | 12 | 3.221 | 3/16 | 0.000 | 68.0 | ⛔ |
+| 8 人 quick 组 4 | 2 | 3 | 12 | 2.330 | 3/16 | 0.000 | 72.1 | ⛔ |
+
+**为什么不是抽样配置**：探针把 `n_em` 从 3 提到 6、`n_draws` 从 12 提到 25（跨过 PSIS 的 25 门槛），判词一点没变好 —— `n_flipped` 仍是 2/16、`p_loo` 反而更离谱（2839.686 对 `n_obs` 555）、`max_abs_theta` 冲到 100.8（`stage8_health.MAXABS_WARN = 20`，D75 实测正定 ≤ 7.3）。组层回归要估 `beta_P`（4 个 P 水平），2 人/组时该回归欠定，超参数 Hessian 自然非正定。
+
+**落地**：`run_pipeline.py` 的 `MIN_N_HIER = 10` + 骨架 §2 横幅「⚠️ **组层样本量不足**：最少 N 人/组 < 10（D100）……」；`exp_Check/check_run_pipeline.py` 的 **P6** 钉死「2 人/组出提示、12 人/组不出」（现 **9/9**）。
+
+**成本（实测/估算分开写）**：quick（8 人、`n_em`=3、`n_draws`=12、`n_x`=21、PPC 1）**实测 11594.3 s = 3.2 h**；`--plan-only` 当时估 1.04 h ⇒ 估算低估 **3.08×**。formal（8 人、`n_em`=12、`n_draws`=50、`n_x`=81、PPC 10）`--plan-only` 给 **4.30 h**（层级 80.4 + LOO 176.3 + PPC 1.3 min）⇒ 按 3.08× 外推实际约 **13 h**。
+
+**纪律**：Pilot（N≈8）只验证**机制**；可引用的 LOO / 模型比较要等 Stage 7 的 ~40 人/组 + `--profile formal`。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
@@ -4116,3 +4137,4 @@ $ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
 | 80 | ✅ **Pilot 达标报告器：判据汇总 + §8 决策分支 + 可/不可进 Stage 7（D96，§8.67）** | `1_Code/Experiment/stage6_report.py`（221 行）只做聚合与决策映射：单场裁决复用 `intake`、逐条 S1/S6 裁决复用 `qc_group.run_subject_check`；判据计数只统计 KEEP 场次，不计入场次的非 PASS 裁决单独显形；自测 **22/22**。**尚未做**：Python 侧自测未进 `run_selftest.bat`；无按 P 档的横向比较视图（§3 要求四个 P 档各 ≥1 人） |
 | 81 | ✅ **效应量验证分三层：G\*Power 只管行为层，参数层靠 CRLB，终局靠 Savage–Dickey（D97，§8.68）** | 4 组 × 40 ⇒ `f_min = 0.264`（η² = 6.5%）；`beta_ST` 是「行为显著但参数不可估」的反例。**尚未做**：Savage–Dickey BF 与 BFDA 模拟脚本**都还没写**（当前只有后验抽样与 PSIS-LOO）；定稿文档里的 `f_min` 是本次用非中心 F 复算，未用 G*Power 软件本体 |
 | 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出。**D99 补**：LOO 闸门进流水线（3.5 步）、骨架四列 + 不可引用横幅、`fig3` 斜线，并有 `check_run_pipeline.py` **7/7** | **尚未做**：没进 `run_selftest.bat`（那是实验室机的 MATLAB 自测，故意不掺分析代码）；Stage 8 的 8 人 quick 全量已跑完但**四组全不可引用**（D99），formal 全量未跑 |
+| 83 | ❌ **未做**：`--profile formal` 的**实测**耗时（现只有 `--plan-only` 的 4.30 h 估算）；2 人/组的红是样本量（D100），但「要多少人/组才转绿」**未做扫描**（现只有 1 人与 2 人的两点证据），40 人/组的拟合也没有真跑过。 | 下一步：先用 4 人/组与 8 人/组合成数据各跑一次 formal，把「多少人/组才转绿」画成一条曲线 |

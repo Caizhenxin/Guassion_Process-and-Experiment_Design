@@ -15,6 +15,7 @@
 | P3 | `--skip-stage8` | 退出码 0；报告里**没有**「3.5 LOO 健康」行（不拟合就不该判） |
 | P4 | `--reuse-stage8` + 健康 JSON | 退出码 0；报告「3.5 LOO 健康」= ✅、可引用 1/1 |
 | P5 | `--reuse-stage8` + 病 JSON | 退出码 **1**；报告 3.5 = ❌；`stderr` 点名 3.5 |
+| P6 | 组层 2 人 vs 12 人 | 2 人/组 ⇒ 骨架点名「组层样本量不足」；12 人/组 ⇒ 无提示、判词 `OK`（D100） |
 
 P2 是关键：`k_max = 0.000`、`p_loo` = 10（÷`n_obs` = 0.017）都像健康读数，
 只有 D74 的 Hessian 正定性会判死它 —— 这正是 D52/D99 说过的「单看任一指标都会误判可报」。
@@ -49,10 +50,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
     print(f"{'✅' if ok else '❌'} [{name}] {detail}")
 
 
-def fake_group_json(gid: int, *, bad: bool) -> dict:
+def fake_group_json(gid: int, *, bad: bool, n_s: int = 2) -> dict:
     """造一份 schema 与 `stage8_run.py` 一致的组缓存（数值虚构）。"""
     n_obs = 576
-    n_s = 2
     k = 8
 
     def loo(offset: float) -> dict:
@@ -101,12 +101,12 @@ def fake_group_json(gid: int, *, bad: bool) -> dict:
             "loo_level": "trial", "seconds": 1.0, "rho_free": True}
 
 
-def write_out(root: Path, *, bad: bool, with_data: Path | None) -> Path:
+def write_out(root: Path, *, bad: bool, with_data: Path | None, n_s: int = 2) -> Path:
     """造一个 `--out` 目录：`stage8/stage8_group_1.json` 就位。"""
     s8 = root / "stage8"
     s8.mkdir(parents=True, exist_ok=True)
     (s8 / "stage8_group_1.json").write_text(
-        json.dumps(fake_group_json(1, bad=bad), ensure_ascii=False),
+        json.dumps(fake_group_json(1, bad=bad, n_s=n_s), ensure_ascii=False),
         encoding="utf-8", newline="\n")
     return root
 
@@ -146,6 +146,18 @@ def main() -> int:
                  and "n_flipped" in t_bad and "2/16" in t_bad)
         check("P2 骨架横幅与原因列", ok_p2,
               "横幅 + ⛔ + n_flipped 列 + 「2/16」原因（k_max/p_loo 都好看仍判死）")
+
+        # ---- P6：组层样本量提示（D100）----
+        big_out = write_out(tmp / "big", bad=False, with_data=None, n_s=12)
+        h_big = RP.assess_health(big_out / "stage8")
+        g_big = RP.load_groups(big_out / "stage8")
+        t_big = RP.write_results_skeleton(Path("data"), big_out, [], g_big, None,
+                                          h_big).read_text(encoding="utf-8")
+        check("P6 小样本出提示", "组层样本量不足" in t_ok and "2 人/组 < 10" in t_ok,
+              "n=2 人/组 ⇒ 骨架必须点名「组层样本量」而不是让人以为是配置问题")
+        check("P6 大样本不出提示", "组层样本量不足" not in t_big
+              and (h_big.get(1) or {}).get("status") == "OK",
+              f"n=12 人/组 ⇒ 无提示、status = {(h_big.get(1) or {}).get('status')}")
 
         # ---- P3：--skip-stage8 不应有 3.5 步 ----
         rc3, out3, _ = run_cli([str(SYNTH), "--skip-stage8", "--out", str(tmp / "skip")])
