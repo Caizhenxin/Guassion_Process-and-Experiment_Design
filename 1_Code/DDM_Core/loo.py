@@ -244,6 +244,9 @@ def psis_loo(log_lik: np.ndarray) -> dict:
         "n_k_gt_bad": int(np.sum(k_finite > K_BAD)),
         "n_k_gt_unusable": int(np.sum(k_finite > K_UNUSABLE)),
         "n_failed": int(np.sum(~ok)),
+        # S < 25 时 M = min(S/5, 3√S) < 5，GPD 永不拟合 ⇒ k̂ 恒 0，
+        # `n_k_gt_bad = 0` 不代表「诊断通过」，只代表「没有诊断能力」。
+        "k_diag_ok": bool(S >= 25),
     }
 
 

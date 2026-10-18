@@ -103,11 +103,20 @@ def subject_metrics(path: Path, group: int, subject: int) -> dict:
     header = [h.strip().lstrip("\ufeff") for h in header]
     rows = ap.row_dicts(header, rows_raw)
 
+    # ★ D94：同一 subjectID 的 txt 是追加写（`fopen(...,'a+')`）⇒ 整场跑两遍就会把
+    #   576 个 trialID 各写两遍（实机见过 1152 行）。按 (stage, trialID) 保留最后一次，
+    #   与 check_stage1_acceptance.py 的 dedupe() 同一口径；丢弃行数写进汇总表。
+    seen: dict = {}
+    for r in rows:
+        seen[(str(r.get("stage", "")).strip().strip('"'), str(r.get("trialID", "")).strip())] = r
+    n_dropped = len(rows) - len(seen)
+    rows = list(seen.values())
+
     legacy = len(header) < V4_NCOL
     rec: dict = {
         "file": path.name, "group": group, "subject": subject,
         "legacy": legacy, "n_cols": len(header),
-        "n_formal": 0, "n_practice": 0, "p_vals": set(),
+        "n_formal": 0, "n_practice": 0, "p_vals": set(), "n_dropped": n_dropped,
         "timeout": [], "acc": [], "rt": [], "rt_lt_t": 0,
         "in_stim": 0, "anticip": 0, "per_cell": {}, "flip": None,
         "verdicts": {},
@@ -380,14 +389,14 @@ def main() -> int:
     out()
     out("## 1. 各组汇总")
     out()
-    out("| 组 | P | 文件 | 可用 | 剔除 | 待复核 | timeout | 正确率 | RT 中位 | `RT<T` | 其中刺激内 | 帧长(ms) |")
-    out("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    out("| 组 | P | 文件 | 可用 | 剔除 | 待复核 | timeout | 正确率 | RT 中位 | `RT<T` | 其中刺激内 | 帧长(ms) | 去重行 |")
+    out("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for g in groups:
         flip_ms = "—" if not g["flip"] else f"{g['flip'] * 1000:.3f}"
         out(f"| {g['group']} | {g['P']} | {g['n_files']} | {g['n_usable']} | {g['n_exclude']} | "
             f"{g['n_review']} | {fmt_pct(g['timeout'])} | {fmt_num(g['acc'])} | "
             f"{fmt_num(g['rt_med'])} | {fmt_pct(g['rt_lt_t'])} | {fmt_pct(g['in_stim'])} | "
-            f"{flip_ms} |")
+            f"{flip_ms} | {g.get('n_dropped', 0)} |")
 
     # ---- 逐组判据 ---- #
     n_fail = n_warn = 0

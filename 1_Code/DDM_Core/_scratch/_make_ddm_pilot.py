@@ -159,6 +159,9 @@ def main() -> int:
                     help="覆盖组层真值的 a_ref（默认 1.10）")
     ap.add_argument("--t0", type=float, default=None,
                     help="覆盖组层真值的 t0（默认 0.15 s）")
+    ap.add_argument("--anticipation", type=float, default=0.0,
+                    help="抢按比例（真实被试约 0.01–0.03）；>0 时同时把抢按行的 "
+                         "stimulus_dur_actual 改成「按键后下一帧」，供 6-B 通过")
     ap.add_argument("--n-practice", type=int, default=0,
                     help="练习段试次数（组 1 的程序规定是 4；qc_group 的 G3 会查）")
     args = ap.parse_args()
@@ -183,6 +186,20 @@ def main() -> int:
         side = np.asarray(sim["side"], dtype=int)
         om = np.asarray(sim["omission"], dtype=int)
 
+        # ---- 抢按（可选）：真实被试会在刺激期结束前就按键 ----
+        n_ant = 0
+        if args.anticipation > 0:
+            formal_idx = [i for i, m in enumerate(meta) if m[4] != 0]
+            n_ant = int(rng.binomial(len(formal_idx), float(args.anticipation)))
+            if n_ant > 0:
+                for i in rng.choice(formal_idx, size=min(n_ant, len(formal_idx)),
+                                    replace=False):
+                    T_i = float(meta[i][2])
+                    om[i] = 0
+                    rt[i] = float(rng.uniform(0.5 * FLIP,
+                                              max(0.6 * FLIP, 0.85 * T_i)))
+                    side[i] = int(rng.integers(0, 2))
+
         lines = ["\t".join(RF.HEADER25)]
         t_class = 1000.0
         other = {"f": "j", "j": "f"}[mk]
@@ -200,7 +217,9 @@ def main() -> int:
                 rtv = float(rt[i])
                 corr = 1 if resp == ck else 0
                 timeout, rbd = 0, 1
-            dur = T
+            # 抢按行：刺激在「按键后下一帧」就结束（与 Exp_Design_Formal.m 一致）
+            in_stim = (not om[i]) and (rtv is not None) and (rtv < T)
+            dur = max(FLIP, np.ceil(rtv / FLIP) * FLIP) if in_stim else T
             cols = [args.group, sid, 2, 24, 2, stage, i + 1, int(design["P"][i]),
                     T, W, sh, lb, ck, resp, None if rtv is None else round(rtv, 3),
                     corr, block, 0, timeout, rbd,
@@ -214,7 +233,7 @@ def main() -> int:
         acc = np.nan
         written.append((path, len(lines) - 1, n_resp, n_drop))
         print(f"  ✓ {path.name} —— {len(lines) - 1} 试次、响应 {n_resp}"
-              f"（rho = {args.rho}、t0 = {p.t0:.3f} s）")
+              f"（rho = {args.rho}、t0 = {p.t0:.3f} s、抢按 {n_ant}）")
     print(f"合成完成：{len(written)} 名被试（DDM/M-T1 生成，n_rep = {args.n_rep}）")
     return 0
 

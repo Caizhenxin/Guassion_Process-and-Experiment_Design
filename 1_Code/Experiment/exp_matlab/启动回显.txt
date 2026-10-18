@@ -1,0 +1,80 @@
+
+PsychStartup: Adding path of installed GStreamer runtime to library path. [E:\gstreamer\1.0\msvc_x86_64\bin]
+>> Exp_Design_Formal
+[路径] 程序目录（掩蔽纹理） = D:\Desktop\Test\exp_matlab_v3
+[路径] 输出目录（CSV/txt） = D:\Desktop\Test\exp_matlab_v3
+==================================================
+ 请主试核对本次实验信息：
+   被试组别 groupID   = 1   ⇒ 本组 P = 0 个额外练习试次
+   被试编号 subjectID = 1
+   性别(gender)       = 2  [1=女, 2=男]
+   年龄(age)          = 24
+   惯用手(handedness) = 2  [1=左, 2=右]
+ D4 组别速查：组1 P0 ｜ 组2 P8 ｜ 组3 P32 ｜ 组4 P120（4 组全部带掩蔽）
+==================================================
+确认无误请按回车继续；输入 r 回车则重新填写信息：
+
+
+PTB-INFO: This is Psychtoolbox-3 for Microsoft Windows, under Matlab 64-Bit (Version 3.0.19 - Build date: Dec 14 2023).
+PTB-INFO: OS support status: Windows 10 (Version 10.0) supported and tested to some limited degree.
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+PTB-INFO: For information about paid support, support memberships and other commercial services, please type
+PTB-INFO: 'PsychPaidSupportAndServices'.
+
+PTB-INFO: The detected endline of the vertical blank interval is equal or lower than the startline. This indicates
+PTB-INFO: that i couldn't detect the duration of the vertical blank interval and won't be able to correct timestamps
+PTB-INFO: for it. This will introduce a very small and constant offset (typically << 1 msec). Read 'help BeampositionQueries'
+PTB-INFO: for how to correct this, should you really require that last few microseconds of precision.
+PTB-INFO: Btw. this can also mean that your systems beamposition queries are slightly broken. It may help timing precision to
+PTB-INFO: enable the beamposition workaround, as explained in 'help ConserveVRAMSettings', section 'kPsychUseBeampositionQueryWorkaround'.
+
+
+PTB-INFO: OpenGL-Renderer is Intel :: Intel(R) UHD Graphics 770 :: 4.6.0 - Build 32.0.101.7085
+PTB-INFO: VBL startline = 768 , VBL Endline = 767
+PTB-INFO: Measured monitor refresh interval from beamposition = 16.665659 ms [60.003627 Hz].
+PTB-INFO: Will use beamposition query for accurate Flip time stamping.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 16.665452 ms [60.004373 Hz]. (50 valid samples taken, stddev=0.019290 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 16.666667 ms [60.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+PTB-INFO: Support for OpenGL 3D graphics rendering enabled: depth-buffer and stencil buffer attached.
+PTB-INFO: ==============================================================================================================================
+PTB-INFO: WINDOWS DWM DESKTOP COMPOSITOR IS ACTIVE. On this Windows-10 or later system, Psychtoolbox can no longer reliably detect if
+PTB-INFO: this will cause trouble for timing and integrity of visual stimuli or not. You might be just fine, or you could be in trouble.
+PTB-INFO: Use external measurement equipment and independent procedures to verify reliability of timing if you care about proper timing.
+PTB-INFO: ==============================================================================================================================
+   D4：P=0 ｜ T 水平 = [33.33 83.33 149.99 249.98] ms ｜ W 水平 = [799.9 1199.9 1799.9] ms
+   ── 帧量化核对（FlipIntv = 16.665452 ms，约 60.004 Hz）──
+      T1：名义 33.33 ms → 2 帧 → 实际 33.331 ms（偏离 +0.001 ms = +0.00 帧）
+      T2：名义 83.33 ms → 5 帧 → 实际 83.327 ms（偏离 -0.003 ms = -0.00 帧）
+      T3：名义 149.99 ms → 9 帧 → 实际 149.989 ms（偏离 -0.001 ms = -0.00 帧）
+      T4：名义 249.98 ms → 15 帧 → 实际 249.982 ms（偏离 +0.002 ms = +0.00 帧）
+      W1：名义 800.0 ms → 48 帧 → 实际 799.942 ms（偏离 -0.038 ms = -0.00 帧）
+      W2：名义 1199.9 ms → 72 帧 → 实际 1199.913 ms（偏离 +0.013 ms = +0.00 帧）
+      W3：名义 1799.9 ms → 108 帧 → 实际 1799.869 ms（偏离 -0.031 ms = -0.00 帧）
+   掩蔽纹理预加载完成：self 5 张、stranger 5 张（Stage 1 修正 #1）
+
+
+PTB-ERROR: Screen('Flip'); beamposition timestamping computed an *impossible stimulus onset value* of 54684.000642 secs, which would indicate that
+PTB-ERROR: stimulus onset happened *before* it was actually requested! (Earliest theoretically possible 54684.012621 secs).
+
+PTB-ERROR: Some more diagnostic values (only for experts): rawTimestamp = 54684.014852, scanline = 654
+PTB-ERROR: Some more diagnostic values (only for experts): line_pre_swaprequest = 546, line_post_swaprequest = 551, time_post_swaprequest = 54684.012711
+PTB-ERROR: Some more diagnostic values (only for experts): preflip_vblcount = 0, preflip_vbltimestamp = 54684.000755
+PTB-ERROR: Some more diagnostic values (only for experts): postflip_vblcount = 0, postflip_vbltimestamp = -1.000000, vbltimestampquery_retrycount = 0
+
+PTB-ERROR: This error can be due to either of the following causes:
+PTB-ERROR: Very unlikely: Something is broken in your systems beamposition timestamping. I've disabled high precision
+PTB-ERROR: timestamping for now. Returned timestamps will be less robust and accurate.
+
+PTB-ERROR: The most likely cause would be that Synchronization of stimulus onset (buffer swap) to the
+PTB-ERROR: vertical blank interval VBL is not working properly, or swap completion signalling to PTB is broken.
+PTB-ERROR: Please run the script PerceptualVBLSyncTest to check this. With non-working sync to VBL, all stimulus timing
+PTB-ERROR: is futile. Also run OSXCompositorIdiocyTest on macOS. Also read 'help SyncTrouble' !
+   正式阶段：3 个 block × 192 试次 = 576 试次/人
+Data has been saved to EXP_data_group1_1.csv
+长表已关闭并落盘：exp_group1_subject1.txt
+
+>> 

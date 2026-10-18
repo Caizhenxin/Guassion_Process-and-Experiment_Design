@@ -1,0 +1,377 @@
+[selftest] program dir = D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab
+
+=== 1/6 check_ask_info ===========================================
+PsychStartup: Environment variable GSTREAMER_1_0_ROOT_MSVC_X86_64 is undefined.
+PsychStartup: Either GStreamer-1.22 MSVC or a later version is not installed at all, or if it is installed, then
+PsychStartup: something is botched. Trying various common locations for the GStreamer runtime to keep going.
+
+PsychStartup: Path to GStreamer runtime is undefined! This probably means that
+PsychStartup: the 64-Bit GStreamer 1.22+ MSVC runtime is not installed.
+PsychStartup: The Psychtoolbox Screen() function will not work at all until you fix
+PsychStartup: this! Read 'help GStreamer' for instructions.
+
+
+PsychStartup: Use of GStreamer disabled or impossible.
+PsychStartup: Only leightweight GStreamer-less Screen() mex file will work.
+== check_ask_info£ºexp_ask_subject_info ÎŞÆÁÄ»×Ô²â ==
+
+[S1 ÎåÏîºÏ·¨ + »Ø³µÈ·ÈÏ]
+  ? S1-1 groupID = 1
+  ? S1-2 subjectID = 3
+  ? S1-3 gender = 1
+  ? S1-4 age = 22
+  ? S1-5 handedness = 2
+  ? S1-6 µ¯´°Ö»¿ª 1 ´Î
+  ? S1-7 Ã»ÓĞµ¯¹ı´íÎóËµÃ÷
+  ? S1-8 »ØÏÔº¬¡¸±¾×é P = 0¡¹
+  ? S1-9 »ØÏÔº¬ D4 ×é±ğËÙ²é
+
+[S2 Ìî×é±ğ 7 ? ¾Ü¾ø²¢ÖØÌî 1£¨ÓÃ»§±¨´íµÄÄÇÌõÂ·¾¶£©]
+  ? S2-1 ×îÖÕ groupID = 1£¨ÖØÌîÉúĞ§£©
+  ? S2-2 µ¯´°¿ªÁË 2 ´Î
+  ? S2-3 µ¯ÁË 1 ´Î´íÎóËµÃ÷
+  ? S2-4 ËµÃ÷º¬¡¸Ô½½ç¡¹
+  ? S2-5 ËµÃ÷º¬¡¸4 ¸ö P ×é¡¹
+  ? S2-6 ËµÃ÷º¬ËÙ²é¡¸×é1 P0¡¹
+  ? S2-7 ËµÃ÷Ã»ÓĞ³öÏÖ NaN ×ÖÑù
+
+[S3 ×é±ğÁô¿Õ ? ¾Ü¾ø]
+  ? S3-1 ÖØÌîºó groupID = 2
+  ? S3-2 µ¯ÁË 1 ´ÎËµÃ÷
+
+[S4 ĞÔ±ğÌî 3 ? ¾Ü¾ø]
+  ? S4-1 ÖØÌîºó gender = 2
+  ? S4-2 ËµÃ÷º¬¡¸ĞÔ±ğ¡¹
+
+[S5 ÄêÁäÌî 5 ? ¾Ü¾ø]
+  ? S5-1 ÖØÌîºó age = 22
+  ? S5-2 ËµÃ÷º¬¡¸ÄêÁä¡¹
+
+[S6 ¹ßÓÃÊÖÌî 9 ? ¾Ü¾ø]
+  ? S6-1 ÖØÌîºó handedness = 2
+  ? S6-2 ËµÃ÷º¬¡¸¹ßÓÃÊÖ¡¹
+
+[S7 ±àºÅÌî 0 ? ¾Ü¾ø]
+  ? S7-1 ÖØÌîºó subjectID = 3
+  ? S7-2 ËµÃ÷º¬¡¸±àºÅ¡¹
+
+[S8 µãÈ¡Ïû ? error]
+  ? S8-1 Å×Òì³£
+  ? S8-2 ÎÄ°¸º¬¡¸ÒÑÈ¡Ïû¡¹
+  ? S8-3 ÎÄ°¸º¬¡¸ÖØĞÂÔËĞĞ¡¹
+
+[S9 È·ÈÏÊäÈë r ? »Øµ¯´°ÖØÌî£¨×é±ğ 2 ¡ú 3£©]
+  ? S9-1 ×îÖÕ groupID = 3
+  ? S9-2 ×îÖÕ subjectID = 4
+  ? S9-3 µ¯´°¿ªÁË 2 ´Î
+  ? S9-4 »ØÏÔº¬¡¸±¾×é P = 32¡¹
+  ? S9-5 »ØÏÔº¬¡¸±¾×é P = 8¡¹£¨µÚÒ»´ÎµÄÖµ£©
+
+[S10 È·ÈÏÊäÈë´óĞ´ R ? Í¬ÑùÖØÌî]
+  ? S10-1 ×îÖÕ groupID = 1
+  ? S10-2 µ¯´°¿ªÁË 2 ´Î
+
+[S11 Á¬Ğø 3 ´Î·Ç·¨£¨7 / ¿Õ / 5£©ºóÌî 4]
+  ? S11-1 ×îÖÕ groupID = 4
+  ? S11-2 µ¯´°¿ªÁË 4 ´Î
+  ? S11-3 µ¯ÁË 3 ´ÎËµÃ÷
+  ? S11-4 »ØÏÔº¬¡¸±¾×é P = 120¡¹
+
+== check_ask_info£ºÍ¨¹ı 40 / Î´Í¨¹ı 0 ==
+? exp_ask_subject_info µÄ¡¸·Ç·¨¼´ÖØÌî¡¢Ö»ÓĞÈ¡Ïû²ÅÍË³ö¡¹ĞĞÎªÈ«²¿³ÉÁ¢
+
+=== 2/6 check_input_validation ====================================
+PsychStartup: Environment variable GSTREAMER_1_0_ROOT_MSVC_X86_64 is undefined.
+PsychStartup: Either GStreamer-1.22 MSVC or a later version is not installed at all, or if it is installed, then
+PsychStartup: something is botched. Trying various common locations for the GStreamer runtime to keep going.
+
+PsychStartup: Path to GStreamer runtime is undefined! This probably means that
+PsychStartup: the 64-Bit GStreamer 1.22+ MSVC runtime is not installed.
+PsychStartup: The Psychtoolbox Screen() function will not work at all until you fix
+PsychStartup: this! Read 'help GStreamer' for instructions.
+
+
+PsychStartup: Use of GStreamer disabled or impossible.
+PsychStartup: Only leightweight GStreamer-less Screen() mex file will work.
+== Exp_Design_Formal ÌîĞ´Ğ£Ñé×Ô²â£¨D4£©==
+
+[A] ºÏ·¨ÊäÈë£¨4 ×é£©
+  ? ×é1 ºÏ·¨·ÅĞĞ
+  ? ×é1 ? P=0
+  ? ×é1 ? ×Ö¶Î»ØÌî
+  ? ×é2 ºÏ·¨·ÅĞĞ
+  ? ×é2 ? P=8
+  ? ×é2 ? ×Ö¶Î»ØÌî
+  ? ×é3 ºÏ·¨·ÅĞĞ
+  ? ×é3 ? P=32
+  ? ×é3 ? ×Ö¶Î»ØÌî
+  ? ×é4 ºÏ·¨·ÅĞĞ
+  ? ×é4 ? P=120
+  ? ×é4 ? ×Ö¶Î»ØÌî
+
+[B] ×é±ğ·Ç·¨£¨º¬±¾´ÎÊÂ¹ÊµÄ groupID=7£©
+  ? ×é±ğ=7£¨¾É°æÎŞÑÚ±Î×é£©±»À¹
+  ? ×é±ğ=7£¨¾É°æÎŞÑÚ±Î×é£©±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğ=7 ÌáÊ¾Ğ´Ã÷"4 ¸ö P ×é"
+  ? ×é±ğ=7 ÌáÊ¾Ğ´Ã÷"4 ¸ö P ×é" ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğ=7 ÌáÊ¾µãÃû¾É°æ"×é7"
+  ? ×é±ğ=7 ÌáÊ¾µãÃû¾É°æ"×é7" ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğ=0 ±»À¹
+  ? ×é±ğ=0 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğ=5 ±»À¹
+  ? ×é±ğ=5 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğ=1.5 ·ÇÕûÊı±»À¹
+  ? ×é±ğ=1.5 ·ÇÕûÊı±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğÎª¿Õ±»À¹
+  ? ×é±ğÎª¿Õ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ×é±ğĞ´ºº×Ö±»À¹
+  ? ×é±ğĞ´ºº×Ö±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+
+[C] ±àºÅ/ĞÔ±ğ/ÄêÁä/¹ßÓÃÊÖ·Ç·¨
+  ? ±àºÅ=0 ±»À¹
+  ? ±àºÅ=0 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ±àºÅÎª¿Õ±»À¹
+  ? ±àºÅÎª¿Õ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ±àºÅ=2.5 ±»À¹
+  ? ±àºÅ=2.5 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ĞÔ±ğ=3 ±»À¹
+  ? ĞÔ±ğ=3 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ĞÔ±ğÎª¿Õ±»À¹
+  ? ĞÔ±ğÎª¿Õ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ÄêÁä=5 ±»À¹
+  ? ÄêÁä=5 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ÄêÁä=101 ±»À¹
+  ? ÄêÁä=101 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+  ? ¹ßÓÃÊÖ=5 ±»À¹
+  ? ¹ßÓÃÊÖ=5 ±»À¹ ¡¤ ÌáÊ¾¿É¶Á
+
+[D] ×éºÏÓëÒì³£ÊäÈë
+  ? ÎåÏîÈ«´í ? 5 ÌõÌáÊ¾
+  ? ÎåÏîÈ«´í ? ºÏ·¨×Ö¶ÎÈÔÎª NaN
+  ? µ¯´°È¡Ïû£¨¿Õ£©? ÅĞ·Ç·¨ÇÒÓĞÌáÊ¾
+  ? µ¯´°È¡Ïû ? ÌáÊ¾Ğ´Ã÷ 4 ×é
+  ? ²»×ã 5 Ïî ? ÅĞ·Ç·¨¶ø²»ÊÇ±À
+  ? ÊıÖµĞÍÊäÈë²»±¨´í£¨ÅĞ·Ç·¨¼´¿É£©
+
+[E] Ä¬ÈÏ²ÎÊı
+  ? ²»´« P_groups ? Ä¬ÈÏ 4 ×éÇÒ P=120
+
+== ½á¹û£º51 Í¨¹ı / 0 Ê§°Ü ==
+? È«²¿Í¨¹ı
+
+=== 3/6 check_data_accum =========================================
+PsychStartup: Environment variable GSTREAMER_1_0_ROOT_MSVC_X86_64 is undefined.
+PsychStartup: Either GStreamer-1.22 MSVC or a later version is not installed at all, or if it is installed, then
+PsychStartup: something is botched. Trying various common locations for the GStreamer runtime to keep going.
+
+PsychStartup: Path to GStreamer runtime is undefined! This probably means that
+PsychStartup: the 64-Bit GStreamer 1.22+ MSVC runtime is not installed.
+PsychStartup: The Psychtoolbox Screen() function will not work at all until you fix
+PsychStartup: this! Read 'help GStreamer' for instructions.
+
+
+PsychStartup: Use of GStreamer disabled or impossible.
+PsychStartup: Only leightweight GStreamer-less Screen() mex file will work.
+== check_data_accum£ºÖğÊÔ´ÎÀÛ»ıÓë±£´æ×Ô²â£¨D78£©==
+
+[A] ÀÛ»ıÈİÆ÷
+  ? A1 exp_new_data(25) ÊÇ 0¡Á25 cell
+  ? A2 Ä¬ÈÏ²ÎÊıÒ²ÊÇ 25 ÁĞ
+  ? A3 ²»ÊÇ table£¨table »áËøËÀ char ÁĞ¿í£©
+  ? A4 ·Ç·¨ÁĞÊı±¨´í
+
+[B] ±ÀÀ£¸´ÏÖ£ºÏÈ 'f' ºó 'NA'£¨¾É°æÔÚÕâÀï error£©
+  ? B1 µÚ¶şĞĞĞ´Èë 'NA' ²»±¨´í
+  ? B2 ÄÚ´æÀï Response Á½ĞĞ·Ö±ğÊÇ f / NA
+  ? B3 ×ª³É table ºó Response ÊÇ string ÁĞ
+  ? B4 Response ÖµÎ´±»²¹Æë¿Õ¸ñ
+  ? B5 Î´ÏìÓ¦ĞĞµÄ Correct ÊÇ NaN£¨²»ÊÇ 0£©
+
+[C] ²»µÈ³¤ÎÄ±¾£¨'self' / 'stranger'£©
+  ? C1 Shape Á½ĞĞÔ­Ñù±£Áô
+  ? C2 ÎŞÎ²Ëæ¿Õ¸ñ£¨³¤¶È 4 / 8£©
+
+[D] ¾²Ì¬ÊØÎÀ£ºExp_Design_Formal.m
+  ? D1 ÕÒ²»µ½ Exp_Design_Formal.m
+  ? D2 ÓÃ exp_new_data ½¨ÈİÆ÷
+  ? D3 ²»ÔÙÓĞ data = table()
+  ? D4 ²»ÔÙ·ÃÎÊ data.Properties
+  ? D5 ±£´æÇ°ÓÃ exp_data_table ×ª»»
+  ? D6 ÈÔÓĞĞĞÊı×Ô¼ì warning
+
+[E] ¶Ëµ½¶Ë£º3 ĞĞ ¡ú CSV ¡ú readtable
+  ? E1 CSV ÒÑÉú³É
+  ? E2 ¶Á»Ø 3 ĞĞ 25 ÁĞ
+  ? E3 Response ¶Á»Ø = j / NA / j
+  ? E4 Shape ¶Á»ØÎŞ²¹¿Õ¸ñ
+  ? E5 µÚ 2 ĞĞ Correct ÊÇ NaN
+  ? E6 RT ±£ÁôÊıÖµ
+  ? E7 CSV ÀïÃ»ÓĞÁ¬Ğø¿Õ¸ñ²¹Î»
+
+[F] Êµ¼ÊĞ´ÈëÄ£Ê½£ºdata{trialIndex, c}£¨v4.4 Ö÷³ÌĞò¾ÍÕâÃ´Ğ´£©
+  ? F1 °´ĞĞºÅĞ´ÈëºóĞĞÊı = 5
+  ? F2 ĞĞÊı×Ô¼ì¹«Ê½³ÉÁ¢£¨size(data,1) == trialIndex-1£©
+  ? F3 Ã»ÓĞ¿Õµ¥Ôª¸ñ£¨×Ô¶¯À©ĞĞ²»Áô¿Õ¶´£©
+  ? F4 cell2table ³É¹¦£¨5¡Á25£©
+  ? F5 Response = f/NA/f/j/NA
+  ? F6 stage Ç°Á½ĞĞ practice¡¢ºóÈıĞĞ formal
+  ? F7 Ğ´ CSV ÔÙ¶Á»Ø 5¡Á25
+  ? F8 ¶Á»Ø Response Ò»ÖÂ
+  ? F9 ¶Á»Ø Shape ÎŞ²¹¿Õ¸ñ
+
+== Í¨¹ı 33 / Î´Í¨¹ı 0 ==
+? È«²¿Í¨¹ı
+
+=== 4/6 runbatch_full_session(1, 99) =============================
+PsychStartup: Environment variable GSTREAMER_1_0_ROOT_MSVC_X86_64 is undefined.
+PsychStartup: Either GStreamer-1.22 MSVC or a later version is not installed at all, or if it is installed, then
+PsychStartup: something is botched. Trying various common locations for the GStreamer runtime to keep going.
+
+PsychStartup: Path to GStreamer runtime is undefined! This probably means that
+PsychStartup: the 64-Bit GStreamer 1.22+ MSVC runtime is not installed.
+PsychStartup: The Psychtoolbox Screen() function will not work at all until you fix
+PsychStartup: this! Read 'help GStreamer' for instructions.
+
+
+PsychStartup: Use of GStreamer disabled or impossible.
+PsychStartup: Only leightweight GStreamer-less Screen() mex file will work.
+[PASS] A1 ½Å±¾È«³ÌÎŞÒì³£
+[PASS] A2 µ¯´°Î´±»À¹ÏÂ£¨ĞÅÏ¢ºÏ·¨£¬²»Ó¦ÌáÊ¾ÖØÌî£©
+[PASS] A3 CSV ÒÑÉú³É
+[PASS] A4 txt ³¤±íÒÑÉú³É
+[PASS] B1 ĞĞÊı = max(4,P) + 576 = 580£¨Êµ²â 580£©
+[PASS] B2 ÁĞÊı = 25£¨Êµ²â 25£©
+[PASS] B3 ÁĞÃûÖğ¸ö¶ÔÉÏ£¨µÚ 14 ÁĞ = Response£©
+[PASS] B4 Response ³öÏÖ NA£¨Êµ²â 176 ĞĞ£©
+[PASS] B5 Response ³öÏÖ f Óë j
+[PASS] B6 ÎŞµ¥Ôª¸ñ±»²¹Æë¿Õ¸ñ
+[PASS] B7 Correct Èı¸ö·ÖÖ§¶¼±»×ßµ½£¨NaN / 0 / 1£©
+[PASS] B8 premature_press ³öÏÖ¹ı 1
+[PASS] B9 timeout ³öÏÖ¹ı 1 Ò²³öÏÖ¹ı 0
+[PASS] B10 responded_by_deadline ³öÏÖ¹ı 1 Ò²³öÏÖ¹ı 0
+[PASS] B11 block ¸²¸Ç 0£¨Á·Ï°£©/1/2/3£¨D93£ºËùÓĞ×é¶¼ÓĞÁ·Ï°¶Î£©
+[PASS] B12 T Ö»ÓĞ 4 µµ£¨Êµ²â 4 µµ£©
+[PASS] B13 W Ö»ÓĞ 3 µµ£¨Êµ²â 3 µµ£©
+[PASS] B14 trialID Á¬Ğø 1..N
+[PASS] B15 NA ĞĞµÄ RT Îª NaN
+[PASS] B16 ´Ì¼¤Ê±³¤·Ç¸ºÇÒ ¡Ü T
+[PASS] B20 ´Ì¼¤ÆÚÄÚ°´¼ü×ß¹»ÁË½Ø¶Ï·ÖÖ§£¨Êµ²â 35 ĞĞ£©
+[PASS] B21 ½Ø¶ÏĞĞµÄ stimulus_dur_actual ¡Ö RT£¨×î´ó²î 4.0 ms£©
+[PASS] B22 ·²ÓĞ RT µÄĞĞ±ØÎªÕı£¨ÎŞ¸º RT£©
+[PASS] B23 RT ÓĞÎŞÓë responded_by_deadline Ò»ÖÂ
+[PASS] B17 Á·Ï°ĞĞÊı = max(4,P) = 4£¨Êµ²â 4£©ÇÒ stage Á½¶ÎÆë
+[PASS] B18 txt ³¤±íĞĞÊı = ±íÍ· 1 + 580£¨Êµ²â 581£©
+[PASS] B19 txt ±íÍ·Óë CSV ÁĞÃûÒ»ÖÂ
+SUMMARY pass=27 fail=0 seconds=2.5
+
+ans = 
+
+  °üº¬ÒÔÏÂ×Ö¶ÎµÄ <a href="matlab:helpPopup struct" style="font-weight:bold">struct</a>:
+
+         ok: 1
+        err: ''
+    seconds: 2.4960
+        csv: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\EXP_data_group1_99.csv'
+        txt: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\exp_group1_subject99.txt'
+     n_rows: 580
+     checks: {1x27 cell}
+
+
+=== 5/6 check_full_session.py ====================================
+[PASS] A1 ç¨‹åºæ–‡ä»¶å­˜åœ¨ä¸” >1000 è¡Œ
+[PASS] A2 æŠ¢æŒ‰åç«‹å³ KbQueueFlushï¼ˆç»ƒä¹ æ®µ + æ­£å¼æ®µå„ä¸€å¤„ï¼Œä»£ç é‡Œå¦æœ‰ 2 å¤„è¯•æ¬¡å¼€å¤´çš„ flushï¼‰
+[PASS] A3 ååº”æ—¶ä¸ºæ­£çš„å…œåº•ï¼ˆ2 å¤„ï¼‰
+[PASS] A4 æŠ¢æŒ‰æ¸…ç†ç´§è·Ÿåœ¨ prematurePress ä¹‹å
+[PASS] A5 ä¿å­˜å‰ fclose é€è¯•æ¬¡ txt é€šé“
+[PASS] A6 å…³çª—ä¹‹å‰å®Œæˆè½ç›˜ï¼ˆfclose åœ¨ Screen('CloseAll') ä¹‹å‰ï¼‰
+[PASS] A7 ä¸¤æ®µçš„ RT éƒ½æ¥è‡ªåŒä¸€ä¸ªç®—å¼ï¼ˆrespAbs âˆ’ stimulusFlipTimeï¼Œå…± 4 å¤„ï¼šåˆºæ¿€æœŸ Ã—2ã€ååº”çª— Ã—2ï¼‰
+[PASS] A8 v4.5 å˜æ›´æ®µå·²åœ¨å¤´æ³¨
+[PASS] A8b v4.6 å˜æ›´æ®µå·²åœ¨å¤´æ³¨ï¼ˆonset ä¹‹å‰çš„é”®ä¸ç®—ååº”ï¼‰
+[PASS] A11 å››ä¸ªååº”çª—å£éƒ½ä¼ äº† tFloor = stimulusFlipTimeï¼ˆç»ƒä¹ /æ­£å¼ Ã— åˆºæ¿€æœŸ/ååº”çª—ï¼‰
+[PASS] A12 kqFirstPressUntil / kqScan éƒ½å·²æ¥ tFloorï¼Œä¸”æ‰«ææ—¶ç”¨å®ƒè£è¾¹ç•Œ
+[PASS] A9 æ•°æ®å®¹å™¨ä»èµ° exp_new_data / exp_data_tableï¼ˆv4.4 æœªå›é€€ï¼‰
+[PASS] A10 ä»£ç é‡Œä¸å†å‡ºç° `data = table()`ï¼ˆæ³¨é‡Šé‡Œçš„æ¥å†è¯´æ˜ä¸ç®—ï¼‰
+[PASS] A13 v4.7 æ¾é”®é—¨æ§›ï¼š8 å¤„ç©ºæ ¼ç­‰å¾…ä¹‹å‰éƒ½å…ˆç­‰ä¸€æ¬¡æ¾é”®ï¼ˆD90ï¼‰
+[PASS] A14 v4.8 è·¯å¾„å¯ç§»æ¤ï¼šæ©è”½çº¹ç†æŒ‰ç¨‹åºç›®å½•è§£æã€å¯åŠ¨å³è‡ªæ£€ 10 å¼  PNGï¼ˆD92ï¼‰
+[PASS] A15 v4.9 ç»ƒä¹ æ®µ 4 è¯•æ¬¡å…œåº•ï¼šP=0 ç»„ä¹Ÿè¦ç»ƒä¹ ï¼ˆD93ï¼‰
+[PASS] B B20 åˆ¤æ®ä»åœ¨é©±åŠ¨é‡Œï¼ˆåˆºæ¿€æœŸå†…æŒ‰é”®èµ°å¤Ÿäº†æˆªæ–­åˆ†æ”¯ï¼‰
+[PASS] B B21 åˆ¤æ®ä»åœ¨é©±åŠ¨é‡Œï¼ˆæˆªæ–­è¡Œçš„ stimulus_dur_actual â‰ˆ RTï¼‰
+[PASS] B B22 åˆ¤æ®ä»åœ¨é©±åŠ¨é‡Œï¼ˆå‡¡æœ‰ RT çš„è¡Œå¿…ä¸ºæ­£ï¼‰
+[PASS] B B23 åˆ¤æ®ä»åœ¨é©±åŠ¨é‡Œï¼ˆRT æœ‰æ— ä¸ responded_by_deadline ä¸€è‡´ï¼‰
+[PASS] B24 æ¡©ç›®å½• 24 ä¸ªæ–‡ä»¶
+[PASS] B25 äº§ç‰©è¢«æ¬å‡ºç¨‹åºç›®å½•ï¼ˆé¿å…ä¸çœŸå®æ•°æ®æ··ï¼‰
+[PASS] B26 é©±åŠ¨æ—¥å¿—èµ° UTF-8ï¼ˆä¸é  PowerShell é‡å®šå‘ï¼‰
+[PASS] B31 é©±åŠ¨åˆ¤æ®è·Ÿä¸Šç»ƒä¹ å…œåº•ï¼šnExpected = max(4,P) + 576ã€B17 è®¤ practice è¡Œæ•°ï¼ˆD93ï¼‰
+[PASS] B27 tFloor å¥‘çº¦æµ‹è¯•å­˜åœ¨ä¸”åæ¡ç”¨ä¾‹é½ï¼ˆC1â€“C10ï¼‰
+[PASS] B28 æ¡©ç›®å½•å‹åœ¨ PTB ä¹‹å‰ï¼ˆD83dï¼šå¦åˆ™ KbName('f') æ‹¿åˆ° 70ï¼Œf/j æ°¸è¿œåŒ¹é…ä¸ä¸Šï¼‰
+[PASS] B29 å¥‘çº¦æµ‹è¯•ç»“æœå·²è½ç›˜ä¸” pass=10 fail=0
+[PASS] B30 å¯ç§»æ¤æ€§å›å½’å­˜åœ¨ä¸” 6/6 é€šè¿‡ï¼ˆå½“å‰ç›®å½• â‰  ç¨‹åºç›®å½•è·‘æ•´åœºï¼‰
+[PASS] C1 ç»„ 1 å†’çƒŸæ—¥å¿— pass=27 fail=0
+[PASS] C2 ç»„ 2 å†’çƒŸæ—¥å¿— pass=27 fail=0
+[PASS] C3 read_formal_data.py ç«¯åˆ°ç«¯åˆ¤é€šè¿‡ï¼ˆ2 ä¸ªæ–‡ä»¶ï¼‰
+[PASS] C4 äº§ç‰©ç›®å½•é‡Œä¸¤ç»„ CSV/txt éƒ½åœ¨
+[PASS] D1 å»æ‰ä¸€å¤„å…œåº•å A3 ä¼šå¤±è´¥ï¼ˆåä¾‹è‡ªæ£€ï¼‰
+[PASS] D2 å»æ‰ä¸€å¤„ flush å A2 ä¼šå¤±è´¥ï¼ˆåä¾‹è‡ªæ£€ï¼‰
+
+== é€šè¿‡ 34 / æœªé€šè¿‡ 0 ==
+
+=== 6/6 check_manual_d4.py =======================================
+
+[A ç¨‹åº]
+  âœ… P_groups æ°ä¸º D4 çš„ 4 ç»„ [0;8;32;120]
+  âœ… T åä¹‰æ°´å¹³ = 33.33/83.33/149.99/249.98
+  âœ… W åä¹‰æ°´å¹³ = 799.98/1199.9/1799.9
+  âœ… æ¯æ ¼é‡å¤ 12 æ¬¡ï¼ˆnRepï¼‰
+  âœ… 3 ä¸ª blockï¼ˆnumel(W_levels)ï¼‰
+  âœ… æ¯å— 192 è¯•æ¬¡ï¼ˆ4Ã—4Ã—12ï¼‰
+  âœ… è°ƒç”¨ exp_ask_subject_info æ”¶é›†ä¿¡æ¯ï¼ˆv4.3 æŠ½å‡ºæˆå‡½æ•°ï¼Œä¾¿äºæ— å±å¹•è‡ªæµ‹ï¼‰
+  âœ… ç»„åˆ«è¶Šç•Œä¸å†åœ¨å¼¹çª—å¤„ç›´æ¥ error
+  âœ… 25 åˆ—è¡¨å¤´æŒ‰åºé½å…¨
+  âœ… å¤´æ³¨ä¸å†è‡ªç§°ã€Œç»„7=æ— æ©è”½ã€ä¸ºç°è¡Œæ¡ä»¶
+
+[A2 å¼¹çª—å‡½æ•°]
+  âœ… æ–‡ä»¶å­˜åœ¨ä¸”åªæœ‰ä¸€ä¸ªè¿”å›ï¼ˆinfo ç»“æ„ä½“ï¼‰
+  âœ… å†…éƒ¨è°ƒç”¨ exp_check_subject_info é€é¡¹æ ¡éªŒ
+  âœ… éæ³•æ—¶ warndlg æç¤ºåé‡å¡«ï¼ˆä¸ error é€€å‡ºï¼‰
+  âœ… åªæœ‰å–æ¶ˆæ‰ errorï¼ˆå«ã€Œå·²å–æ¶ˆã€ï¼‰
+  âœ… å¡«å®Œå›æ˜¾å¹¶å…è®¸è¾“å…¥ r é‡å¡«
+  âœ… æ”¯æŒ hooks æ³¨å…¥ï¼ˆæ— å±å¹•è‡ªæµ‹ç”¨ï¼‰
+  âœ… è‡ªæµ‹æ–‡ä»¶å­˜åœ¨ä¸”è¦†ç›–ã€Œå¡« 7 è¢«æ‹’ã€è·¯å¾„
+
+[B æ ¡éªŒå‡½æ•°]
+  âœ… é»˜è®¤ P_groups = [0;8;32;120]
+  âœ… ç»„åˆ«è¶Šç•Œæç¤ºå«ã€Œ4 ä¸ª P ç»„ã€
+  âœ… äº”é¡¹ä¿¡æ¯å…¨éƒ¨æ ¡éªŒï¼ˆç¼–å·/æ€§åˆ«/å¹´é¾„/æƒ¯ç”¨æ‰‹ï¼‰
+  âœ… è‡ªæµ‹æ–‡ä»¶å­˜åœ¨ä¸”è¦†ç›–ç»„åˆ«=7
+
+[C æ‰‹å†Œ]
+  âœ… æ ‡é¢˜æ ‡æ˜ D4
+  âœ… å†™æ˜ç»„åˆ«åªæœ‰ 1â€“4
+  âœ… 4 ç»„é€ŸæŸ¥ï¼ˆP0/P8/P32/P120ï¼‰
+  âœ… æ­£å¼è¯•æ¬¡ 576
+  âœ… 3 ä¸ª block Ã— 192
+  âœ… è¡¨å¤´ 25 åˆ—
+  âœ… 25 ä¸ªåˆ—åé€ä¸ªå‡ºç°
+  âœ… å››æ¡£ T çš„ç§’å€¼å¯å‡ºç°
+  âœ… ä¸‰æ¡£ W çš„ç§’å€¼å¯å‡ºç°
+  âœ… å†™æ¸…ã€Œå¡« 7 ä¼šæ€æ ·ï¼ˆæç¤ºå¹¶é‡å¡«ï¼‰ã€
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œ9 æ¡ä»¶ã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œ520 è¯•æ¬¡ã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œ10 ä¸ª blockã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œ16 åˆ—ã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œç»„ 7 ä¸ç»„ 5ã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+  âœ… ä¸å«æ—§ç‰ˆæ®‹ç•™ã€Œæ— æ©è”½ç»„ï¼š7ã€ï¼ˆå†å²è¯´æ˜é™¤å¤–ï¼‰
+
+[D Word]
+  âœ… docx å­˜åœ¨
+  âœ… docx ä¸æ—©äº mdï¼ˆæ”¹å®Œè¦é‡æ–°ç”Ÿæˆï¼‰
+  âœ… docx ä½“ç§¯åˆç†ï¼ˆ>5 KBï¼‰
+
+== å…± 40 é¡¹ï¼šé€šè¿‡ 40 / æœªé€šè¿‡ 0 ==
+âœ… å››ä»½äº§ç‰©å£å¾„ä¸€è‡´ï¼ˆD4ï¼š4 ç»„ã€576 è¯•æ¬¡ã€3 blockã€25 åˆ—ï¼‰
+
+============================================================
+[selftest] all six commands returned 0.
+[selftest] Now check the expected last lines in the table:
+[selftest]   40/0, 51/0, 33/0, SUMMARY pass=27 fail=0, 34/0, 40/0
+============================================================

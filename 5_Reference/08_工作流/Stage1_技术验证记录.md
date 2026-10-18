@@ -353,7 +353,7 @@ python -X utf8 test\check_full_session.py
 | `check_data_accum` | `通过 33 / 未通过 0` | 数据累积与保存：`f` 之后写 `NA` 不崩（D78 的复现）、不等长标签无补齐空格、`data = table()` 等旧写法静态拦下、写 CSV 再读回逐列核对 |
 | `check_manual_d4.py` | `共 40 项：通过 40 / 未通过 0` | 程序常量 / 手册 / Word 版 / 自测**四者口径一致**（4 组、576 试次、3 block、25 列） |
 | `runbatch_full_session(1, 99)` | `SUMMARY pass=27 fail=0` | **整场冒烟**（D79）：用 24 个 PTB 桩在无屏幕环境跑完整场 576 试次，再把产物喂回 `read_formal_data.py`；B20–B23 专钉「刺激期内按键 = min(T, RT)」「无负 RT」「RT 与 responded_by_deadline 一致」 |
-| `check_full_session.py` | `== 通过 32 / 未通过 0 ==` | 上面那次冒烟的**仓库侧**牙齿：程序里三处 v4.5 修正仍在、驱动判据仍在、两组日志 `pass=27 fail=0`、产物已回读通过；含 2 条反例自检，以及 D84 的 B27–B29（tFloor 契约测试三条牙齿） |
+| `check_full_session.py` | `== 通过 34 / 未通过 0 ==` | 上面那次冒烟的**仓库侧**牙齿：程序里三处 v4.5 修正仍在、驱动判据仍在、两组日志 `pass=27 fail=0`、产物已回读通过；含 2 条反例自检，以及 D84 的 B27–B29（tFloor 契约测试三条牙齿） |
 
 六条全过才动机器（另有一条**开发者回归** `check_kq_floor` 见下，不进现场纪律）。任一条 ❌ ⇒ 程序、校验/累积逻辑或手册之一被改过且没同步，**不得**开始正式采集
 （`check_manual_d4.py` 会把不一致项逐条打出来，例如手册里还写着旧版的 520 试次／16 列）。
@@ -365,7 +365,7 @@ python -X utf8 test\check_full_session.py
 另（D78）：v4.3 的数据表用 `table()` 逐行累积，第一个**未响应**试次写 `NA` 就崩（`赋值右侧的值的宽度错误`），
 2026-10-18 实机踩到；v4.4 改为 cell 累积 + 保存时 `cell2table`，由 `check_data_accum` 33/33 钉住。
 另（D79）：v4.4 之前还把抢按当成反应（负 RT）、且逐试次 txt 通道从不 `fclose`；v4.5 修掉，
-由「整场无屏幕冒烟」`runbatch_full_session` 27/27 + `check_full_session.py` 32/32（含 D92 的 A14/B30）钉住。
+由「整场无屏幕冒烟」`runbatch_full_session` 27/27 + `check_full_session.py` 34/34（含 D92 的 A14/B30、D93 的 A15/B31）钉住。
 
 另（D84）：v4.6 的修法只体现在一行 `> tFloor` 上，改回 `>=` 或删掉参数时**整场冒烟照样全绿**
 （桩的按键时刻与铺助线无关）。因此补了一条**契约测试**，它不进现场六条、只在改程序后跑：
@@ -492,7 +492,7 @@ mask_onset_actual == stimulus_onset_actual + stimulus_dur_actual   （容差 1e-
 2. **刺激期结束的粒度**：D5 下"刺激期内按键即结束刺激"，但真正离屏要等下一次 vsync，因此 `stimulus_dur_actual ≈ RT + (0~1) 帧`。这是显示硬件的物理限制，只能记录、不能消除。
 3. **`stimuliFrames` 预绘图循环**（L540 / L867）：把同一张刺激画 `round(T/FlipIntv)` 遍再 `Flip` 一次。实际控制时长的是 `GetSecs` 轮询而不是这个循环，所以它不产生错误，只是**多余**（每试次多若干次绘图调用）。为了让 diff 最小，本轮**未改动**；若实机发现 Flip 时机偏晚，这是第一个该动的地方。
 4. **`waitForSpace` 与 `checkEscape` 仍是 `KbCheck` 忙等**：这些路径与反应采集无关，不影响数据质量，故未改成队列。
-5. **实机证据空缺**：§6 中 `6-B` / `6-C` / `6-D` 已按 **v4.6 那场**（2026-10-18，59.988 Hz，组 2，576 试次）逐项回填（D87），**六张表已齐**：`6-A` 于 D88 回填（控制台确认）、`6-B`–`6-D` 于 D87 按 v4.6 那场回填、`6-E` 于 D89 回填（`check_6e_latency.py` 判）。这是本文件目前唯一的缺口，也是 Stage 1 是否算"完成"的唯一判据。**已缩窄（D67）**：`6-B`–`6-D` 改由 `1_Code/Experiment/exp_Check/check_stage1_acceptance.py` 机器判定（自测 5/5），人手只剩 `6-A` 与 `6-E` 两行 —— 但**这两行不填，Stage 1 仍然不算完成**。
+5. **实机证据空缺（已闭合，2026-10-18）**：§6 中 `6-B` / `6-C` / `6-D` 已按 **v4.6 那场**（2026-10-18，59.988 Hz，组 2，576 试次）逐项回填（D87），**六张表已齐**：`6-A` 于 D88 回填（控制台确认）、`6-B`–`6-D` 于 D87 按 v4.6 那场回填、`6-E` 于 D89 回填（`check_6e_latency.py` 判）。**因此 Stage 1 的「完成」判据已满足**，主计划 §2 该 Stage 状态为 🟢。判据不再靠人算（D67）：`1_Code/Experiment/exp_Check/check_stage1_acceptance.py` 逐条机器判定，`1_Code/Experiment/intake.py` 再把技术层与结构层、一致层合成「这场能不能计入 N」。**仍须人工看的两项**：`6-A`（启动时命令行回显 `掩蔽纹理预加载完成：self 5 张、stranger 5 张`）与现场纸质记录——它们不在数据文件里，只能由执行者截图/签字。
 6. **程序/手册的版本一致性**（D77 新增）：程序改了设计而手册没同步，症状是主试被弹窗拒绝或按旧口径操作——**代码侧任何回归测试都发现不了**。已由 `1_Code/Experiment/exp_matlab/test/check_manual_d4.py`（40/40，程序常量 vs 手册 vs Word 版 vs 自测）守住，但它只覆盖写死的几项（4 组 / 576 试次 / 3 block / 25 列 / 四档 T / 三档 W）；**新增输出列或改组数时必须手工改该检查器**，否则它会静默放行。
 
 

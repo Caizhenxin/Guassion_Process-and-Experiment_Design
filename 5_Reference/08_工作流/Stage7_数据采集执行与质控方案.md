@@ -138,6 +138,7 @@ python 1_Code/Experiment/qc_group.py <采集目录> --out qc_<日期>.md
 | `1_Code/Experiment/qc_group.py` | **本 Stage 的判据实现**（G1–G9 + 处置清单 + Markdown/JSON 报告）。逐被试调用 `analyze_pilot.py` 取 S1/S6 裁决，**不重复实现判据** |
 | `1_Code/Experiment/analyze_pilot.py` | Stage 6 的逐被试技术判据（S1-1 … S6-6），被本脚本复用 |
 | `1_Code/DDM_Core/_scratch/check_qc_group.py` | `qc_group.py` 的**自测**（10 个用例，每个 G 判据与每档处置各至少一例红/绿） |
+| `1_Code/Experiment/intake.py` | **单场入库判定**（D95）：把技术层 + 结构层 + 一致层合成一条命令，判 KEEP / REVIEW / EXCLUDE；**不重写判据**，只调用上面三个工具的函数。自测 `exp_Check/check_intake.py` **14/14** |
 | `1_Code/DDM_Core/_scratch/make_fake_pilot.py` | 合成数据生成器（自测用；5 个缺陷开关） |
 | `1_Code/Experiment/exp_Check/check_consent_pack.py`（**新建**，D82） | 招募/知情同意材料的**判据**（28 项：章节、与 D4 一致的数字、必须保留的提醒、占位符仍在、旧口径禁词）；自测 5/5 |
 | `1_Code/Experiment/analyze_rt_baseline.py`（**新建**，D85） | S6-5 三条阈值的**历史锚点**：在 87 份真人数据上复算 RT 中位 / 正确率 / 过快 / 漏答的分布，报每个阈值会判掉多少份真人，并给待评场次的百分位。判据本身不在这里（在 `analyze_pilot.py`），本工具只出证据。 |
@@ -202,7 +203,7 @@ D4 只有 4 个 P 组，旧手册（v1.2）整本还是 9 条件设计（520 试
 |---|---|---|---|
 | 程序 | `exp_ask_subject_info.m`（新） | 组别只接受 1–4；越界/留空/非整数 ⇒ 弹「4 个 P 组速查」后重填；只有「取消」才终止；回显「groupID ⇒ 本组 P」；确认时可输入 `r` 重填 | `test/check_ask_info.m` **40/40**（含「填 7 → 拒 → 改 1 → 通过」与连续 3 次非法） |
 | 校验 | `exp_check_subject_info.m` | 五项（组别/编号/性别/年龄/惯用手）逐项校验，返回逐条中文说明 | `test/check_input_validation.m` **51/51** |
-| 文档 | `主试培训手册_Exp_Design_Formal.md`（v2.7，421 行）+ `.docx`（18307 B） | 4 组速查、576 试次 / 3 block / 25 列、第 0 节写明「填 7 会被拒绝并要求重填」、第 3.2 节六条自测（含整场冒烟） | `test/check_manual_d4.py` **40/40**（程序常量 vs 手册 vs Word vs 自测） |
+| 文档 | `主试培训手册_Exp_Design_Formal.md`（v2.8，424 行）+ `.docx`（18586 B） | 4 组速查、576 试次 / 3 block / 25 列、第 0 节写明「填 7 会被拒绝并要求重填」、第 3.2 节六条自测（含整场冒烟） | `test/check_manual_d4.py` **40/40**（程序常量 vs 手册 vs Word vs 自测） |
 | **数据写入** | `exp_new_data.m`（新）+ `exp_data_table.m`（新）+ `Exp_Design_Formal.m` v4.4 | 累积容器是 cell（不是 `table()`）；保存时一次性 `cell2table`，char 列转 `string`（去补齐空格）；保存前核对 `size(data,1) == trialIndex-1` | `test/check_data_accum.m` **33/33**（含「先 f 后 NA」崩溃复现、不等长标签、静态守卫、写读回环、按行号写入（F 组）） |
 | **整场冒烟** | `test/stubs/`（24 个 PTB 桩，新）+ `test/run_full_session.m`（新）+ `test/runbatch_full_session.m`（新）+ `Exp_Design_Formal.m` v4.5 | 无屏幕跑完整场（组 1 576 试次 / 组 2 584），再把产物喂回 `read_formal_data.py`；专钉「刺激期内按键 = `min(T, RT)`」「无负 RT」「抢按不算反应」「txt 通道已落盘」 | `test/check_full_session.py` **23/23** + 冒烟自身 **27/27**（两组） |
 
@@ -247,6 +248,7 @@ python -X utf8 test\check_manual_d4.py
 6. 有 EXCLUDE ⇒ 立刻补招；有 REVIEW ⇒ 人工看过再定（**不要批量剔**）。
 7. 组间 N 失衡（某组可用人数明显低）⇒ 优先补该组。
 8. 把每组的 `qc_g<N>.md` **归档**，作为 Stage 9 论文的采集期证据。
+9. **每场交回前先跑一次入库判定**：`python -X utf8 1_Code/Experiment/intake.py <本场目录>`。判 **EXCLUDE** ⇒ 这场不计入 N，先查是程序口径（如 D93 的练习段）还是被试本人，别把不合格场次带到下一轮；判 **REVIEW** ⇒ 逐条看 ❌/🟠 说明后再并入 N；判 **KEEP** 才计样本量。
 
 ---
 

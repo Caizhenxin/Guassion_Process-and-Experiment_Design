@@ -161,6 +161,24 @@ python 1_Code/Experiment/analyze_pilot.py [数据目录 | 文件 ...]
 
 ---
 
+
+### 6.3 达标报告器 `1_Code/Experiment/stage6_report.py`（**零依赖**）
+
+前两个工具各自只回答半边：`analyze_pilot.py` 逐条打印裁决（人来数），`intake.py` 判**单场**能不能计入 N。
+Stage 6 要回答的是「这 N 个人合起来算不算过关、按 §8 走哪条分支」。报告器把它做成一条命令：
+
+```bash
+python -X utf8 1_Code/Experiment/stage6_report.py 1_Code/Experiment/pilot_data --expect-n 8
+```
+
+- **不复用判据实现**：单场裁决调 `intake.audit_one`，逐条 S1/S6 裁决调 `qc_group.run_subject_check`（内部子进程 `analyze_pilot.py`，单一事实来源）。报告器只加**聚合**与 **§8 决策映射**。
+- **汇总口径**：§2 判据计数**只统计 KEEP 场次**。把 EXCLUDE 场次混进去，会把「被试提前退出」显示成「判据普遍失败」，而两者的处置完全相反。
+- **不计入场次仍显形**：§1 的「复核标记／不计入原因」列与 §3 附注会列出它们的非 PASS 裁决——「正式段只有 288 行 + `S6-4` FAIL」这种组合正是**程序缺陷**（缺一档 T）的信号，不能因为排除就看不见。
+- **退出码**：0 = §4 判「可进入 Stage 7」；1 = 有 FAIL 或计入 N 不足；2 = 目录里没有场次。
+- 自测：`python -X utf8 1_Code/Experiment/exp_Check/check_stage6_report.py`（**22/22**，七例：干净 2 人 / 真实 v4.8 场次 / 混放 / `--defect-missing-t` / 空目录 / `--expect-n` 不足 / `--out` 写盘）。
+
+---
+
 ## 7. 工具自测（六例，全部通过）
 
 > 自测在真实数据到手**之前**完成，证明判据实现"该报的会报、不该报的不报"。
@@ -229,8 +247,9 @@ Stage 6 的六条自测（§7）都是**小数据、非 DDM 生成**。为了让
 4. ☐ 按 §3 分配被试到 4 个 P 档（每档 ≥ 1 人）。
 5. ☐ 每名被试跑完整 576 试次；中途退出视为无效，重跑。
 6. ☐ 收集 `exp_group{G}_subject{S}.txt`，与 `EXP_data_group{G}_{S}.csv` 一起归档到 `1_Code/Experiment/pilot_data/`（**新建**，与将来的正式数据分开）。
-7. ☐ 跑分析器：`python 1_Code/Experiment/analyze_pilot.py 1_Code/Experiment/pilot_data`，保存输出日志到 `1_Code/Experiment/pilot_data/analyze_pilot_log.txt`。
-8. ☐ 按 §8 决策，并把结果回填到 §10 指定的三处。
+7. ☐ 跑分析器与报告器：`python -X utf8 1_Code/Experiment/analyze_pilot.py 1_Code/Experiment/pilot_data`（日志存 `pilot_data/analyze_pilot_log.txt`），再跑 `python -X utf8 1_Code/Experiment/stage6_report.py 1_Code/Experiment/pilot_data --expect-n 8 --out 1_Code/Experiment/pilot_data/stage6_report.md`。
+8. ☐ 一条命令跑完全链路（入库 → 达标 → 拟合 → 图 → 结果节骨架）：`python -X utf8 1_Code\Experiment\run_pipeline.py 1_Code\Experiment\pilot_data --profile formal`；只重出图时加 `--reuse-stage8`。用法见 `5_Reference/08_工作流/全流程一键跑通_使用说明.md`。
+9. ☐ 按 §8 决策，并把结果回填到 §10 指定的三处。
 9. ☐ 招募公告、知情同意书、被试登记表、周排期表、开场口述脚本均已就位（见 `Stage6_被试招募与知情同意包.md`，D82）；**同意书签署必须在任何数据产生之前**。
 
 ---
@@ -266,3 +285,5 @@ Stage 6 的六条自测（§7）都是**小数据、非 DDM 生成**。为了让
 | v1 | 2026-10-14 | 新建。把主计划 §3 Stage 6（L297–303）落成可执行方案：N=8 推荐（4 个 P 档 × 2 人）、每人完整 576 试次；9 条事前登记判据（含**新增 S6-2c** 拆分预期性抢按与刺激内累计，解决了"短 T 下 `RT < T` 必然也 < 0.15 s"的概念混淆）；`analyze_pilot.py` + `make_fake_pilot.py` 工具链与**六例自测全部通过**；决策规则、现场清单、回填要求、六条已知限制。 |
 | v1.1 | 2026-10-14 | 补登 **S6-2b**（INFO，不参与裁决）：分析器原已输出该行，§5 判据表与 §6.1 输出清单此前漏列。它是「刺激被提前结束」的**独立口径核对**——用 `stimulus_frames < 名义帧数` 对照 `stimulus_dur_actual < T`，两者不一致即说明两列时间戳之一不可信。同时复跑六例自测，确认在盘代码行为与本文档一致（①1.23%/0.00%、②22.74%/0.00%、③25.54%/**23.85% ⇒ 触发 Stage 8**）。 |
 | v1.2 | 2026-10-17 | 新增 §7.1（真实规模就绪实测，D71）：8 人 × 576 试次 DDM 数据上 S1/S6 全 PASS、0 项 WARN；新增 §11 第 7 条（逐被试判据的复核负担与处置）。 |
+| v1.4 | 2026-10-18 | 新增 §9 第 8 条（D98：`run_pipeline.py` 一条命令跑完全链路，原第 8/9 条顺延）；判据本身未变 |
+| v1.3 | 2026-10-18 | 新增 §6.3 达标报告器 `stage6_report.py`（D96）：把「判据汇总 + §8 决策分支 + 可/不可进 Stage 7」收成一份 Markdown 报告；判据汇总只统计 KEEP 场次，不计入场次的非 PASS 裁决单独显形（附自测 22/22）。§9 现场清单第 7 条改为「分析器 + 报告器」两条命令。 |

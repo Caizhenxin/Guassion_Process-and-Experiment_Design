@@ -147,9 +147,9 @@ PsychLicenseHandling('IsLicensed')  % 查看状态（1 = 已授权）
 | `setup_paths.m` | 配置免费版 PTB（清理旧路径 + mex 置顶 + 自检） |
 | `setup_paths_licensed_master.m` | 原脚本（指向 3.0.20+ 收费版，需许可证） |
 | `ptb_switch_screen.m` | 完整版/轻量版 Screen 一键切换 |
-| `Exp_Design_Formal.m` | 正式实验程序 **v4.8**（掩蔽纹理按程序目录解析、启动自检 10 张 PNG；数据仍写当前目录）（D4：4 个 P 组，全部带掩蔽；组别只接受 1–4；数据累积用 cell，见 D78） |
+| `Exp_Design_Formal.m` | 正式实验程序 **v4.9**（掩蔽纹理按程序目录解析、启动自检 10 张 PNG；数据仍写当前目录；练习段 `max(4, P)`，组 1 也有 4 个兜底练习）（D4：4 个 P 组，全部带掩蔽；组别只接受 1–4；数据累积用 cell，见 D78） |
 | `exp_check_subject_info.m` | 「实验信息」弹窗五项校验（组别越界 ⇒ 提示后重填，不报错退出） |
-| `主试培训手册_Exp_Design_Formal.md` / `.docx` | 主试培训手册（**v2.7**，D4 口径；§3.2 自测改双击 `run_selftest.bat`、§7.w 拷文件夹、§6.6「已知崩溃」、§3 刷新率须 60.004 Hz） |
+| `主试培训手册_Exp_Design_Formal.md` / `.docx` | 主试培训手册（**v2.8**，D4 口径；练习试次 `max(4, P)`；§3.2 自测改双击 `run_selftest.bat`、§7.w 拷文件夹、§6.6「已知崩溃」、§3 刷新率须 60.004 Hz） |
 | `exp_new_data.m` | 逐试次累积容器（**0×25 cell**；不要改回 `table()`，见 D78） |
 | `exp_data_table.m` | 累积 cell → `table` 的一次性转换（char 列转 `string` 去补齐空格） |
 | `test/check_data_accum.m` | 无屏幕自测：数据累积与保存（`通过 33 / 未通过 0`） |

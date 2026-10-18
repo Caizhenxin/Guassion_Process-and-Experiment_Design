@@ -30,9 +30,11 @@ global SMOKE_ANSWER SMOKE_TIME SMOKE_TRIAL SMOKE_FLUSH SMOKE_WARN
 SMOKE_ANSWER = {sprintf('%d', groupID), sprintf('%d', subjectID), '1', '20', '2'};
 SMOKE_TIME = 0; SMOKE_TRIAL = 0; SMOKE_FLUSH = 0; SMOKE_WARN = {};
 
-% 预期行数：P 个练习试次 + 3 block × 192
+% 预期行数：max(4, P) 个练习试次 + 3 block × 192
+%   ★ D93：P=0 组也有 4 个练习试次（设计兜底），旧口径 `P` 会让组1 少算 4 行
 P_groups = [0; 8; 32; 120];
-nExpected = P_groups(groupID) + 3 * 192;
+nPracExpected = max(4, P_groups(groupID));
+nExpected = nPracExpected + 3 * 192;
 
 res = struct('ok', true, 'err', '', 'seconds', NaN, 'csv', '', 'txt', '', ...
              'n_rows', NaN, 'checks', {{}});
@@ -108,7 +110,7 @@ end
 if ~isempty(T) && width(T) > 0
     res.n_rows = height(T);
     vn = T.Properties.VariableNames;
-    C{end+1} = {sprintf('B1 行数 = P + 576 = %d（实测 %d）', nExpected, height(T)), height(T) == nExpected};
+    C{end+1} = {sprintf('B1 行数 = max(4,P) + 576 = %d（实测 %d）', nExpected, height(T)), height(T) == nExpected};
     C{end+1} = {sprintf('B2 列数 = 25（实测 %d）', width(T)), width(T) == 25};
     C{end+1} = {sprintf('B3 列名逐个对上（第 14 列 = %s）', vn{min(14, numel(vn))}), ...
                 isequal(vn, {'groupID','subjectID','gender','age','handedness','stage', ...
@@ -128,11 +130,7 @@ if ~isempty(T) && width(T) > 0
     C{end+1} = {'B9 timeout 出现过 1 也出现过 0', any(T.timeout == 1) && any(T.timeout == 0)};
     C{end+1} = {'B10 responded_by_deadline 出现过 1 也出现过 0', ...
                 any(T.responded_by_deadline == 1) && any(T.responded_by_deadline == 0)};
-    if P_groups(groupID) > 0
-        C{end+1} = {'B11 block 覆盖 0（练习）/1/2/3', isequal(sort(unique(T.block(:))'), [0 1 2 3])};
-    else
-        C{end+1} = {'B11 block 覆盖 1/2/3（组1 无练习）', isequal(sort(unique(T.block(:))'), [1 2 3])};
-    end
+C{end+1} = {'B11 block 覆盖 0（练习）/1/2/3（D93：所有组都有练习段）', isequal(sort(unique(T.block(:))'), [0 1 2 3])};
     C{end+1} = {sprintf('B12 T 只有 4 档（实测 %d 档）', numel(unique(T.T))), numel(unique(T.T)) == 4};
     C{end+1} = {sprintf('B13 W 只有 3 档（实测 %d 档）', numel(unique(T.W))), numel(unique(T.W)) == 3};
     C{end+1} = {'B14 trialID 连续 1..N', isequal(T.trialID(:)', 1:height(T))};
@@ -152,12 +150,10 @@ if ~isempty(T) && width(T) > 0
     C{end+1} = {'B22 凡有 RT 的行必为正（无负 RT）', all(isnan(T.RT) | T.RT > 0)};
     C{end+1} = {'B23 RT 有无与 responded_by_deadline 一致', ...
                 all(isnan(T.RT) == (T.responded_by_deadline == 0))};
-    if P_groups(groupID) > 0
-        C{end+1} = {'B17 stage 同时出现 practice 与 formal', ...
-                    any(string(T.stage) == "practice") && any(string(T.stage) == "formal")};
-    else
-        C{end+1} = {'B17 组1 只有 formal（无练习）', all(string(T.stage) == "formal")};
-    end
+    % ★ D93：所有组都有练习段（P=0 走 4 试次兜底）⇒ practice 行数必须恰为 max(4,P)
+    nPracRows = sum(string(T.stage) == "practice");
+    C{end+1} = {sprintf('B17 练习行数 = max(4,P) = %d（实测 %d）且 stage 两段齐', nPracExpected, nPracRows), ...
+                nPracRows == nPracExpected && any(string(T.stage) == "formal")};
 end
 
 if exist(txtOut, 'file')

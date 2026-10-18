@@ -3874,6 +3874,153 @@ RT<T 43.9% 判成异常（正确定性为「按着玩的试跑」），操纵检
 
 ---
 
+### 8.64 组 1 的「练习段 0 试次」：设计说 4、程序做了 0（2026-10-18，D93）
+
+**现象**：首场真实数据（组 1、P=0、576 行正式）进 `qc_group.py`，G3 报
+「练习段 0 试次 ≠ 应收 4」。其余 8 条判据里 G2/G4 另因「跑了两遍」假红（见 §8.65）。
+
+**谁对谁错**：设计文档与 QC 工具都写「P=0 走 4 个兜底练习」
+（`Stage6_Pilot方案.md:40`、`qc_group.py:232` 的 `p_expect if p_expect else 4`），
+所以**程序错了**：`Exp_Design_Formal.m` 原 `:584 loopCount = P / 4;`、`:587 for k = 1:loopCount`
+⇒ P=0 时 `loopCount = 0`，练习整段被跳过，被试从没看过一次完整流程（含反馈）就进正式。
+
+**修法（v4.9）**：`:594 nPractice = max(4, P);`、`:595 loopCount = nPractice / 4;`。
+`P` 变量本身与 CSV 第 8 列都不改（组 1 仍写 0）——它是**组参数**，不是练习行数；
+练习行数恒为 `max(4, P)` = 4/8/32/120。
+
+**牙齿**：
+- `test/run_full_session.m:36 nPracExpected = max(4, P_groups(groupID));`、
+  `:37 nExpected = nPracExpected + 3 * 192;`；B17 从「组 1 只有 formal」改为 `nPracRows == nPracExpected`；
+- `test/check_full_session.py` **A15**（静态：`nPractice = max(4, P);` 存在、`loopCount = P / 4;` 消失、v4.9 头注）
+  + **B31**（B17 新判据）⇒ **34/34**；
+- 冒烟：组 1 修前 26/27（B17 旧判据红），修后组 1、组 2 各 **27/27**。
+
+**边界**：兜底 4 个试次只保证「被试见过一次完整流程」，不代表学过；
+组 1 的学习量仍来自 60 s 联结学习。另：设计口径是 `max(4, P)`，
+**不是** 4/12/36/124 那种「P+4」。
+
+---
+
+### 8.65 工具自己也会误伤：拿「跑了两遍」当「试次数不符」（2026-10-18，D94）
+
+**现象**：同一场数据的 txt 是 **1152 行 = 576 × 2**，每个 `trialID` 恰出现 2 次，
+CSV 只等于**最后一次**（`fopen(..., 'a+')` 追加写）。`qc_group.py` 首轮据此报
+「G2 正式段 576 试次：1 名不符」+「G4 每 (T,W) 格 48 试次：有被试不符」——
+两处都是把「被试把整场跑了两遍」误读成「程序少存了行」。
+
+**根因**：读 txt 的那一步没有按 `(stage, trialID)` 去重。这是同一个根因的**第五次**触发
+（D81b / D85 / Stage 1 验收 / 本次的 G2、G4）。
+
+**修法**：`qc_group.py::subject_metrics` 在 `rows = ap.row_dicts(...)` 之后建
+`seen[(stage, trialID)] = r`，`rows = list(seen.values())`（保留最后一次，与
+`check_stage1_acceptance.py::dedupe` 同口径），并把 `n_dropped` 写进 `rec`、汇总表加「去重行」列。
+
+**复跑（同一场）**：G2 PASS（576 全部合规）、G4 PASS、G5 PASS（18.8%）、G7 PASS（0.43%）、
+**G3 仍 WARN**（该场确实是 v4.8 产物、0 行练习 ⇒ 真红，正是 §8.64）、
+**G6 FAIL**（正确率 0.440 < 0.55，属被试本身）。
+
+**边界**：去重只解决「同 `trialID` 多行」；一次运行内**确实少行**仍会红——
+所以它是「消除假红」，不是「放宽判据」。
+
+---
+
+### 8.66 一场数据能不能计入 N：三层合成一条命令（2026-10-18，D95）
+
+**问题**：一个场次要判三件事，原先要手工跑三个工具再心算合并——技术层
+（`exp_Check/check_stage1_acceptance.py`，Stage 1 六项）、结构层（`qc_group.py` 的 G2–G9 + 被试处置）、
+一致层（`read_formal_data.py` 的 25 列 / `matchKey` / `P`）。而最容易出事的地方**恰好是合并那一步**：
+D93 的「组 1 练习段 0 试次」和 D94 的「整场跑了两遍」都是单层都看不清、合并时才显形的问题。
+
+**做法**：`1_Code/Experiment/intake.py`（251 行，零依赖）**不重写任何判据**，只 import 那三个模块的既有
+函数。理由写在文件头：D94 的根因就是「把『读行』抄进新工具、却把『去重』留在旧工具里」，所以新工具
+的第一条纪律是**不复制判据**。
+
+| 层 | 硬失败（⇒ EXCLUDE，不计入 N） | 软失败（⇒ REVIEW，进得去分析但要人看） |
+|---|---|---|
+| 技术 | 六项强制项任一 FAIL | 信息项 FAIL |
+| 结构 | `classify` = EXCLUDE；练习段行数 ≠ `max(4, P)`；正式段 < 0.9 × 576 | `classify` = REVIEW |
+| 结构补充 | — | txt 按 `(stage, trialID)` 去重丢弃 > 0 行（整场跑了两遍） |
+| 一致 | `validate()` 报错 | — |
+
+「待复核」不是淘汰（与 `qc_group.py` 同口径）；「不计入」才是淘汰。退出码：0 = 无 EXCLUDE、
+1 = 至少一场 EXCLUDE、2 = 输入不可用（没有可识别的场次）。
+
+**两个自己踩过的坑（都在同一轮修掉）**：
+
+1. **静默挑错文件**。`test/_full_session_out/` 里有一份自测产物 `EXP_data_group1_1.csv`，与用户交付
+   的真实场次**同名**；`find_sessions` 用字典按 `(组, 编号)` 聚合，后写覆盖 ⇒ 报告里那行
+   「正确率 0.485 / timeout 23.4%」其实属于自测件，真实场次被顶掉。修法：同一 `(组, 编号)` 多处快照
+   时**取层级最浅的**，其余进 `shadowed` 并在报告里逐条点名。教训是通用的：**判定器不许静默选数据**。
+2. **拿特征当标量**。`rec.get("P") or []` 触发
+   `ValueError: The truth value of an array with more than one element is ambiguous` —— `load_file`
+   返回的是「列名 → 数组」，`or` 会去求数组真值。改成 `is not None` 判断。
+
+**只有 txt 的场次也判**：合规命名（`exp_group<组>_subject<编号>.txt`）单独存在时，三层都退用 txt 并
+警告一声（CSV 是权威快照，缺少它就没法核「CSV 与 txt 是否一致」）。文件名不合规的一律**不猜**（退出码 2）。
+
+**自测**：`exp_Check/check_intake.py`（183 行，**14/14**）六个用例——真实 v4.8 场次必须判 EXCLUDE 且
+抓到「练习段 0 行」+「去重丢弃 576 行」；v4.9 冒烟产物读到 576 + 4；同名快照选浅层；文件名不合规退出码 2；
+空目录退出码 2；`make_fake_pilot.py` 生成的干净场次必须判 **KEEP**（只会拦的判定器等于没有判定器）。
+
+**实测**：
+
+```
+$ python -X utf8 1_Code/Experiment/intake.py 1_Code/Experiment/exp_matlab
+[1] 组 1 · 被试 1 · EXP_data_group1_1.csv
+    ⚠ 同名快照被忽略（层级更深）：1_Code\Experiment\exp_matlab\test\_full_session_out\EXP_data_group1_1.csv
+    结构：正式 576/576 试次 · 练习 0/4 行 · 去重丢弃 576 行 · 正确率 0.440 · timeout 18.8%
+    ⇒ ❌ **EXCLUDE**
+```
+
+**已知限制**：启动回显（6-A）与现场纸质记录不在数据里，仍需人看；组层 G1/G9 仍要等齐人后跑
+`qc_group.py`（本工具不替代组层报告）。
+
+### 8.67 `stage6_report.py`：Pilot 达标报告器（D96，2026-10-18）
+
+- **它回答什么**：这 N 个人合起来算不算过关、按 `Stage6_Pilot方案.md` §8 该走哪条决策分支、能不能进 Stage 7。
+  `analyze_pilot.py` 逐条打印（人来数）、`intake.py` 判单场、`qc_group.py` 判 Stage 7 组层质量——三者都不是这个问题。
+- **怎么实现的**：单场裁决复用 `intake.audit_one`；逐条 S1/S6 裁决复用 `qc_group.run_subject_check`（内部子进程调 `analyze_pilot.py`）；脚本只加聚合与 §8 决策映射，**不复制任何判据**。
+- **聚合口径**：§2 判据计数只统计 KEEP 场次。混入 EXCLUDE 会把「被试提前退出」写成「判据普遍失败」，而两者的处置完全相反。不计入场次的非 PASS 裁决在 §1 每行与 §3 附注里显形（「正式段 288 行 + `S6-4` FAIL」= 缺一档 T 的程序缺陷）。
+- **输出**：§1 逐场次（判定/正式练习行数/去重/正确率/timeout/复核标记）、§2 判据 × PASS/WARN/FAIL/INFO/未取到、
+  §3 触发分支（含 `S6-2c` ⇒ Stage 8 静态 vs 时变）、§4 结论 + 「复核 ≠ 剔除」提示。退出码 0/1/2。
+- **自测**：`exp_Check/check_stage6_report.py` **22/22**（七例）。其中一个用例本身抓出了我的 fixture 缺陷：
+  混放用例把合成件放组 1，与真实场次的 `(1,1)` 同名，被 intake 的「同 (组,编号) 取最浅层」折叠成 2 场 ——
+  **fixture 的命名空间必须与样本隔离**，否则测的不是你想测的那件事。
+
+### 8.68 效应量验证的分层：G*Power 只管行为层，参数层靠 CRLB，终局靠 Savage–Dickey（D97，2026-10-18）
+
+- **触发**：Stage 5 定稿签批后，用户问「这个效应量要怎么验证，用 G*Power 还是 BF，还是边收数据边算 BF」。
+- **结论**：三者不是备选，各管一层。行为层（人层汇总指标）用 G*Power 敏感性分析；参数层用 CRLB/FIM + 模拟恢复；
+  终局参数证据用 **Savage–Dickey 密度比**（从已有后验抽样算，不做桥采样）；模型层仍用 PSIS-LOO（`LOO → BF` 只能 pseudo-BMA）。
+- **新算的数**：4 组 × 40（N=160）单因素 ANOVA、80% power ⇒ `f_min = 0.264`（η² = 6.5%）；192 人 ⇒ 0.241。
+  方法自检：6 组 × 66 人 ⇒ 0.461，对上旧报告 G*Power 的 0.465（差 0.9%）。
+- **为什么 G*Power 不能定 N**：`beta_ST` 就是反例——行为层可以「显著」，CRLB 与 MLE 却一致说它在 D4 里没有信息（SE/真值 11.7× 与 5.1×）。
+- **裁定**：不做未预注册的顺序 BF 停收（改变的是决策的错误率，而 BF 的容忍性说的是证据；且层级重拟合是数十小时量级）；
+  替代 = 预注册的固定节点 futility；必要时先跑 BFDA 模拟。落点：定稿文档 §5.7 / §6 两条纪律 / §7 ⑩。
+
+### 8.69 全流程一键跑通：`run_pipeline.py`（D98，2026-10-18）
+
+把「这一批数据能不能用 → 达不达标 → 参数与模型比较 → 论文的图与表」收成一条命令，
+每步都调用既有工具（**不复制判据**），只新增编排、出图与结果节骨架。
+
+| 步 | 命令 | 产物 |
+|---|---|---|
+| 1 | `intake.py`（D95） | `intake_report.md`：逐场次 KEEP / REVIEW / EXCLUDE |
+| 2 | `stage6_report.py`（D96） | `stage6_report.md`：S6-1…S6-6 汇总 + §8 决策分支 |
+| 3 | `stage8_run.py`（D72/D74） | `stage8/stage8_group_<组>.json` + `stage8.log` |
+| 4 | `make_figures.py`（D98） | `figures/fig1_behavior_by_P.png`、`fig2_param_recovery.png`、`fig3_model_comparison.png` + `figures_index.md` |
+| 5 | `run_pipeline.py` | `results_skeleton.md`（表已填、论述留 `【待写】`）+ `pipeline_report.md` |
+
+- **实测（合成数据 8 人、quick 配置）**：`M-T1 ELPD -536.7（`p_loo` 10.07、`n_obs` 1119、`k_max` 0.00、`k_diag_ok` None、3 轮 EM）；M-T3 ELPD -537.4（`p_loo` 9.85、`n_obs` 1119、`k_max` 0.00、`k_diag_ok` None、3 轮 EM）`；单模型单人 ≈41 min ⇒
+  8 人 × 2 模型是**小时级批处理**，正式规模按 §11 第 5/12 条留余量。
+- **三个自坑**：① `stage8_run.py` 只吃 txt（CSV 只够过前两步）；② `--profile quick` 的
+  参数不可解释（EM 3 轮远未收敛），`k_diag_ok = false` 时 Δelpd 只能作流程验证；
+  ③ 早前 `make_figures.py` 拿 `fit.covs[s]`（**单个被试**的拉普拉斯协方差）当组层区间，
+  现改为「被试层众数灰点 + 组均值 ± 被试间 SEM」。
+- 换真数据：CSV/txt 放进 `2_Data/Real_Data/<新批次>/`，同一条命令换目录重跑，
+  **不改代码**；目录里没有 `synth_truth.json` 时图里不画真值线、骨架不带合成数据声明。
+- 单独重出图用 `--reuse-stage8`（跳过拟合，只跑第 4、5 步），避免几十小时的重跑。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
@@ -3954,3 +4101,9 @@ RT<T 43.9% 判成异常（正确定性为「按着玩的试跑」），操纵检
 | 74 | ✅ **块首指导语被上一屏的空格穿透（D90，§8.61）**：8 处 `KbCheck` 忙等只判「此刻是否按着」，上一屏确认的空格按住 ≥50 ms 就穿透 ⇒ 指导语一闪而过；新增 `waitForSpaceRelease()`（先等全松，最多 5 s）接入 8 处，程序 **v4.7**；`check_full_session.py` 加 A13 后 **30/30** | `1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`（v4.7，1460 行）、`1_Code/Experiment/exp_matlab/test/check_full_session.py`（30 项） |
 | 75 | ✅ **掩蔽要不要做成因子：不做（D91，§8.62）** | `twophase.py:5-8` 的相位边界在 T、似然里没有 M 参数、掩蔽效力由 `rho` 吸收；加无掩蔽组只买泛化声明，代价是 SE ×1.41 或 33 min 场次；87 份历史 CSV 无 group 7 ⇒ 无免费对照 |
 | 76 | ✅ **路径可移植：程序资源跟程序目录、数据跟当前目录（D92，§8.63）** | 旧版裸文件名 `imread('self10-1.png')` 依赖当前目录，与手册「当前目录 = 数据文件夹」冲突 ⇒ v4.8 改 `progDir = fileparts(mfilename('fullpath'))` + 10 张 PNG 启动自检 + 打印程序/输出目录；`test/check_portability.m` **6/6**（临时目录整场跑通、产物落运行目录、程序目录无残留）、`test/run_selftest.bat`（无绝对路径）、`check_full_session.py` **32/32**、手册 v2.7（§3.2 + §7.w） |
+| 77 | ✅ **组 1 的练习段是 0 试次，而设计说 4（D93，§8.64）** | 程序 v4.9：`nPractice = max(4, P);`、`loopCount = nPractice / 4;`；`P` 与 CSV 第 8 列不变；练习行数 4/8/32/120；`check_full_session.py` A15/B31 ⇒ 34/34，冒烟两组各 27/27。 |
+| 78 | ✅ **`qc_group.py` 把「跑了两遍」判成「试次数不符」（D94，§8.65）** | 按 `(stage, trialID)` 去重、保留最后一次、报「去重行」；复跑 G2/G4/G5/G7 转 PASS；G3 仍 WARN（真红，见 D93）、G6 FAIL（被试本身）。 |
+| 79 | ✅ **一场数据能不能计入 N：三层合成一条命令（D95，§8.66）** | `1_Code/Experiment/intake.py`（251 行，零依赖、只 import 既有判据）把技术层 / 结构层 / 一致层合并判 EXCLUDE·REVIEW·KEEP，退出码 0/1/2；`check_intake.py` **14/14**（含「干净场次必须判 KEEP」）；修掉自己两个坑：**同名快照静默覆盖**（改层级最浅优先 + `shadowed` 点名）、拿 numpy 数组当标量判真值 |
+| 80 | ✅ **Pilot 达标报告器：判据汇总 + §8 决策分支 + 可/不可进 Stage 7（D96，§8.67）** | `1_Code/Experiment/stage6_report.py`（221 行）只做聚合与决策映射：单场裁决复用 `intake`、逐条 S1/S6 裁决复用 `qc_group.run_subject_check`；判据计数只统计 KEEP 场次，不计入场次的非 PASS 裁决单独显形；自测 **22/22**。**尚未做**：Python 侧自测未进 `run_selftest.bat`；无按 P 档的横向比较视图（§3 要求四个 P 档各 ≥1 人） |
+| 81 | ✅ **效应量验证分三层：G\*Power 只管行为层，参数层靠 CRLB，终局靠 Savage–Dickey（D97，§8.68）** | 4 组 × 40 ⇒ `f_min = 0.264`（η² = 6.5%）；`beta_ST` 是「行为显著但参数不可估」的反例。**尚未做**：Savage–Dickey BF 与 BFDA 模拟脚本**都还没写**（当前只有后验抽样与 PSIS-LOO）；定稿文档里的 `f_min` 是本次用非中心 F 复算，未用 G*Power 软件本体 |
+| 82 | ✅ **全流程一键跑通（D98）**：`run_pipeline.py` 串起 intake → stage6 → stage8 → 出图 → 结果节骨架；合成数据 8/8 KEEP；三图 + 骨架已产出 | **尚未做**：`run_pipeline.py` 没有 `check_run_pipeline.py` 自测、也没进 `run_selftest.bat`；Stage 8 的 8 人全量（quick 配置约 5 h）尚未跑完，当前只有组 1（2 人）落盘 |

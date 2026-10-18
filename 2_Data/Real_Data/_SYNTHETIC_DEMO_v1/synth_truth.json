@@ -1,0 +1,169 @@
+{
+  "kind": "SYNTHETIC",
+  "generated_at": "2026-10-18T15:40:34",
+  "generator": "1_Code/DDM_Core/_scratch/_make_ddm_pilot.py",
+  "model": "M-T1（两阶段漂移；相位边界 = T）",
+  "params": {
+    "rho": 0.8,
+    "n_rep": 12,
+    "anticipation": 0.03,
+    "preset": "qc",
+    "seed_base": 100
+  },
+  "group_truth": {
+    "1": {
+      "P_ref": 30.0,
+      "T_ref": 0.1,
+      "W_ref": 1.2,
+      "d_ref": 1.15,
+      "beta_P": 1.5,
+      "tau_P": 30.0,
+      "beta_T": 0.45,
+      "tau_T": 0.08,
+      "shape_model": "lin",
+      "beta_S": 0.25,
+      "beta_SP": 0.0,
+      "beta_ST": 0.05,
+      "w_model": "W1",
+      "a_ref": 1.15,
+      "delta_a": 0.3,
+      "tau_a": 0.7,
+      "t0": 0.18,
+      "z_ratio": 0.5
+    },
+    "2": {
+      "P_ref": 30.0,
+      "T_ref": 0.1,
+      "W_ref": 1.2,
+      "d_ref": 1.15,
+      "beta_P": 1.5,
+      "tau_P": 30.0,
+      "beta_T": 0.45,
+      "tau_T": 0.08,
+      "shape_model": "lin",
+      "beta_S": 0.25,
+      "beta_SP": 0.0,
+      "beta_ST": 0.05,
+      "w_model": "W1",
+      "a_ref": 1.15,
+      "delta_a": 0.3,
+      "tau_a": 0.7,
+      "t0": 0.18,
+      "z_ratio": 0.5
+    },
+    "3": {
+      "P_ref": 30.0,
+      "T_ref": 0.1,
+      "W_ref": 1.2,
+      "d_ref": 1.15,
+      "beta_P": 1.5,
+      "tau_P": 30.0,
+      "beta_T": 0.45,
+      "tau_T": 0.08,
+      "shape_model": "lin",
+      "beta_S": 0.25,
+      "beta_SP": 0.0,
+      "beta_ST": 0.05,
+      "w_model": "W1",
+      "a_ref": 1.15,
+      "delta_a": 0.3,
+      "tau_a": 0.7,
+      "t0": 0.18,
+      "z_ratio": 0.5
+    },
+    "4": {
+      "P_ref": 30.0,
+      "T_ref": 0.1,
+      "W_ref": 1.2,
+      "d_ref": 1.15,
+      "beta_P": 1.5,
+      "tau_P": 30.0,
+      "beta_T": 0.45,
+      "tau_T": 0.08,
+      "shape_model": "lin",
+      "beta_S": 0.25,
+      "beta_SP": 0.0,
+      "beta_ST": 0.05,
+      "w_model": "W1",
+      "a_ref": 1.15,
+      "delta_a": 0.3,
+      "tau_a": 0.7,
+      "t0": 0.18,
+      "z_ratio": 0.5
+    }
+  },
+  "sessions": [
+    {
+      "group": 1,
+      "subject": 1,
+      "file": "exp_group1_subject1.txt",
+      "P": 0,
+      "n_practice": 4,
+      "n_rows": 580,
+      "seed": 101
+    },
+    {
+      "group": 1,
+      "subject": 2,
+      "file": "exp_group1_subject2.txt",
+      "P": 0,
+      "n_practice": 4,
+      "n_rows": 580,
+      "seed": 101
+    },
+    {
+      "group": 2,
+      "subject": 1,
+      "file": "exp_group2_subject1.txt",
+      "P": 8,
+      "n_practice": 8,
+      "n_rows": 584,
+      "seed": 102
+    },
+    {
+      "group": 2,
+      "subject": 2,
+      "file": "exp_group2_subject2.txt",
+      "P": 8,
+      "n_practice": 8,
+      "n_rows": 584,
+      "seed": 102
+    },
+    {
+      "group": 3,
+      "subject": 1,
+      "file": "exp_group3_subject1.txt",
+      "P": 32,
+      "n_practice": 32,
+      "n_rows": 608,
+      "seed": 103
+    },
+    {
+      "group": 3,
+      "subject": 2,
+      "file": "exp_group3_subject2.txt",
+      "P": 32,
+      "n_practice": 32,
+      "n_rows": 608,
+      "seed": 103
+    },
+    {
+      "group": 4,
+      "subject": 1,
+      "file": "exp_group4_subject1.txt",
+      "P": 120,
+      "n_practice": 120,
+      "n_rows": 696,
+      "seed": 104
+    },
+    {
+      "group": 4,
+      "subject": 2,
+      "file": "exp_group4_subject2.txt",
+      "P": 120,
+      "n_practice": 120,
+      "n_rows": 696,
+      "seed": 104
+    }
+  ]
+}

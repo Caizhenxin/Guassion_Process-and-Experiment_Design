@@ -1,7 +1,7 @@
 @echo off
 rem ============================================================
 rem  run_selftest.bat -- six local self-tests, path-independent
-rem  (manual v2.7 / program v4.8 / D92, 2026-10-18)
+rem  (manual v2.8 / program v4.9 / D92+D93, 2026-10-18)
 rem
 rem  Usage: double-click this file, or run: test\run_selftest.bat
 rem  Why it exists: the commands in the manual used absolute paths that
@@ -53,6 +53,6 @@ if "%FAIL%"=="1" (
 )
 echo [selftest] all six commands returned 0.
 echo [selftest] Now check the expected last lines in the table:
-echo [selftest]   40/0, 51/0, 33/0, SUMMARY pass=27 fail=0, 32/0, 40/0
+echo [selftest]   40/0, 51/0, 33/0, SUMMARY pass=27 fail=0, 34/0, 40/0
 echo ============================================================
 exit /b 0

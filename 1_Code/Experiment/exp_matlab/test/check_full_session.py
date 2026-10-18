@@ -3,7 +3,7 @@
 
 它不替代 MATLAB：真正跑整场的是
     matlab -batch "cd('1_Code/Experiment/exp_matlab'); addpath('test'); runbatch_full_session(1, 99);"
-本脚本只负责「四条防线都还在、产物也真的被读通过」，秒级、可进 CI（共 32 项）。
+本脚本只负责「四条防线都还在、产物也真的被读通过」，秒级、可进 CI（共 34 项）。
 
 分组：
   A 程序侧（v4.5 三处 + v4.6 onset 边界修正仍在，且没有回退到旧写法）—— 一律先剥掉注释行再判
@@ -99,6 +99,12 @@ check("A14 v4.8 路径可移植：掩蔽纹理按程序目录解析、启动即�
       and "selfMaskImages = {'self10-1.png'" not in code   # 裸文件名列表必须已消失
       and code.find("progDir = fileparts") < code.find("screenXpixels"))
 
+check("A15 v4.9 练习段 4 试次兜底：P=0 组也要练习（D93）",
+      "★★ v4.9 本次修正" in prog
+      and "nPractice = max(4, P);" in code
+      and "loopCount = nPractice / 4;" in code
+      and "loopCount = P / 4;" not in code)
+
 # ---------------- B 驱动侧 ----------------
 for tag, desc in [
     ("B20", "刺激期内按键走够了截断分支"),
@@ -112,6 +118,12 @@ check("B24 桩目录 24 个文件", nstub == 24, f"实测 {nstub}")
 check("B25 产物被搬出程序目录（避免与真实数据混）",
       "_full_session_out" in runner or "_full_session_out" in batch)
 check("B26 驱动日志走 UTF-8（不靠 PowerShell 重定向）", "UTF-8" in batch)
+
+check("B31 驱动判据跟上练习兜底：nExpected = max(4,P) + 576、B17 认 practice 行数（D93）",
+      "nPracExpected = max(4, P_groups(groupID));" in runner
+      and "nExpected = nPracExpected + 3 * 192;" in runner
+      and 'nPracRows == nPracExpected' in runner
+      and "组1 只有 formal（无练习）" not in runner)
 
 # tFloor 契约测试（D83）：把「onset 之前的键不算反应」钉在可执行断言上
 kq = TEST / "check_kq_floor.m"

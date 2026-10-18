@@ -14,3 +14,10 @@ __pycache__/
 /_scratch
 /4_Reports/Reference
 /.archify
+
+# 流水线重型产物（可重跑生成；数据本身仍在版本库里）
+/2_Data/Real_Data/_SYNTHETIC_DEMO_v1/_stage8_out/
+/2_Data/Real_Data/_SYNTHETIC_DEMO_v1/_pipeline/
+/2_Data/Real_Data/_SYNTHETIC_DEMO_v1/_stage8_run.log
+/2_Data/Real_Data/*/_pipeline/
+/2_Data/Real_Data/*/_stage8_out/

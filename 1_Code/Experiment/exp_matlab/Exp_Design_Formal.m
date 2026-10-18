@@ -144,6 +144,16 @@ Screen('Preference', 'SkipSyncTests', 0);
 InitializeMatlabOpenGL;
 
 %
+% ★★ v4.9 本次修正（2026-10-18，D93：练习段 4 试次兜底）★★
+%   (#1) 练习循环原写 `loopCount = P / 4`。P=0 的组（组1）⇒ loopCount=0 ⇒ 练习段
+%        **整段跳过**，被试从没看过一次「注视点→形状+标签→掩蔽→按键」的完整流程就进正式段。
+%        设计口径是「P=0 走 n_practice = 4 的兜底」（Stage6_Pilot方案.md:40、qc_group.py:232），
+%        抓出这一条的是组级 QC 的 G3（真实实机数据：组1 练习段 0 试次 ≠ 应收 4）。
+%   (#2) 修法：`nPractice = max(4, P)`（练习试次 = 4/8/32/120），`loopCount = nPractice / 4`。
+%        变量 P 本身不改（列 8 仍写 P=0），P 仍是「额外练习试次数」。
+%   (#3) 受影响：组1 的 txt `stage=practice` 行数 0 → 4、总行数 576 → 580；
+%        其余三组不变（8/32/120 都 ≥ 4）。
+%
 % ★★ v4.7 本次修正（2026-10-18，主试实机报告"块首指导语一闪而过"；D90）★★
 %   (#1) 8 处「按空格继续」缺"松键门槛"：这些等待都用 KbCheck 忙等"此刻空格是否按着"，
 %        没有按下沿的概念。相邻两屏（练习结束休息屏 → 块首 C6 指导语）之间只隔一次
@@ -581,7 +591,8 @@ KbQueueStart();
 trialIndex = 1;
 
 % 计算每次循环的试次数量
-loopCount = P / 4; % 计算循环次数（P/4次）
+nPractice = max(4, P);   % ★ D93：P=0 组也要看满 4 个练习试次（设计兜底，非 0）
+loopCount = nPractice / 4; % 计算循环次数（nPractice/4 次，每轮 4 类刺激各一次）
 
 % 循环呈现每个trial
 for k = 1:loopCount  % 循环次数为 P/4

@@ -19,6 +19,18 @@
       W2：名义 1199.9 ms → 72 帧 → 实际 1200.000 ms（偏离 +0.100 ms = +0.01 帧）
       W3：名义 1799.9 ms → 108 帧 → 实际 1800.000 ms（偏离 +0.100 ms = +0.01 帧）
    掩蔽纹理预加载完成：self 5 张、stranger 5 张（Stage 1 修正 #1）
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
    正式阶段：3 个 block × 192 试次 = 576 试次/人
 Data has been saved to EXP_data_group1_99.csv
 长表已关闭并落盘：exp_group1_subject99.txt
