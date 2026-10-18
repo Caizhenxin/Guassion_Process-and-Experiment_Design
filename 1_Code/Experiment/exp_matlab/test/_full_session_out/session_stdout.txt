@@ -1,0 +1,46 @@
+==================================================
+ 请主试核对本次实验信息：
+   被试组别 groupID   = 2   ⇒ 本组 P = 8 个额外练习试次
+   被试编号 subjectID = 99
+   性别(gender)       = 1  [1=女, 2=男]
+   年龄(age)          = 20
+   惯用手(handedness) = 2  [1=左, 2=右]
+ D4 组别速查：组1 P0 ｜ 组2 P8 ｜ 组3 P32 ｜ 组4 P120（4 组全部带掩蔽）
+==================================================
+   D4：P=8 ｜ T 水平 = [33.33 83.33 150 250] ms ｜ W 水平 = [800 1200 1800] ms
+   ── 帧量化核对（FlipIntv = 16.666667 ms，约 60.000 Hz）──
+      T1：名义 33.33 ms → 2 帧 → 实际 33.333 ms（偏离 +0.003 ms = +0.00 帧）
+      T2：名义 83.33 ms → 5 帧 → 实际 83.333 ms（偏离 +0.003 ms = +0.00 帧）
+      T3：名义 149.99 ms → 9 帧 → 实际 150.000 ms（偏离 +0.010 ms = +0.00 帧）
+      T4：名义 249.98 ms → 15 帧 → 实际 250.000 ms（偏离 +0.020 ms = +0.00 帧）
+      W1：名义 800.0 ms → 48 帧 → 实际 800.000 ms（偏离 +0.020 ms = +0.00 帧）
+      W2：名义 1199.9 ms → 72 帧 → 实际 1200.000 ms（偏离 +0.100 ms = +0.01 帧）
+      W3：名义 1799.9 ms → 108 帧 → 实际 1800.000 ms（偏离 +0.100 ms = +0.01 帧）
+   掩蔽纹理预加载完成：self 5 张、stranger 5 张（Stage 1 修正 #1）
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+    square: [1x1 struct]
+    circle: [1x1 struct]
+
+   正式阶段：3 个 block × 192 试次 = 576 试次/人
+Data has been saved to EXP_data_group2_99.csv
+长表已关闭并落盘：exp_group2_subject99.txt

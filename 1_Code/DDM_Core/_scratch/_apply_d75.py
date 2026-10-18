@@ -30,11 +30,11 @@ DECISION = (
     "正定的四个拟合 max\\|θ\\| ≤ 7.3，非正定的三个 33.6 / 62.8 / 97.9 ⇒ 分离 5–40 倍。"
     "④ 代码：`hier.hyper_draws` 新增 `max_abs_theta` 并随结果落盘；`render_group` 的「超参数 Hessian」行"
     "把 `n_flipped` 与「本次抽样 `\\|θ\\|` 最大」并列印（字段缺失时写「未记录」，**不得静默省略**）；"
-    "`check_stage8_run.py` **34 → 36/36**（A13/A13b）。⑤ 正式数据口径：**LOO 可用性只能逐组事后判定**——"
+    "`check_stage8_run.py` **34 → 37/37**（A13/A13b/A14）。⑤ 正式数据口径：**LOO 可用性只能逐组事后判定**——"
     "每组先看 `n_flipped`、特征值谱与 `max_abs_theta`，再决定该组的 `p_loo`/`ELPD` 是否可引用；"
     "论文不得写「~40 人/组时 LOO 可用」。 | 扫描 `_scratch/_probe_hyper_pd.py`（N=2…6）+ "
     "`_scratch/_probe_hyper_pd_n4r4.txt`（加试次）+ `_scratch/_probe_hyper_pd_nscan.txt`；"
-    "自测 `check_stage8_run.py` 36/36（A13/A13b） | D74 的「先查 Hessian」保留不变，但**判据内容补上"
+    "自测 `check_stage8_run.py` 37/37（A13/A13b/A14） | D74 的「先查 Hessian」保留不变，但**判据内容补上"
     "「跑多远」这一栏**；Stage 8 §10 的回填要求新增「逐组先看 n_flipped 与 max_abs_theta」；"
     "任何「人数够了就好」的说法作废 |"
 )
@@ -44,7 +44,7 @@ PROGRESS = (
     "正定/非正定交替（2、3、5 正定；4、6 非正定），N=4 把试次 ×4 后仍非正定（max\\|θ\\| 97.9）⇒ 正定性是"
     "逐次拟合的性质，不是样本量的函数；报告的 Hessian 行改为并列印 `n_flipped` 与 max\\|θ\\|。 | "
     "`1_Code/DDM_Core/hier.py`（`max_abs_theta`）、`stage8_run.py`（Hessian 行）、"
-    "`_scratch/check_stage8_run.py`（36/36，A13/A13b）、`_scratch/_probe_hyper_pd.py`（扫描） | "
+    "`_scratch/check_stage8_run.py`（37/37，A13/A13b/A14）、`_scratch/_probe_hyper_pd.py`（扫描） | "
     "正式数据到手后逐组判定 LOO 可用性；仍等用户侧 Stage 1 实机验收 / Stage 6 Pilot / Stage 7 正式采集 / "
     "定稿签批 |"
 )
@@ -54,13 +54,13 @@ CHANGELOG = (
     "S=2、≈46 试次/人）：2/3/5 正定、4/6 非正定 ⇒ 非单调；② N=4 加试次到 187–191 后仍 1/16 非正定"
     "（max\\|θ\\| 97.9）；③ 失败拟合的 λ_min 可只到 −0.005，故判据补「max\\|θ\\|」一栏（正定 ≤ 7.3 vs 非正定 "
     "33.6–97.9，分离 5–40 倍）；④ `hyper_draws` 增 `max_abs_theta`、报告并列印、"
-    "`check_stage8_run.py` 34 → 36/36。 |"
+    "`check_stage8_run.py` 34 → 37/37（A14 补「不得印空粗体」。 |"
 )
 
 FILE_ROW = (
     "| `1_Code/DDM_Core/_scratch/_probe_hyper_pd.py`（N=2…6 扫描 + N=4 加试次，D75） + "
     "`1_Code/DDM_Core/hier.py`（`max_abs_theta`） + `1_Code/DDM_Core/stage8_run.py`（Hessian 行并列印） + "
-    "`_scratch/check_stage8_run.py`（**36/36**，A13/A13b） | 2026-10-17（D75） |"
+    "`_scratch/check_stage8_run.py`（**37/37**，A13/A13b/A14） | 2026-10-17（D75） |"
 )
 
 S9_ROW = (
@@ -80,8 +80,8 @@ S11_19 = (
 
 VERSION = (
     "| v1.8 | 2026-10-17 | **新增 D75**：超参数 Hessian 正定性非样本量函数（N=2…6 扫描 + N=4 加试次两路实测）；"
-    "`hier.hyper_draws` 增 `max_abs_theta`、§9 的 Hessian 行并列入报告、`check_stage8_run.py` 34 → **36/36**"
-    "（A13/A13b）；§10 回填要求新增「逐组先看 `n_flipped` 与 `max_abs_theta`，再决定 LOO 是否可引用」；"
+    "`hier.hyper_draws` 增 `max_abs_theta`、§9 的 Hessian 行并列入报告、`check_stage8_run.py` 34 → **37/37**"
+    "（A13/A13b/A14）；§10 回填要求新增「逐组先看 `n_flipped` 与 `max_abs_theta`，再决定 LOO 是否可引用」；"
     "§11 加第 19 条 |"
 )
 
@@ -108,7 +108,7 @@ RD_SECTION = (
     "（2 人 S=15 那次）。\n"
     "5. **代码**：`hier.hyper_draws` 增 `max_abs_theta`（随结果落盘）；`render_group` 的 Hessian 行并列印"
     "「`n_flipped`」与「本次抽样 `\\|θ\\|` 最大」（字段缺失写「未记录」）。牙齿 `check_stage8_run.py` "
-    "**34 → 36/36**（A13 必须印、A13b 不得静默省略）。\n"
+    "**34 → 37/37**（A13 必须印、A13b 不得静默省略、A14 不得印空粗体）。\n"
     "6. **口径**：正式数据里 LOO 可用性**只能逐组事后判定**；论文不得写「~40 人/组时 LOO 可用」。"
 )
 
@@ -117,7 +117,7 @@ RD_ITEM = (
     "≈46 试次/人）：2/3/5 正定、4/6 非正定 ⇒ 非单调；N=4 把试次 ×4（187–191）后仍 1/16 非正定、max\\|θ\\| 97.9 "
     "⇒ 加试次也不消除。失败拟合的 `λ_min` 可只到 −0.005（相对 `λ_max` 1e-5）⇒ 符号不说明程度，须与 "
     "`max_abs_theta` 并列报（正定 ≤ 7.3 vs 非正定 33.6–303，分离 5–40 倍）。`hier.hyper_draws` 增 "
-    "`max_abs_theta`、报告 Hessian 行并列印；`check_stage8_run.py` **34 → 36/36**（A13/A13b）。"
+    "`max_abs_theta`、报告 Hessian 行并列印；`check_stage8_run.py` **34 → 37/37**（A13/A13b/A14）。"
     "⚠️ 论文不得写「~40 人/组时 LOO 可用」 |"
 )
 

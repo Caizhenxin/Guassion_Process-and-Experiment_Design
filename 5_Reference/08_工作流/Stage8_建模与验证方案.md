@@ -180,6 +180,7 @@ log_marg = g(x*) + (K/2)·log 2π − 0.5·logdet(−∂²g/∂x²),   g = log p
 | `1_Code/DDM_Core/stage8_run.py --loo-level trial`（D73 ⑧） | 试次层口径**端到端**跑通并落纸：`--synthetic 2 --synth-n-rep 1 --n-em 1 --n-draws 15 --n-x 11 --hyper-method analytic` ⇒ 报告印「LOO 口径 = `trial`」「`n_obs` = 总试次」，`check_loo.py` 26/26（F1–F5）、`check_stage8_run.py` 32/32（E17） | 该次运行 `p_loo/n_obs` = 8.57 / 12.7、`k_max` = 0、越界 0/93 ⇒ 换层本身不保证可用（见下一条 D74） |
 | `1_Code/DDM_Core/_scratch/_probe_hyper_pd.py`（D74） | 同一份代码、只改配置，直接读 `hyper.eigval` 与 θ 的逐维 SD | 正定侧（3 人、`n_em=2`、`n_x=21`、S=20）：min eig **0.026544**、负特征值 **0/16**、θ SD ≤ 3.88、\|θ\| ≤ 9.32 ⇒ 试次层 `p_loo/n_obs` = **0.138**；非正定侧（2 人、`n_em=1`、`n_x=11`、S=15）：2 个负特征值（−0.825 / −0.947）、θ SD 达 **134**、\|θ\| 达 **303** ⇒ `p_loo/n_obs` = 8.57 / 12.7 ⇒ **判据顺序 = 先 `n_flipped`，再看层与比值** |
 | `1_Code/DDM_Core/_scratch/_probe_hyper_pd.py`（D75 扫描） | 同一份代码、只改 N（`n_em=2`、`n_x=21`、S=2、seed 7、≈46 试次/人），读 `hyper.eigval` 与 `max_abs_theta` | N=2 正定（0.0388、0/16、7.0）、N=3 正定（0.0265、0/16、7.3）、N=4 **非正定**（−0.0875、1/16、62.8）、N=5 正定（0.1019、0/16、4.5）、N=6 **非正定**（−0.0051、1/16、33.6）；N=4 加试次到 187–191 仍 1/16 非正定（−0.357、max\|θ\| 97.9、256.4 s）⇒ **正定性逐次拟合而定，非样本量函数** |
+| `1_Code/DDM_Core/stage8_health.py`（D76：组级健康判据） | 扫 `stage8_group_*.json`，把「这组 LOO 能不能引用」收敛成一条命令：三条硬闸（`n_flipped` > 0 / 口径非 trial / `p_loo` 越界·`k_max` 非有限·失败率 > 20% / `n_draws` < 10）+ 两条软告警（`max_abs_theta` ≥ 20 或缺失 ⇒ 按未落盘告警；`0.7 < k_max` ≤ 1.0）+ 混口径 ⇒ 不可比较 | `_scratch/check_stage8_health.py` **27/27 通过**（A 12 项单块判据、B 混口径与渲染、C `--strict`/`--json` 端到端、D 坏输入必须响亮）；实测两组病态缓存都判「⛔ 不可引用」：`stage8_trial_s15`（`n_flipped` 2/16、`p_loo` 797 / `n_obs` 93）、`stage8_d75_gate`（`p_loo` −242.9、`k_max` nan、`max\|θ\|` 269.1） |
 | `1_Code/DDM_Core/_scratch/check_stage8_run.py`（E 组，D66） | 输入契约的回归守卫：E1 理由含 `v4.1`/`HEADER25` 且点名 9 个缺列；E2 CSV ⇒ `SystemExit(2)`；E3 无 txt 目录 ⇒ `SystemExit(2)`；E4 静态三条守卫；E5 正路未被误伤；**E6**（D70）报告表头的「来源」不得硬编码「正式数据」 | 自测 **26/26、未通过 0 项、exit 0**（D68 加 **A11/A12**：非正定必须写「σ 不得解读」+ `floor` + 收敛 σ 区间；正定只报「正定」；D70 加 **E6**） |
 | `1_Code/DDM_Core/stage8_run.py::render_group`（D68） | 每个模型多一行「超参数 Hessian」：正定 ⇒ 报特征值区间 并写「正定」；非正定 ⇒ ⛔「本次的 σ（被试间 SD）不得解读」+ `floor = max(1e-8·max abs(λ), 1e-12)` + `1/floor` + **本次收敛 σ 的末轮区间** | 干跑件实测 M-T1 `n_flipped` = 1/16、eig ∈ [−0.203, 229]、`1/floor` ≈ 4.37e+05、收敛 σ ∈ [0.0127, 2.27e+03]（σ 已无意义）；M-T3 `n_flipped` = 0/14、eig ∈ [0.0199, 231]、σ ∈ [6.65e-06, 2.95] |
 
@@ -189,7 +190,7 @@ log_marg = g(x*) + (K/2)·log 2π − 0.5·logdet(−∂²g/∂x²),   g = log p
 
 ## 10. 正式数据到手后的动作（回填要求）
 
-1. ❗ **先判 LOO 可用性、再谈 ΔELPD（D74/D75）**：每组拟合完，报告里「超参数 Hessian」行若非正定（`n_flipped` > 0）或本次抽样 `\|θ\|` 最大值远大于其余组（实测分离：正定 ≤ 7.3 vs 非正定 33.6–303），则该组的 `p_loo`/`ELPD` **一律不解读**；同时记录特征值谱与 `max_abs_theta`，并在该组报告口径行标注 `--loo-level`。⚠️ 不得因为「每组 ~40 人」就预先承诺 LOO 可用（D75：正定性在 N=2…6 上非单调）。
+1. ❗ **先判 LOO 可用性、再谈 ΔELPD（D74/D75）**：每组拟合完，报告里「超参数 Hessian」行若非正定（`n_flipped` > 0）或本次抽样 `\|θ\|` 最大值远大于其余组（实测分离：正定 ≤ 7.3 vs 非正定 33.6–303），则该组的 `p_loo`/`ELPD` **一律不解读**；同时记录特征值谱与 `max_abs_theta`，并在该组报告口径行标注 `--loo-level`。⚠️ 不得因为「每组 ~40 人」就预先承诺 LOO 可用（D75：正定性在 N=2…6 上非单调）。此外，**拟合完立刻跑** `python -X utf8 1_Code\DDM_Core\stage8_health.py <该组的 --out 目录> --strict`（D76）：有任一组「不可引用」即非零退出，`--json` 留一份机器可读汇总；人读报告与检查器结论不一致时以检查器为准。
 2. 用 `stage8_run.py` 在**每组 ~40 人**上跑全量层级拟合（预计是批处理作业，不是交互式运行）。
 3. 重跑 `check_hier.py` 的 B 组规模（N=40 而非 3），确认 `k_max` 与 `n_k_gt_bad/N` 落在可用区。
 4. 把 §9 的模拟证据替换/补充为正式数据证据，并回填 `工作流_主计划.md`（进度表 + 变更日志 + 证据表）与 `1_Code/DDM_Core/README.md`。
@@ -219,6 +220,7 @@ log_marg = g(x*) + (K/2)·log 2π − 0.5·logdet(−∂²g/∂x²),   g = log p
 17. ❗ **被试层 PSIS-LOO 不可估，不是「被试太少」（D73）**：`p_loo` 在被试层量的是 profile 边际在超参数抽取间的**离散度**，因此随抽样数/尾部荒诞值涨落（D70 的 3 人 × 96 试次给出 496；`_s8run_an` 的 2 人给出**负值**）。⇒ 模型比较用**试次层**矩阵（同批抽取实测 `p_loo/n_obs = 0.138`、`k_max = 0`），被试层留一用 bruteforce（小 N）/ K-fold（大 N）。报告必须同时印 `n_hessian_fail`。
 18. ❗ **「试次层」不是 LOO 可用的充分条件（D74）**：超参数 Hessian 非正定（`n_flipped` > 0）时，抽样里混着 |θ| 达数百的荒诞尾部值 ⇒ 两层都会越界（实测同一份代码：正定配置试次层 `p_loo/n_obs` = 0.138，非正定配置 8.57 / 12.7）。因此引用任何 `p_loo`/`ELPD` 前**必须先报 `n_flipped` 与特征值谱**。
 19. ❗ **不得写「人够了 LOO 就可用」（D75）**：超参数 Hessian 的正定性在 N=2…6 上**非单调**（2/3/5 正定、4/6 非正定），调大每人试次也不消除（N=4：≈46 → 187–191 试次后仍 1/16 非正定、`max|θ|` 从 62.8 升到 97.9）。且失败拟合的 `λ_min` 可只到 −0.005（相对 `λ_max` 约 1e-5）⇒ **符号不说明程度**，必须与 `max_abs_theta` 并列报告。
+20. ❗ **「能不能引用 LOO」有唯一代码出口**（D76）：`stage8_health.py` 的硬闸（`n_flipped` > 0、口径非 trial、`p_loo ∉ [0, n_obs]` 或 `k_max` 非有限或失败率 > 20%、`n_draws` < 10）与软告警（`max_abs_theta` ≥ 20 或缺失、`0.7 < k_max ≤ 1.0`）逐条对应 D73–D75；**同组内混用两种口径 ⇒ 模型比较不成立**。人读报告与跑检查器必须给出同一结论；若不一致，以检查器为准并修报告判词，不得反过来放宽判据。
 
 ---
 
@@ -235,3 +237,4 @@ log_marg = g(x*) + (K/2)·log 2π − 0.5·logdet(−∂²g/∂x²),   g = log p
 | v1.6 | 2026-10-17 | **§7 加「被试层 `p_loo` 是离散度」两条口径（D73）、§9 加 LOO 口径根因探针行、§11 重排编号并加第 17 条（被试层不可估）、`check_loo.py` 17 → 21/21（E1–E4：病态抽样不中断整轮）、`hier.loo_matrix` 容错 + `n_hessian_fail`、`stage8_run.py` 报 `n_degenerate_hessian`** |
 | v1.7 | 2026-10-17 | **试次层 LOO 落成代码**（`--loo-level {participant,trial}`、`hier.loo_matrix_trials`、`compare_models` 层/形状守卫；`check_loo.py` 21 → 26/26、`check_stage8_run.py` 31 → 32/32）；**新增 D74**：超参数 Hessian 正定是前置条件（`render_group` 判词加「非正定 ⇒ `p_loo` 不可解读」，`check_stage8_run.py` 32 → **34/34**）；§7 加「已落成可切换口径」、§9 加两行端到端与正定/非正定对照、§11 加第 18 条 |
 | v1.8 | 2026-10-17 | **新增 D75**：超参数 Hessian 正定性非样本量函数（N=2…6 扫描 + N=4 加试次两路实测）；`hier.hyper_draws` 增 `max_abs_theta`、§9 的 Hessian 行并列入报告、`check_stage8_run.py` 34 → **37/37**（A13/A13b/A14）；§10 回填要求新增「逐组先看 `n_flipped` 与 `max_abs_theta`，再决定 LOO 是否可引用」；§11 加第 19 条 |
+| v1.9 | 2026-10-17 | **新增 D76**：`1_Code/DDM_Core/stage8_health.py`（组级健康判据一键报告：三条硬闸 + 两条软告警 + 混口径判定，`--json`/`--strict`）+ `_scratch/check_stage8_health.py` **27/27**；§10 第 1 条补「拟合完立刻跑 `--strict`」；§11 加第 20 条 |

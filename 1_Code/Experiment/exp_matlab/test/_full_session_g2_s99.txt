@@ -1,0 +1,41 @@
+[PASS] A1 脚本全程无异常
+[PASS] A2 弹窗未被拦下（信息合法，不应提示重填）
+[PASS] A3 CSV 已生成
+[PASS] A4 txt 长表已生成
+[PASS] B1 行数 = P + 576 = 584（实测 584）
+[PASS] B2 列数 = 25（实测 25）
+[PASS] B3 列名逐个对上（第 14 列 = Response）
+[PASS] B4 Response 出现 NA（实测 177 行）
+[PASS] B5 Response 出现 f 与 j
+[PASS] B6 无单元格被补齐空格
+[PASS] B7 Correct 三个分支都被走到（NaN / 0 / 1）
+[PASS] B8 premature_press 出现过 1
+[PASS] B9 timeout 出现过 1 也出现过 0
+[PASS] B10 responded_by_deadline 出现过 1 也出现过 0
+[PASS] B11 block 覆盖 0（练习）/1/2/3
+[PASS] B12 T 只有 4 档（实测 4 档）
+[PASS] B13 W 只有 3 档（实测 3 档）
+[PASS] B14 trialID 连续 1..N
+[PASS] B15 NA 行的 RT 为 NaN
+[PASS] B16 刺激时长非负且 ≤ T
+[PASS] B20 刺激期内按键走够了截断分支（实测 28 行）
+[PASS] B21 截断行的 stimulus_dur_actual ≈ RT（最大差 4.0 ms）
+[PASS] B22 凡有 RT 的行必为正（无负 RT）
+[PASS] B23 RT 有无与 responded_by_deadline 一致
+[PASS] B17 stage 同时出现 practice 与 formal
+[PASS] B18 txt 长表行数 = 表头 1 + 584（实测 585）
+[PASS] B19 txt 表头与 CSV 列名一致
+SUMMARY pass=27 fail=0 seconds=3.1
+
+ans = 
+
+  包含以下字段的 <a href="matlab:helpPopup struct" style="font-weight:bold">struct</a>:
+
+         ok: 1
+        err: ''
+    seconds: 3.1144
+        csv: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\EXP_data_group2_99.csv'
+        txt: 'D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\exp_matlab\exp_group2_subject99.txt'
+     n_rows: 584
+     checks: {1x27 cell}
+

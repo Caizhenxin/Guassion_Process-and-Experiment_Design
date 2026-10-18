@@ -7,7 +7,8 @@
 %         （旧版为 9 条手挑条件、每人只跑一行；本次按 D38 决议改为以 D4 为准）
 % 沿革（相对 experiment_formal_newcon.m 的改动，保留）：
 %   (1) conditions 表增加第 4 列 M（掩蔽开关）：M=1 呈现 200ms 掩蔽图；M=0 掩蔽段翻空白屏 200ms
-%   (2) 组7 由旧版"程序崩溃后接着做"应急行改为【无掩蔽组7】= P8/T100ms/W1100ms/M0
+%   (2) 旧版的"组7=无掩蔽"应急条件在 v4/D4 中已废除：D4 只有 4 个 P 组，12 个
+%       (T,W) 单元全部带掩蔽（见下方"组别速查"与 v4 段）
 %   (3) 程序开头增加主试确认回显，防止填错组别/编号
 %
 % ★★ v3 本次两处修正（其余逻辑、条件表数值、试次数、平衡规则一律未改）★★
@@ -44,6 +45,66 @@
 %        修法：两处数据行格式串的第 9/10 列 %.1f → %.6f（练习段与正式段各一处）。
 %        对 W 无影响（0.8/1.2/1.8 s 用 %.1f 本来就不失真），但一并加宽以保持一致性。
 %        ⚠ 教训：任何"改了单位"的改动都必须回头检查所有格式化输出；这类丢失不报错。
+%
+% ★★ v4.2 本次修正（2026-10-18，主试按旧手册填"组别 7"导致整场报错退出）★★
+%   (#1) 组别输入加固：D4 只有 4 个 P 组，旧版 v3 的"组7=无掩蔽"已废除。旧代码在
+%        groupID 越界时直接 error（错误使用 Exp_Design_Formal / groupID=7 越界），
+%        主试只能重开；现在改为**弹窗内重填**——校验失败弹出说明（含 4 组速查），
+%        关掉后重新弹信息窗，不中断进程；五项信息（组别/编号/性别/年龄/惯用手）
+%        全部校验；点"取消"/关窗是**唯一**会终止的情况（不把 NaN 带进实验）。
+%   (#2) 同时清掉头注里"组7 无掩蔽"的旧说明，并在主试确认回显里打印
+%        "组别 → P"（如 groupID=2 ⇒ P=8），让主试回车前就能看出填错。
+%
+% ★★ v4.3 本次重构（2026-10-18，为了让这条路径能被无屏幕自测覆盖）★★
+%   弹窗 + 校验 + 主试确认的循环从本脚本正文搬到 exp_ask_subject_info.m（本脚本只调用它），
+%   好处：hooks 可以注入假的 inputdlg/warndlg/input，于是「先填 7 被拒 → 改填 1 通过」这条
+%   真实路径能在命令行跑一遍（test/check_ask_info.m，40 项全通过）。脚本正文因此少了约 50 行。
+%   自测入口：
+%     matlab -batch "cd('<仓库>/1_Code/Experiment/exp_matlab'); addpath('test'); check_ask_info"
+%     matlab -batch "cd('<仓库>/1_Code/Experiment/exp_matlab'); addpath('test'); check_input_validation"
+%     python -X utf8 1_Code/Experiment/exp_matlab/test/check_manual_d4.py   % 程序/校验/手册/Word 四者口径
+%     matlab -batch "cd('<仓库>/1_Code/Experiment/exp_matlab'); addpath('test'); check_data_accum"
+%
+% ★★ v4.4 本次修正（2026-10-18，主试实跑第一个 timeout 试次就崩：请修 #1）★★
+%   (#1) 数据累积容器 table → cell。旧代码 `data = table()` 之后逐行 `data{trialIndex,14}=respStr`，
+%        table 的变量类型由**第一次赋值**锁定：第一行写 'f'（宽度 1）就把 Response 固定成
+%        1 字符宽 char 矩阵，第一个 timeout 试次写 'NA'（宽度 2）立刻报
+%        「赋值右侧的值的宽度错误。赋值需要宽度为 1 的值」并整场退出（Screen('CloseAll')）。
+%        次生症状：每加一行都打印「赋值时将各行添加到了表格中，但并未对表格中所有现有的
+%        变量赋值」（主试看到的那 6 条警告），且 table 逐行增长是 O(n^2) 复制。
+%        修法：exp_new_data(25) 建 0×25 cell 累积；保存时 exp_data_table 一次性 cell2table。
+%   (#2) 顺带修掉一个**只在更晚才会暴露**的静默错误：cell2table 会把不等长的字符列用空格
+%        补齐成 char 矩阵（'self' / 'stranger' ⇒ 'self     '），writetable 会把这些补齐空格
+%        原样写进 CSV ⇒ 下游按 'self' 精确匹配失败。exp_data_table 统一把 char 列转
+%        string(cellstr(...))（cellstr 逐行去尾随空格）。
+%   (#3) 保存前增加行数自检：size(data,1) 与 trialIndex-1 不等就 warning（有试次没进内存表）。
+%   ⚠ 教训：**"能跑完全程"不等于"能存下来"**——数据写入路径必须单独自测
+%      （test/check_data_accum.m：混合 f/j/NA 三行 + 不等长 stim 标签 + 静态守卫）。
+%
+% ★★ v4.6 本次修正（2026-10-18，60 Hz 实机数据实测发现；判据见 exp_Check/check_stage1_acceptance.py）★★
+%   (#1) 「onset 之前的按键」会敲掉刺激：注视期抢按是在 kqCountPresses() 处读的，而它到真正的
+%        刺激 onset 之间隔着 Screen('Flip') 的 vsync 等待（最长约一帧）。在这条缝隙里按下的键
+%        不会被抢按计数看到，却会被刺激期的 kqFirstPressUntil 立刻取走 ⇒ 刺激在 0–1 帧内被敲掉
+%        （stimulus_dur_actual 6–14 ms），本试次被误判为漏答 —— 实测 5/576 = 0.87%。
+%        漏答率是本设计的核心因变量，因此必须修，不能当噪声。
+%        修法：kqFirstPressUntil(deadline, tFloor) 只接受 tFloor < t <= deadline 的按键；
+%              四个调用点（练习/正式 × 刺激期/反应窗口）传 stimulusFlipTime 作 tFloor。
+%        这些早于 onset 的键不消费、留在队列里，由下一试次开头的 KbQueueFlush() 清掉。
+%   ⚠ 教训：**"抢按已经被计数"不等于"抢按不会影响反应"**——计数与消费是两件事；
+%      凡是以时间戳划分的窗口，边界都必须用同一个 tFloor 显式裁一次。
+%
+% ★★ v4.5 本次修正（2026-10-18，无屏幕全程冒烟实测发现；跑法与判据见 test/run_full_session.m）★★
+%   (#1) 逐试次 txt 通道写完从不 fclose：`fidTrial = fopen(..., 'a+')` 之后只 fprintf，
+%        保存阶段 movefile 会因文件仍被占用报「无法从源读取」，且缓冲区可能未落盘。
+%        修法：保存阶段先 fclose(fidTrial)（无文件句柄时静默跳过）。
+%   (#2) 注视期抢按被**当成反应**：抢按已记进 premature_press，但那一按仍留在 KbQueue 里，
+%        紧接着的刺激期 kqFirstPressUntil 立刻取到它 ⇒ responseTime = 按键时刻 − 刺激 onset
+%        为**负值**，该行既算"已响应"又让 stimulus_dur_actual 与「按键后下一帧」对不上。
+%        修法：记完 premature_press 立即 KbQueueFlush()（练习段、正式段各一处）。
+%   (#3) 数值兜底：反应时必须严格为正（responseTime <= 0 ⇒ 仍按抢按处理、响应清空），
+%        防止驱动时间戳早于 onset 的极端情况把负 RT 写进数据。
+%   ⚠ 教训：**"能跑完全程 + 能存下来"仍不等于"每一步的数值都对得上"**——
+%      需要一条把产物再喂回 read_formal_data.py 的端到端判据（本次就是它抓出 #2）。
 %
 % 输出列（25 列 = v3 的 16 列 + v4 新增 9 列；练习阶段 block = 0）：
 %   1 groupID  2 subjectID  3 gender  4 age  5 handedness  6 stage  7 trialID
@@ -83,34 +144,23 @@ Screen('Preference', 'SkipSyncTests', 0);
 InitializeMatlabOpenGL;
 
 %% 被试基础信息
-% 初始化一个空的表格
-data = table();
+% 逐试次累积容器：**必须用 cell 而不是 table()**（★ v4.4 / D78）
+% table 的变量类型由第一次赋值锁定：第一行写 'f'（宽度 1）就把 Response 列固化成
+% 1 字符宽，第一个 timeout 试次写 'NA'（宽度 2）会报
+% 「赋值右侧的值的宽度错误。赋值需要宽度为 1 的值」并整场退出（2026-10-18 实机踩到）。
+% cell 不锁宽度；保存时用 exp_data_table 一次性转换。
+data = exp_new_data(25);
 
-% 基本信息收集
-prompt = {'被试组别', '被试编号', '性别[1 = 女, 2 = 男]', '年龄', '惯用手[1 = 左, 2 = 右]'};
-title = '实验信息'; % 标题
-definput = {'','', '','',''};% 默认值
-% 使用 inputdlg 函数弹出对话框，收集数据
-userInput = inputdlg(prompt, title, 1, definput);
+% 基本信息收集（★ v4.2：D4 只有 4 个 P 组，任何一项非法都在弹窗里重填，不再 error 退出）
+P_groups = [0; 8; 32; 120];            % D4 的 4 个组（被试间），按 groupID 取
 
-% 将收集到的数据转换为合适的类型并存入表格
-groupID = str2double(userInput{1});    % 被试组别
-subjectID = str2double(userInput{2});  % 被试编号
-gender = str2double(userInput{3});     % 性别
-age = str2double(userInput{4});        % 年龄
-handedness = str2double(userInput{5}); % 惯用手
-
-% 主试确认回显：核对弹窗填写无误后再继续（填错请 Ctrl+C 终止后重开）
-fprintf('==================================================\n');
-fprintf(' 请主试核对本次实验信息：\n');
-fprintf('   被试组别 groupID   = %d\n', groupID);
-fprintf('   被试编号 subjectID = %d\n', subjectID);
-fprintf('   性别(gender)       = %d  [1=女, 2=男]\n', gender);
-fprintf('   年龄(age)          = %d\n', age);
-fprintf('   惯用手(handedness) = %d  [1=左, 2=右]\n', handedness);
-fprintf(' 确认无误请按回车继续；有误请 Ctrl+C 终止，重新运行。\n');
-fprintf('==================================================\n');
-input('', 's');
+% 弹窗 + 逐项校验 + 主试确认（逻辑见 exp_ask_subject_info.m；无屏幕自测见 test/check_ask_info.m）
+info       = exp_ask_subject_info(P_groups);
+groupID    = info.groupID;
+subjectID  = info.subjectID;
+gender     = info.gender;
+age        = info.age;
+handedness = info.handedness;
 
 %% 屏幕窗口
 % 隐藏鼠标，最后记得取消注释
@@ -221,7 +271,8 @@ strangerMaskImages = {'stranger10-1.png', 'stranger10-2.png', 'stranger10-3.png'
 %   12 个 (T,W) 单元 × 4 类刺激 × 12 次 = 576 试次/人（3 个 block，每块一个 W）
 %   ★ 旧版是 9 条手挑条件、每人只跑一行（P/T/W 三者被试间）——已废弃。
 % =========================================================================
-P_groups = [0; 8; 32; 120];
+% P_groups 已在"被试基础信息"处定义（★ v4.2 提前，供弹窗校验使用）：
+%   P_groups = [0; 8; 32; 120];
 if groupID < 1 || groupID > numel(P_groups)
     error('D4 只有 %d 个 P 组（被试间），groupID=%d 越界。', numel(P_groups), groupID);
 end
@@ -583,6 +634,13 @@ for k = 1:loopCount  % 循环次数为 P/4
         [nPreKey, nPreEsc] = kqCountPresses();
         if nPreEsc > 0, escAbort(); end
         prematurePress = double(nPreKey > 0);
+        if prematurePress > 0
+            % ★ v4.5（D79）：抢按已经记进 premature_press，必须从队列里清掉。
+            %   否则这一按会在下面的刺激期 kqFirstPressUntil 里被当成"反应"，得到
+            %   负的反应时（pressAbs − stimulusFlipTime < 0），并让 stimulus_dur_actual
+            %   与"按键后下一帧"对不上（2026-10-18 无屏幕全程冒烟实测到）。
+            KbQueueFlush();
+        end
 
         % 刷新屏幕并记录刺激呈现时间
         stimulusFlipTime = Screen('Flip', window); % 显示注视点、形状和标签，并记录刺激呈现时间
@@ -593,7 +651,7 @@ for k = 1:loopCount  % 循环次数为 P/4
         responseTime = NaN;   % 反应时 = 按键时刻 − 刺激 onset（秒）
 
         % 2a. 刺激呈现 T：用 KbQueue 采集（刺激期按键从此会被记录，不再丢失）
-        [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + T);
+        [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + T, stimulusFlipTime);   % ★ v4.6：忽略 onset 之前的键
         if nEsc > 0, escAbort(); end
         if ~isempty(respKey)
             response = respKey;                            % 记录按键
@@ -644,7 +702,7 @@ for k = 1:loopCount  % 循环次数为 P/4
         % 等待按键输入或超时：截止 = 刺激 onset + W
         % （若刺激期/掩蔽期已按键，isnan(responseTime) 为假，直接进入反馈）
         if isnan(responseTime)
-            [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + W);
+            [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + W, stimulusFlipTime);   % ★ v4.6：忽略 onset 之前的键
             if nEsc > 0, escAbort(); end
             if ~isempty(respKey)
                 response = respKey;
@@ -653,6 +711,13 @@ for k = 1:loopCount  % 循环次数为 P/4
         end
 
         % ★ v4 修正 #3：判定 timeout / responded_by_deadline（截止之后的按键不算反应）
+        % ★ v4.5（D79）：反应时必须严格为正。驱动时间戳早于刺激 onset 的按键仍属抢按，
+        %   不能算本试次反应（否则 RT 为负，stimulus_dur_actual 也会对不上）。
+        if ~isnan(responseTime) && responseTime <= 0
+            prematurePress = 1;
+            response = NaN;
+            responseTime = NaN;
+        end
         respondedByDeadline = double(~isnan(responseTime) && responseTime <= W);
         timeout = double(~respondedByDeadline);
         if ~respondedByDeadline
@@ -911,6 +976,13 @@ for b = 1:block
             [nPreKey, nPreEsc] = kqCountPresses();
             if nPreEsc > 0, escAbort(); end
             prematurePress = double(nPreKey > 0);
+        if prematurePress > 0
+            % ★ v4.5（D79）：抢按已经记进 premature_press，必须从队列里清掉。
+            %   否则这一按会在下面的刺激期 kqFirstPressUntil 里被当成"反应"，得到
+            %   负的反应时（pressAbs − stimulusFlipTime < 0），并让 stimulus_dur_actual
+            %   与"按键后下一帧"对不上（2026-10-18 无屏幕全程冒烟实测到）。
+            KbQueueFlush();
+        end
 
             % 刷新屏幕并记录刺激呈现时间
             stimulusFlipTime = Screen('Flip', window); % 显示注视点、形状和标签，并记录刺激呈现时间
@@ -921,7 +993,7 @@ for b = 1:block
             responseTime = NaN;   % 反应时 = 按键时刻 − 刺激 onset（秒）
 
             % 2a. 刺激呈现 Ttrial：用 KbQueue 采集（刺激期按键从此会被记录，不再丢失）
-            [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + Ttrial);
+            [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + Ttrial, stimulusFlipTime);   % ★ v4.6：忽略 onset 之前的键
             if nEsc > 0, escAbort(); end
             if ~isempty(respKey)
                 response = respKey;                            % 记录按键
@@ -972,7 +1044,7 @@ for b = 1:block
             % 等待按键输入或超时：截止 = 刺激 onset + Wtrial
             % （若刺激期/掩蔽期已按键，isnan(responseTime) 为假，直接进入反馈）
             if isnan(responseTime)
-                [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + Wtrial);
+                [respKey, respAbs, nEsc] = kqFirstPressUntil(stimulusFlipTime + Wtrial, stimulusFlipTime);   % ★ v4.6：忽略 onset 之前的键
                 if nEsc > 0, escAbort(); end
                 if ~isempty(respKey)
                     response = respKey;
@@ -981,6 +1053,13 @@ for b = 1:block
             end
 
             % ★ v4 修正 #3：判定 timeout / responded_by_deadline（截止之后的按键不算反应）
+            % ★ v4.5（D79）：反应时必须严格为正。驱动时间戳早于刺激 onset 的按键仍属抢按，
+            %   不能算本试次反应（否则 RT 为负，stimulus_dur_actual 也会对不上）。
+            if ~isnan(responseTime) && responseTime <= 0
+                prematurePress = 1;
+                response = NaN;
+                responseTime = NaN;
+            end
             respondedByDeadline = double(~isnan(responseTime) && responseTime <= Wtrial);
             timeout = double(~respondedByDeadline);
             if ~respondedByDeadline
@@ -1140,12 +1219,28 @@ columnNames = {'groupID', 'subjectID', 'gender', 'age', 'handedness', 'stage', '
     'block', 'premature_press', 'timeout', 'responded_by_deadline', ...
     'stimulus_onset_actual', 'stimulus_offset_actual', 'mask_onset_actual', ...
     'stimulus_dur_actual', 'stimulus_frames'};
-data.Properties.VariableNames = columnNames;
+% ★ v4.4：cell → table 一次性转换（char 列转 string，去掉补齐空格；见 exp_data_table.m）
+if size(data, 1) ~= trialIndex - 1
+    warning('Exp_Design_Formal:rowCount', ...
+        '累积 %d 行，但 trialIndex-1 = %d —— 有试次没写进内存表，请检查。', ...
+        size(data, 1), trialIndex - 1);
+end
+dataTable = exp_data_table(data, columnNames);
 % 设置保存文件的路径（根据被试编号命名文件）
 filename = ['EXP_data_group' num2str(groupID) '_' num2str(subjectID) '.csv'];
 % 保存为 CSV 文件
-writetable(data, filename);
+writetable(dataTable, filename);
 disp(['Data has been saved to ', filename]);
+
+% ★ v4.5（D79）：关闭逐试次 txt 通道。
+%   原来 L487 fopen 之后【从不 fclose】，两个后果：
+%   (1) 缓冲区可能还没落盘（MATLAB 直到退出才 flush）⇒ 被试刚做完就想拷走会缺尾部；
+%   (2) Windows 下该文件被本进程独占 ⇒ 主试当场移动/上传/用别的软件打开会报
+%       「无法从源读取」（2026-10-18 无屏幕全程冒烟实测到）。
+if exist('fileID', 'var') && fileID > 0
+    fclose(fileID);
+    fprintf('长表已关闭并落盘：%s\n', fileName);
+end
 
 % 关闭窗口
 try, KbQueueRelease(); catch, end   % ★ v4：释放按键事件队列
@@ -1263,11 +1358,15 @@ function [nKey, nEsc] = kqCountPresses()
     end
 end
 
-function [key, when, nEsc] = kqFirstPressUntil(deadline)
+function [key, when, nEsc] = kqFirstPressUntil(deadline, tFloor)
     % 用 KbQueue 一直等到 GetSecs() >= deadline，返回该区间内【最早】的 f/j 按键
     %   key  : 'f' / 'j'；本区间没有 f/j 则为 ''（空 char）
     %   when : 该按键的【绝对】GetSecs 时间戳（秒）；没有则为 NaN
     %   nEsc : 本区间内 Esc 的按下次数（>0 时由调用方调用 escAbort）
+    %   tFloor: 【可选】下界（绝对 getsecs 秒）。只接受 tFloor < 时间戳 <= deadline 的按键。
+    %           ★ v4.6：反应窗口的物理起点是刺激 onset，而 onset 之前按下的键（注视末梢的抢按，
+    %           隔着一次 vsync 等待才有机会被读到）不属于本试次反应。传 stimulusFlipTime 即可
+    %           把这类键挡在窗口之外，否则它们会把刺激在 0–1 帧内敲掉、把试次变成漏答。
     %
     % 为什么这样写：
     %  (1) KbQueueCheck 返回的是【驱动在按键发生那一刻打的时间戳】，
@@ -1276,12 +1375,13 @@ function [key, when, nEsc] = kqFirstPressUntil(deadline)
     %  (2) 循环退出后【再补读一次】：兜住"刚好在 deadline 之前按下、上一次轮询还没看到"
     %      的那次按键；补读时只接受时间戳 <= deadline 的按键，晚于 deadline 的按键
     %      按定义已经不是本窗口的反应，丢掉即可（本函数是本试次最后一段，不会有下一段要接）。
+    if nargin < 2 || isempty(tFloor), tFloor = -Inf; end
     key = ''; when = NaN; nEsc = 0;
     fCode = KbName('f'); jCode = KbName('j'); escCode = resolveEscKeyCode();
     while GetSecs() < deadline
         [pressed, firstPress] = KbQueueCheck();
         if pressed
-            [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode);
+            [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode, tFloor);
             if nEsc > 0 || ~isempty(key)
                 return
             end
@@ -1290,11 +1390,11 @@ function [key, when, nEsc] = kqFirstPressUntil(deadline)
     end
     [pressed, firstPress] = KbQueueCheck();   % 补读（见上文 (2)）
     if pressed
-        [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode);
+        [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode, tFloor);
     end
 end
 
-function [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode)
+function [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode, tFloor)
     % 在一次 KbQueueCheck 的返回里挑出【最早的 f/j 按键】与 Esc 次数
     key = ''; when = NaN; nEsc = 0;
     idx = find(firstPress > 0);
@@ -1307,7 +1407,7 @@ function [key, when, nEsc] = kqScan(firstPress, deadline, fCode, jCode, escCode)
         if idx(m) == escCode
             nEsc = nEsc + 1;
         elseif isempty(key) && (idx(m) == fCode || idx(m) == jCode) ...
-                && firstPress(idx(m)) <= deadline
+                && firstPress(idx(m)) > tFloor && firstPress(idx(m)) <= deadline
             if idx(m) == fCode
                 key = 'f';
             else

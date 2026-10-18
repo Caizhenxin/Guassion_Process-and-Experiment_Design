@@ -1,0 +1,49 @@
+== check_data_accum：逐试次累积与保存自测（D78）==
+
+[A] 累积容器
+  ✅ A1 exp_new_data(25) 是 0×25 cell
+  ✅ A2 默认参数也是 25 列
+  ✅ A3 不是 table（table 会锁死 char 列宽）
+  ✅ A4 非法列数报错
+
+[B] 崩溃复现：先 'f' 后 'NA'（旧版在这里 error）
+  ✅ B1 第二行写入 'NA' 不报错
+  ✅ B2 内存里 Response 两行分别是 f / NA
+  ✅ B3 转成 table 后 Response 是 string 列
+  ✅ B4 Response 值未被补齐空格
+  ✅ B5 未响应行的 Correct 是 NaN（不是 0）
+
+[C] 不等长文本（'self' / 'stranger'）
+  ✅ C1 Shape 两行原样保留
+  ✅ C2 无尾随空格（长度 4 / 8）
+
+[D] 静态守卫：Exp_Design_Formal.m
+  ✅ D1 找不到 Exp_Design_Formal.m
+  ✅ D2 用 exp_new_data 建容器
+  ✅ D3 不再有 data = table()
+  ✅ D4 不再访问 data.Properties
+  ✅ D5 保存前用 exp_data_table 转换
+  ✅ D6 仍有行数自检 warning
+
+[E] 端到端：3 行 → CSV → readtable
+  ✅ E1 CSV 已生成
+  ✅ E2 读回 3 行 25 列
+  ✅ E3 Response 读回 = j / NA / j
+  ✅ E4 Shape 读回无补空格
+  ✅ E5 第 2 行 Correct 是 NaN
+  ✅ E6 RT 保留数值
+  ✅ E7 CSV 里没有连续空格补位
+
+[F] 实际写入模式：data{trialIndex, c}（v4.4 主程序就这么写）
+  ✅ F1 按行号写入后行数 = 5
+  ✅ F2 行数自检公式成立（size(data,1) == trialIndex-1）
+  ✅ F3 没有空单元格（自动扩行不留空洞）
+  ✅ F4 cell2table 成功（5×25）
+  ✅ F5 Response = f/NA/f/j/NA
+  ✅ F6 stage 前两行 practice、后三行 formal
+  ✅ F7 写 CSV 再读回 5×25
+  ✅ F8 读回 Response 一致
+  ✅ F9 读回 Shape 无补空格
+
+== 通过 33 / 未通过 0 ==
+✅ 全部通过

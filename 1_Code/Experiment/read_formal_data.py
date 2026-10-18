@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import sys
 from collections import Counter
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -97,6 +98,23 @@ def _s(v: str) -> str:
     return "" if s.lower() in MISSING else s
 
 
+def _sniff_delimiter(header_line: str) -> str:
+    """按首行嗅探分隔符：有制表符 ⇒ txt（逐试次 `fopen` 写出的通道）；
+    否则若含逗号 ⇒ `,`（`cell2table` 快照 CSV，用 `csv.reader` 以正确处理引号）。
+    """
+    if "\t" in header_line:
+        return "\t"
+    if "," in header_line:
+        return ","
+    return "\t"
+
+
+def _split_line(line: str, delim: str) -> list[str]:
+    if delim == ",":
+        return next(csv.reader([line]))
+    return line.split(delim)
+
+
 def read_rows(path: str | Path) -> tuple[list[dict], str]:
     """读一个数据文件，返回（行 dict 列表、表头来源说明）。
 
@@ -108,12 +126,13 @@ def read_rows(path: str | Path) -> tuple[list[dict], str]:
     lines = [ln for ln in text.splitlines() if ln.strip()]
     if not lines:
         return [], "空文件"
-    head = [h.strip() for h in lines[0].split("\t")]
+    delim = _sniff_delimiter(lines[0])
+    head = [h.strip() for h in _split_line(lines[0], delim)]
     n_col = len(head)
     where = "表头匹配 25 列" if tuple(head) == HEADER25 else f"表头 {n_col} 列（非 v4.1）"
     rows = []
     for ln in lines[1:]:
-        parts = ln.split("\t")
+        parts = _split_line(ln, delim)
         if len(parts) != n_col:
             continue
         rows.append(dict(zip(head, parts)))

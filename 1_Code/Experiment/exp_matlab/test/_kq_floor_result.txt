@@ -1,0 +1,11 @@
+SUMMARY pass=10 fail=0
+PASS case1
+PASS case2
+PASS case3
+PASS case4
+PASS case5
+PASS case6
+PASS case7
+PASS case8
+PASS case9
+PASS case10

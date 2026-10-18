@@ -28,7 +28,7 @@
                     （⚠ 短 T 下 RT < T ⇔ RT < 0.15 s，不拆分就会把"短 T 多"误读成"需要时变模型"）
     S6-3 一致性   ：Response 与 RT / responded_by_deadline 自相矛盾的行 = 0
     S6-4 设计完整 ：正式段 4 个 T × 3 个 W 全部出现，且每格试次数 = 4 类 × 12 = 48
-    S6-5 行为量级 ：正确率 0.55–0.98；RT 中位数 0.3–2.0 s；
+    S6-5 行为量级 ：正确率 0.45–0.995（FAIL）/ 0.55–0.98（PASS，其间 WARN）；RT 中位 0.20–2.0 s（FAIL 下界）/ 0.30–2.0 s（PASS 下界）；
                     RT < 0.15 s 的比例 ≤ 10%（**口径：只在 RT ≥ T 的试次里算**）
     S6-6 注视期   ：premature_press 比例 ≤ 10%
 
@@ -38,6 +38,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import re
 import sys
 from pathlib import Path
@@ -56,6 +57,21 @@ N_REP = 12            # 每个 (T,W) 单元每类刺激重复次数
 TRIALS_PER_CELL = N_STIM_KINDS * N_REP   # 48
 
 MISSING = {"", "na", "nan", "n/a", "-", "[]"}
+
+
+def _sniff_delimiter(head: str) -> str:
+    """按首行嗅探分隔符：有制表符 ⇒ 制表符；否则有逗号 ⇒ 逗号（D83b/D83c/D85b 同一个坑）。"""
+    if "\t" in head:
+        return "\t"
+    if "," in head:
+        return ","
+    return "\t"
+
+
+def _split_line(line: str, delim: str) -> list[str]:
+    if delim == "\t":
+        return line.rstrip("\n").split("\t")
+    return next(csv.reader([line]))
 
 
 # --------------------------------------------------------------------------- #
@@ -83,7 +99,9 @@ def read_table(path: Path) -> tuple[list[str], list[list[str]]]:
     `col1..col25`，下游把"正式段试次数"读成 **0**（**不报错，只是所有计数变成 0**）。
     """
     raw = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
-    rows = [ln.rstrip("\n").split("\t") for ln in raw if ln.strip()]
+    body = [ln for ln in raw if ln.strip()]
+    delim = _sniff_delimiter(body[0] if body else "")
+    rows = [_split_line(ln, delim) for ln in body]
     if not rows:
         return [], []
     head = [c.strip().lstrip("\ufeff") for c in rows[0]]
@@ -456,17 +474,37 @@ def main() -> int:
     else:
         rep.out("       （无有效 RT）")
 
-    problems5 = []
-    if not (0.55 <= acc <= 0.98):
-        problems5.append(f"正确率 {acc:.3f} 落在 0.55–0.98 之外")
-    if rts and not (0.30 <= median(rts) <= 2.0):
-        problems5.append(f"RT 中位数 {median(rts):.3f} s 落在 0.3–2.0 s 之外")
+    # ---- S6-5 阈值的历史锚点（D85，2026-10-18）-------------------------------
+    # 参照集：2_Data/Real_Data/UnExtact/emp_data 里 87 份真人逐被试文件（旧设计口径）。
+    #   RT 中位        0.234–0.977 s（q05 0.236、中位 0.552）⇒ 0.30 s 下限会判掉 15/87 = 17.2%
+    #   正确率         0.431–0.988（q05 0.451、中位 0.645）⇒ 0.55 下限会判掉 31/87 = 35.6%
+    #   过快(RT≥T)     0/87 份非零（历史最小 RT 中位 0.234 s）⇒ 10% 上限对真人零误伤
+    # 因此：FAIL 线落在「历史真人从未出现」的位置；0.20–0.30 s / 0.45–0.55 只 WARN
+    #       （这两段历史真人分别占 15/87、31/87，属于「要人看一眼」而不是「数据坏了」）。
+    # 复算这两个比例：python -X utf8 1_Code/Experiment/analyze_rt_baseline.py
+    problems5, warns5 = [], []
+    if acc != acc:
+        warns5.append("无可用正确率，跳过正确率判据")
+    elif acc < 0.45 or acc > 0.995:
+        problems5.append(f"正确率 {acc:.3f} 低于 0.45 或高于 0.995")
+    elif not (0.55 <= acc <= 0.98):
+        warns5.append(f"正确率 {acc:.3f} 落在 0.55–0.98 之外（历史真人 31/87 同在此区间）")
+    if rts:
+        med_rt = median(rts)
+        if med_rt < 0.20 or med_rt > 2.0:
+            problems5.append(f"RT 中位数 {med_rt:.3f} s 低于 0.20 s 或高于 2.0 s")
+        elif med_rt < 0.30:
+            warns5.append(f"RT 中位数 {med_rt:.3f} s 落在 0.20–0.30 s 带（历史真人 15/87 同在此区间）")
+    elif warns5 is not None:
+        warns5.append("无有效 RT，跳过 RT 中位判据")
     if rts_post and too_fast > 0.10:
         problems5.append(f"过快（RT < 0.15 s，仅在 RT ≥ T 的试次里）占 {too_fast:.2%} > 10%")
-    rep.verdict("S6-5", "FAIL" if problems5 else "PASS",
+    verdict5 = "FAIL" if problems5 else ("WARN" if warns5 else "PASS")
+    rep.verdict("S6-5", verdict5,
                 f"正确率 {acc:.3f}；RT 中位 {median(rts):.3f} s；"
                 f"过快 {too_fast:.2%}（口径：RT ≥ T 的 {len(rts_post)} 个试次，判据 ≤ 10%）"
-                + ("；" + "；".join(problems5) if problems5 else "（全部落在合理区间）"))
+                + ("；" + "；".join(problems5 + warns5) if (problems5 or warns5)
+                   else "（全部落在合理区间）"))
 
     # ===================================================================== #
     rep.out("")

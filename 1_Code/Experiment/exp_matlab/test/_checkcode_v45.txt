@@ -1,0 +1,21 @@
+﻿PsychStartup: Environment variable GSTREAMER_1_0_ROOT_MSVC_X86_64 is undefined.
+PsychStartup: Either GStreamer-1.22 MSVC or a later version is not installed at all, or if it is installed, then
+PsychStartup: something is botched. Trying various common locations for the GStreamer runtime to keep going.
+
+PsychStartup: Path to GStreamer runtime is undefined! This probably means that
+PsychStartup: the 64-Bit GStreamer 1.22+ MSVC runtime is not installed.
+PsychStartup: The Psychtoolbox Screen() function will not work at all until you fix
+PsychStartup: this! Read 'help GStreamer' for instructions.
+
+
+PsychStartup: Use of GStreamer disabled or impossible.
+PsychStartup: Only leightweight GStreamer-less Screen() mex file will work.
+L 162 (C 5-22): �޷���������(�Լ�����ĺ������)��
+L 237 (C 5-19): �����ƺ�Ҫ����ÿ��ѭ�������Ĵ�С���뿼�Ƕ��ٶȽ���Ԥ���䡣
+L 242 (C 9-26): �����ƺ�Ҫ����ÿ��ѭ�������Ĵ�С���뿼�Ƕ��ٶȽ���Ԥ���䡣
+L 526 (C 4): ����Ҫ�Ķ��ⶺ�š�
+L 880 (C 5-7): �˹ؼ��ֿ���δ�����ڵ� 1123 ���ϵ�ƥ�� END ���롣
+L 1106 (C 17-29): �����ƺ�Ҫ����ÿ��ѭ�������Ĵ�С���뿼�Ƕ��ٶȽ���Ԥ���䡣
+L 1234 (C 4): ����Ҫ�Ķ��ⶺ�š�
+L 1315 (C 8): ����Ҫ�Ķ��ⶺ�š�
+

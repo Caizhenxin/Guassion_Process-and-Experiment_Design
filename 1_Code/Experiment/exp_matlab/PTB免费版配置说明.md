@@ -147,7 +147,17 @@ PsychLicenseHandling('IsLicensed')  % 查看状态（1 = 已授权）
 | `setup_paths.m` | 配置免费版 PTB（清理旧路径 + mex 置顶 + 自检） |
 | `setup_paths_licensed_master.m` | 原脚本（指向 3.0.20+ 收费版，需许可证） |
 | `ptb_switch_screen.m` | 完整版/轻量版 Screen 一键切换 |
-| `Exp_Design_Formal.m` | 正式实验程序（9 条件：8 掩蔽 + 组7 无掩蔽） |
-| `主试培训手册_Exp_Design_Formal.md` / `.docx` | 主试培训手册 |
+| `Exp_Design_Formal.m` | 正式实验程序 **v4.6**（D4：4 个 P 组，全部带掩蔽；组别只接受 1–4；数据累积用 cell，见 D78） |
+| `exp_check_subject_info.m` | 「实验信息」弹窗五项校验（组别越界 ⇒ 提示后重填，不报错退出） |
+| `主试培训手册_Exp_Design_Formal.md` / `.docx` | 主试培训手册（v2.5，D4 口径；§3.2 六条自测、§6.6「已知崩溃」、§3 刷新率须 60.004 Hz） |
+| `exp_new_data.m` | 逐试次累积容器（**0×25 cell**；不要改回 `table()`，见 D78） |
+| `exp_data_table.m` | 累积 cell → `table` 的一次性转换（char 列转 `string` 去补齐空格） |
+| `test/check_data_accum.m` | 无屏幕自测：数据累积与保存（`通过 33 / 未通过 0`） |
+| `test/check_input_validation.m` | 上述校验的无屏幕自测（51 项） |
+| `test/check_ask_info.m` | 弹窗路径级自测（40 项，填 7 → 拒 → 改 1 → 通过） |
+| `test/stubs/` | **24 个 PTB 桩**（虚拟时钟 + 按键剧本），让主程序在无屏幕、无 PTB 的环境下整场跑完 |
+| `test/run_full_session.m` | 整场冒烟驱动（函数；`run_full_session(groupID, subjectID)`） |
+| `test/runbatch_full_session.m` | 整场冒烟命令行入口（写 UTF-8 日志，末行 `SUMMARY pass=27 fail=0`） |
+| `test/check_full_session.py` | 冒烟判据自检（23 项，含「把修正拿掉必须失败」的反例） |
 | `automation/md_to_docx.py` | 手册 Markdown → Word 转换脚本 |
 | `automation/pe_deps.py` | PE 依赖分析工具（排查 mex 缺 DLL 用） |

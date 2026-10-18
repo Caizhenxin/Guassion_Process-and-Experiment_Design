@@ -29,6 +29,12 @@
     python -X utf8 1_Code/Experiment/exp_Check/check_stage1_acceptance.py <txt...>
     python -X utf8 1_Code/Experiment/exp_Check/check_stage1_acceptance.py --self-test
 
+D81（2026-10-18，用主试 165 Hz 实机产物回放发现）：本检查器原先有 4 处判据只在
+60 Hz 上成立 —— FlipIntv 用 `T/stimulus_frames` 反推（高刷屏低估 4%）、
+`stimulus_frames` 拿名义 T 去比（程序写的是**实际时长**的帧数）、
+`mask−onset−dur` 用 1e-6 容差（实测正好 ±1e-6 的浮点尘土）、6-B 的最小 T 档写死 2/60。
+四处合起来把 165 Hz 实机上的**正常行**判成缺陷。已全部修正。
+
 退出码：0 = 全部强制项通过；1 = 有强制项未通过；2 = 输入不可用（找不到/读不了）。
 `--self-test` 用 `_scratch/make_fake_pilot.py` 造"干净 / 帧量化缺陷 / 缺值与响应矛盾"
 三套数据，验证本检查器**既能放行也能拦住**（只放行不拦住的检查器等于没检查）。
@@ -36,6 +42,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import math
 import subprocess
 import sys
@@ -108,17 +115,54 @@ class Report:
         return "\n".join(out)
 
 
+def sniff_delimiter(header_line: str) -> str:
+    """按首行嗅探分隔符：有制表符按 txt 处理，否则若含逗号按 CSV 处理。
+
+    MATLAB 侧两条通道并存：逐试次 `fopen` 写的是 **制表符** txt，
+    `cell2table` 快照写的是 **逗号** CSV。检查器两种都必须吃（D83）。
+    """
+    if "\t" in header_line:
+        return "\t"
+    if "," in header_line:
+        return ","
+    return "\t"
+
+
+def split_line(line: str, delim: str) -> list[str]:
+    if delim == ",":
+        return next(csv.reader([line]))
+    return line.split(delim)
+
+
 def load_rows(path: Path) -> tuple[list[str], list[dict], bytes]:
     raw = path.read_bytes()
     text = raw.decode("utf-8-sig")
     lines = [ln for ln in text.splitlines() if ln.strip()]
-    header = lines[0].split("\t")
+    delim = sniff_delimiter(lines[0])
+    header = split_line(lines[0], delim)
     rows = []
     for ln in lines[1:]:
-        cells = ln.split("\t")
+        cells = split_line(ln, delim)
         row = {h: (cells[i] if i < len(cells) else "") for i, h in enumerate(header)}
         rows.append(row)
     return header, rows, raw
+
+
+def dedupe(rows: list[dict]) -> tuple[list[dict], int]:
+    """按 `trialID` 去重，**保留最后一次**出现的行；返回 (去重后, 丢弃行数)。
+
+    D81b：txt 通道是 `fopen(...,'a+')` 追加打开的，主试崩溃后重跑会往同一个文件
+    继续写同一批 `trialID`。CSV（`cell2table` 快照）只保留最后一次运行，两者行数
+    不一致时以 CSV 为准。顺序稳定的字典保序 ⇒ 去重后行序不变。
+    """
+    last: dict[str, int] = {}
+    for i, r in enumerate(rows):
+        tid = (r.get("trialID") or "").strip()
+        if tid:
+            last[tid] = i
+    keep = set(last.values())
+    out = [r for i, r in enumerate(rows) if i in keep]
+    return out, len(rows) - len(out)
 
 
 def check_6d(rep: Report, header: list[str], rows: list[dict], raw: bytes):
@@ -171,23 +215,73 @@ def check_6d(rep: Report, header: list[str], rows: list[dict], raw: bytes):
     rep.add("6-D 输出列与缺失值", b"\x00" not in raw, "文件里没有 0x00 字节")
 
 
+# 实验室机刷新率（设计文档 §1 的帧量化表就是按它算的：60.004 Hz / 16.6656 ms）
+EXPECT_HZ = 60.004
+
+
 def estimate_flip(rows: list[dict]) -> float:
-    """由 `T / stimulus_frames` 的中位数反推屏幕 FlipIntv（不依赖启动打印）。"""
-    est = []
+    """由 `stimulus_dur_actual / stimulus_frames` 的中位数反推 FlipIntv。
+
+    ⚠️ D81：不能用 `T / stimulus_frames`。程序第 25 列写的是
+    `round(stimulus_dur_actual / FlipIntv)`（**实际**时长的帧数，含 0~1 帧 vsync
+    余量），不是名义 T 的帧数。用 `T / frames` 反推会系统性低估 FlipIntv
+    （165 Hz 实机：算出 5.83 ms，真值 6.06 ms，低 4%），进而把正常行判成缺陷。
+
+    ⚠️ D87：也不能用 `median(dur / frames)`（D81 的写法）。dur 比名义时长多
+    0~1 帧，这个余量被整份摊进一帧里，T 越小抬得越狠：60.004 Hz 实机实测
+    中位 17.02 ms（真值 16.666 ms，偏 +2.1%）⇒ 读成 58.7 Hz，于是
+    ① 6-C 的 `frames == round(dur/flip)` 把 1 行正常数据判成缺陷；
+    ② 环境门把这块真·60.004 Hz 的屏判成「证据降级」。
+    改为**解约束**（见下），不再依赖任何单一比值。
+    """
+    pts: list[tuple[float, int]] = []
     for r in rows:
-        T = num(r.get("T"))
+        dur = num(r.get("stimulus_dur_actual"))
         fr = num(r.get("stimulus_frames"))
-        if T > 0 and fr >= 1 and math.isfinite(fr):
-            est.append(T / fr)
-    if not est:
+        if dur > 0 and fr >= 1 and math.isfinite(fr):
+            pts.append((dur * 1000.0, int(round(fr))))
+    if not pts:
         return float("nan")
-    est.sort()
-    return est[len(est) // 2]
+    # 网格搜索：真值必须让尽可能多的行满足 round(dur/flip) == frames。
+    # 步长 0.01 ms（对 16.67 ms 是 0.06%），搜索区间 5~25 ms 覆盖 40~200 Hz。
+    best_n: int = -1
+    best: list[float] = []
+    flip_ms = 5.0
+    while flip_ms <= 25.0 + 1e-9:
+        n = sum(1 for d, f in pts if round(d / flip_ms) == f)
+        if n > best_n:
+            best_n, best = n, [flip_ms]
+        elif n == best_n:
+            best.append(flip_ms)
+        flip_ms = round(flip_ms + 0.01, 4)
+    return (best[0] + best[-1]) / 2.0 / 1000.0
+
+
+def check_refresh_rate(rep: Report, flip: float, expect_hz: float) -> bool:
+    """D81c：数据是否来自实验室那块 60.004 Hz 的屏。
+
+    返回 True 表示"可以作为 Stage 1 帧量化证据"。不需要反推得准到小数点后三位——
+    60.004 Hz 与 59.94/60.00/59.95 的差别都在 1% 以内，而临时环境的 165 Hz 差 175%。
+    """
+    if not (flip and math.isfinite(flip) and flip > 0):
+        rep.info("环境门（D81c）", "反推不出刷新率，无法判断这块屏是不是实验室那块")
+        return False
+    hz = 1.0 / flip
+    tol = max(1.0, 0.01 * expect_hz)
+    if abs(hz - expect_hz) <= tol:
+        rep.info("环境门（D81c）", f"刷新率 {hz:.3f} Hz 与实验室口径 {expect_hz:.3f} Hz 相符"
+                                   f"（±{tol:.2f} Hz）⇒ 该数据可作 Stage 1 帧量化证据")
+        return True
+    rep.info("环境门（D81c）",
+             f"证据降级：刷新率 {hz:.3f} Hz ≠ 实验室口径 {expect_hz:.3f} Hz（差 {hz - expect_hz:+.1f} Hz）"
+             " ⇒ **该数据只作「程序能跑通、能出 25 列」的连通性证据，不作 Stage 1 帧量化依据**。"
+             f"实验室机（{expect_hz:.3f} Hz）上重跑一场，才能真正回填 §6 的 6-B/6-C/6-D 三张表。")
+    return False
 
 
 def check_6c(rep: Report, rows: list[dict]) -> float:
     flip = estimate_flip(rows)
-    rep.info("6-C 帧量化（核心）", f"由 `T / stimulus_frames` 反推 FlipIntv ≈ "
+    rep.info("6-C 帧量化（核心）", f"由 `stimulus_dur_actual / stimulus_frames` 反推 FlipIntv ≈ "
              f"{flip * 1000:.3f} ms（{1 / flip:.1f} Hz）" if flip and math.isfinite(flip)
              else "反推不出 FlipIntv（没有可用的 `stimulus_frames`）")
     bad_dur, bad_frames, bad_off, bad_mask = [], [], [], []
@@ -206,20 +300,23 @@ def check_6c(rep: Report, rows: list[dict]) -> float:
         on = num(r.get("stimulus_onset_actual"))
         off = num(r.get("stimulus_offset_actual"))
         mask = num(r.get("mask_onset_actual"))
-        if not (math.isfinite(dur) and abs(dur - T) < flip + TOL):
-            bad_dur.append(f"L{i} |dur−T|={abs(dur - T) * 1000:.2f} ms ≥ 1 帧")
-        if not (math.isfinite(fr) and fr == round(T / flip)):
-            bad_frames.append(f"L{i} frames={fr:g} ≠ round(T/flip)={round(T / flip):g}")
+        # D81：程序的口径是「实际时长 = 名义 T + 0~1 帧 vsync 余量」（Stage1 §7 第 2 条），
+        # 所以容差必须是 1.5 帧；用 1 帧会把 +1 帧的正常行全部判死。
+        if not (math.isfinite(dur) and -0.5 * flip - TOL <= dur - T < 1.5 * flip + TOL):
+            bad_dur.append(f"L{i} (dur−T)/FlipIntv={(dur - T) / flip:+.2f} 帧"
+                           f"（{abs(dur - T) * 1000:.2f} ms）")
+        if not (math.isfinite(fr) and fr == round(dur / flip)):
+            bad_frames.append(f"L{i} frames={fr:g} ≠ round(dur/FlipIntv)={round(dur / flip):g}")
         if not (math.isfinite(off) and math.isfinite(mask) and abs(off - mask) < 1e-6):
             bad_off.append(f"L{i} offset−mask_onset={off - mask:.6g}")
         if not (math.isfinite(mask) and math.isfinite(on) and math.isfinite(dur)
-                and abs(mask - on - dur) < 1e-6):
+                and abs(mask - on - dur) < 1e-5):      # D81：实测差值正好 ±1e-6
             bad_mask.append(f"L{i} mask−onset−dur={mask - on - dur:.6g}")
     rep.add("6-C 帧量化（核心）", not bad_dur,
-            f"无刺激期按键的 {n_checked} 行：|stimulus_dur_actual − T| < 1 帧"
+            f"无刺激期按键的 {n_checked} 行：stimulus_dur_actual − T ∈ [−0.5, +1.5) 帧"
             + ("" if not bad_dur else f"（{len(bad_dur)} 处：{bad_dur[:3]}）"))
     rep.add("6-C 帧量化（核心）", not bad_frames,
-            f"`stimulus_frames == round(T/FlipIntv)`"
+            f"`stimulus_frames == round(stimulus_dur_actual/FlipIntv)`"
             + ("" if not bad_frames else f"（{len(bad_frames)} 处：{bad_frames[:3]}）"))
     rep.add("6-C 帧量化（核心）", not bad_off,
             "`stimulus_offset_actual == mask_onset_actual`"
@@ -227,6 +324,7 @@ def check_6c(rep: Report, rows: list[dict]) -> float:
     rep.add("6-C 帧量化（核心）", not bad_mask,
             "`mask_onset_actual == stimulus_onset_actual + stimulus_dur_actual`"
             + ("" if not bad_mask else f"（{len(bad_mask)} 处：{bad_mask[:3]}）"))
+    check_refresh_rate(rep, flip, EXPECT_HZ)
     return flip
 
 
@@ -234,6 +332,12 @@ def check_6b(rep: Report, rows: list[dict], flip: float):
     if not math.isfinite(flip) or flip <= 0:
         rep.info("6-B KbQueue 刺激期按键", "无法反推 FlipIntv，跳过（先修 6-C）")
         return
+    # D81：最小 T 档不能写死成 2/60（那是 60 Hz 的 2 帧）——165 Hz 下最小档是
+    # 5 帧 = 30.3 ms，写死会让「明明有刺激期内按键」的数据被判成没记到。
+    t_vals = [num(r.get("T")) for r in rows]
+    t_vals = [t for t in t_vals if math.isfinite(t) and t > 0]
+    t_floor = min(t_vals) if t_vals else T_MIN
+
     n_in_stim = 0
     n_tmin = 0
     n_mask_win = 0
@@ -248,16 +352,17 @@ def check_6b(rep: Report, rows: list[dict], flip: float):
             continue
         if rt < T and resp != "NA":
             n_in_stim += 1
-            if abs(T - T_MIN) < 0.5 * flip:
+            if abs(T - t_floor) < 0.5 * flip:
                 n_tmin += 1
         if T < rt <= T + MASK_WIN and resp != "NA":
             n_mask_win += 1
     rep.add("6-B KbQueue 刺激期按键", n_in_stim > 0,
-            f"刺激期内按键被记录：{n_in_stim} 例（其中 `T = 33.33 ms` 档 {n_tmin} 例）"
+            f"刺激期内按键被记录：{n_in_stim} 例"
+            f"（其中最小 T 档 {t_floor * 1000:.2f} ms 有 {n_tmin} 例）"
             + ("" if n_in_stim > 0 else " ⇒ **本次回放没有刺激期内按键**，6-B 无法算通过："
                "请在实机验收时有意识地在该档内按一次"))
     rep.add("6-B KbQueue 刺激期按键", n_tmin > 0,
-            f"`T = 33.33 ms` 档里至少 1 例 `Response` 非 NA 且 `RT < 0.0333`"
+            f"最小 T 档（{t_floor * 1000:.2f} ms）里至少 1 例 `Response` 非 NA 且 `RT < T`"
             f"（实得 {n_tmin} 例）"
             + ("" if n_tmin > 0 else " ⇒ 缺这个证据就说明 2 帧条件的按键没被记到"))
     rep.info("6-B KbQueue 刺激期按键",
@@ -287,6 +392,11 @@ def analyze(files: list[Path]) -> Report:
                     f"{p.name}：表头 25 列一致")
             rep.add("6-D 输出列与缺失值", b"\x00" not in raw,
                     f"{p.name}：无 0x00 字节")
+        rows, n_dup = dedupe(rows)
+        if n_dup:
+            rep.info("0 口径", f"{p.name}：按 `trialID` 去重丢弃 {n_dup} 行"
+                     "（`fopen` 追加写 ⇒ 崩溃重跑会重复写同一批试次；"
+                     "以最后一次出现的行为准，与 CSV 快照一致）")
         all_rows.extend(rows)
 
     if bad_header:
@@ -372,6 +482,27 @@ def self_test() -> int:
                 print(rep.render())
             print(f"  {'✅' if ok else '❌'} {name}：判为未通过、拦住 {key} = "
                   f"{'✅' if hit else '❌'}")
+
+        # 用例（D87）：帧量化反推的稳健性。用**真实实机**的 (dur, frames) 数对
+        # （60.004 Hz 那场，含 0~1 帧 vsync 余量与截断行）。旧的 `median(dur/frames)`
+        # 会给出 17.02 ms（+2.1%）并连带判错 6-C 与环境门；新估计器必须 < 1%。
+        REAL_PAIRS = [(8.336, 1), (25.491, 2), (33.331, 2), (41.664, 3), (42.164, 3),
+                      (58.759, 4), (75.491, 5), (91.241, 5), (149.990, 9),
+                      (158.633, 10), (249.168, 15), (254.879, 15)]
+        flip_true = 1.0 / 60.004
+        pairs_rows = [{"stimulus_dur_actual": str(d / 1000.0),
+                       "stimulus_frames": str(f)} for d, f in REAL_PAIRS]
+        ratios = sorted(d / f for d, f in REAL_PAIRS)
+        naive = ratios[len(ratios) // 2] / 1000.0
+        est = estimate_flip(pairs_rows)
+        rel_new = abs(est - flip_true) / flip_true
+        rel_old = abs(naive - flip_true) / flip_true
+        ok = rel_new < 0.01 and rel_old > 0.015
+        print(f"  {'✅' if ok else '❌'} 帧量化反推稳健性：新估计器 {est * 1000:.3f} ms"
+              f"（偏 {rel_new:+.2%}）｜旧 `median(dur/frames)` {naive * 1000:.3f} ms"
+              f"（偏 {rel_old:+.2%}，需 > 1.5% 才算本用例有牙）")
+        if not ok:
+            fails += 1
     print()
     print(f"自测：{'✅ 全部符合预期（2 例生成缺陷 + 3 例变异都被拦住）' if fails == 0 else f'❌ {fails} 项不符合预期'}")
     return 0 if fails == 0 else 1
@@ -417,10 +548,15 @@ def _mut_nul_byte(src: list[Path], dst: Path):
 
 
 def main() -> int:
+    global EXPECT_HZ          # 允许 --expect-hz 覆盖实验室口径（见 D81c）
     ap = argparse.ArgumentParser(description="Stage 1 实机验收的机器判据（6-B/6-C/6-D）")
     ap.add_argument("txt", nargs="*", help="v4.1 逐被试 txt（可多个）")
+    ap.add_argument("--expect-hz", type=float, default=EXPECT_HZ,
+                    help=f"实验室机刷新率（默认 {EXPECT_HZ} Hz）；数据来自别的屏幕时"
+                         "用来自动标注证据等级")
     ap.add_argument("--self-test", action="store_true", help="用合成数据自测本检查器")
     args = ap.parse_args()
+    EXPECT_HZ = args.expect_hz
     if args.self_test:
         return self_test()
     files = [Path(p) for p in args.txt]
