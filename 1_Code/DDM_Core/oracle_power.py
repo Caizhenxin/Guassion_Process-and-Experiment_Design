@@ -62,7 +62,9 @@ def evaluate(P_levels, n_per_level, n_rep=N_REP):
             TRUTH["tau_P"]]
     for _ in range(n_rep):
         d_hat, s_hat = draw_level_means(P_levels, n_per_level, rng)
-        fit, _ = fit_between(P_arr, d_hat, s_hat, P_COMMON_REF, init)
+        # fit_between 的返回值在 D31 之后是三元组 (out, rms, wrms)；此前写死两个
+        # 变量会在运行时报 "too many values to unpack"（2026-10-20 修）。
+        fit, _rms, _wrms = fit_between(P_arr, d_hat, s_hat, P_COMMON_REF, init)
         for k in GROUP_FIT_NAMES:
             est[k].append(fit[k])
     out = {}

@@ -4108,6 +4108,30 @@ python -X utf8 1_Code/Experiment/scan_min_n.py --n-list 4 --reuse  # 只补缺�
 
 **三条纪律**：合成/模拟结果进方法章不进结果章（`synth_truth.json` + 草稿警示条）；LOO 闸门未过时 Δelpd 只作流程验证（第 3.5 步退出码）；参数显著 ≠ 参数可估（`beta_ST`）、行为显著 ≠ 参数有信息（正确率 0.440 平坦）。
 
+### 8.75 论文级模拟图（D105）
+
+没有真实数据时，能进论文的图只有一种：**由模型假设生成的模拟图**。`1_Code/Experiment/make_sim_figures.py`
+（462 行）一次产出三张 + 索引，全部落在 `5_Reference/03_论文写作/figures_sim/`。
+
+| 图 | 回答什么 | 关键读数 |
+|---|---|---|
+| `fig_sim_crlb.png` | 每组要多少人才能把参数压到 10% | `d_ref` **3**、`beta_T` **41**、`beta_S` **51**、`tau_T` **169**、`delta_a` **658**、`tau_a` **1307**、`beta_ST` **2248**、`a_ref` / `t0` **1** |
+| `fig_sim_p_design.png` | P 水平怎么选 | `beta_P` 判据 0.30：n=12 时 0.243、n=20 时 0.150；`tau_P` 判据 0.50：n=20 时 0.513 ⇒ 40 人/组稳、20 人/组下限 |
+| `fig_sim_trials.png` | 模型能生成什么样的试次数据 | 正确率随 T 从 0.58 升到 0.75、遗漏率随 W 从 0.56 降到 0.20（3 名被试合并） |
+
+三处真值口径必须分清（`figures_index.md` 里也写了）：
+
+* CRLB 图用 `design_fim.TRUTH`（**exp** 形式，`beta_P = 1.5`、`P_ref = 120`）；
+* 试次图用 `design_grid.TRUTH_LIN`（同一设计前提的线性近似，`mapping.match_lin_to_exp` 残差 0.045）；
+* 合成数据集 `_SYNTHETIC_DEMO_v1` 用 `_make_ddm_pilot.QC_TRUTH`（**lin**，`beta_T = 0.45`）⇒ T 的漂移跨度只有 0.098，比设计前提弱 3–4 倍，**恢复验证因此偏保守**。
+
+两条已发现的判据冲突（未决，须与 Stage 9 一起裁定）：设计真值在 P=0 组的漂移≈0.0005 ⇒
+期望正确率 0.50，而 S6-5 的下限是 0.45（首场真实数据 0.440 正落在这一位置）；设计真值的遗漏率
+0.32–0.35 高于 S6-1 的 20%。⇒ **先把「设计真值」与「验收判据」对齐，再谈 Pilot 是否达标**。
+
+自坑一条：`oracle_power.py` 此前跑不起来——`fit, _ = fit_between(...)` 与现在的三元组返回值不符，
+`ValueError` 被当成「工具没写好」。修成 `fit, _rms, _wrms = fit_between(...)`。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
@@ -4198,3 +4222,4 @@ python -X utf8 1_Code/Experiment/scan_min_n.py --n-list 4 --reuse  # 只补缺�
 | 84 | ❌ **未做**：`论文_结果章_模板.md` 尚未真正插入 `5_Reference/03_论文写作/_v3_正文.md`（章号、上下章衔接、表号重编都要人工定）；且模板里的 `【待写】` 10 处没有真实数据可填 | 现在只有模板与自动填表，缺的是「插进正文 + 用真数据填论述」 |
 | 85 | 🟡 **进行中** | D102 的 N=4/8/12 扫描（后台 `pwsh-577`）——结果回填 `2_Data/Real_Data/_SYNTHETIC_SCAN/scan_min_n.md`；「首次转 OK 的 N」写进 D102 ⑥ 与 §8.73 |
 | 86 | ✅ **证据阶梯（D104）** | `Stage8_建模与验证方案.md` §8.1 + 本节 §8.74 + 结果章模板 §9.6 的边界句；**未做**：把阶梯画成图（Mermaid/PNG）放进论文方法章 |
+| 87 | ✅ **论文级模拟图（D105）** | `1_Code/Experiment/make_sim_figures.py`（462 行）+ `5_Reference/03_论文写作/figures_sim/`（三图 + 索引 + 4 份 CSV/JSON）；**未做**：把这套图接进 `run_pipeline.py`（它们是「无数据」产物，不属于流水线）、未做 P 方案的完整设计空间搜索（Stage 9） |
