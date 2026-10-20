@@ -1,1 +1,34 @@
-[]
+[
+ {
+  "n": 4,
+  "group": 1,
+  "status": "BAD",
+  "n_flipped": 1,
+  "n_eig": 16,
+  "p_loo_ratio": 0.0013932950542459542,
+  "k_max": 0.0,
+  "max_abs_theta": 61.205933977099775,
+  "elpd": -1640.4594106284317,
+  "reasons": [
+   "超参数 Hessian 非正定（`n_flipped` = 1/16，D74）"
+  ],
+  "seconds": 6439.7,
+  "wall": 6445.4,
+  "json": "2_Data\\Real_Data\\_SYNTHETIC_SCAN\\n4\\stage8\\stage8_group_1.json"
+ },
+ {
+  "n": 8,
+  "group": 1,
+  "status": "OK",
+  "n_flipped": 0,
+  "n_eig": 16,
+  "p_loo_ratio": 0.001142117046069907,
+  "k_max": 0.0,
+  "max_abs_theta": 4.03238610306744,
+  "elpd": -3526.441321607768,
+  "reasons": [],
+  "seconds": 9194.6,
+  "wall": 9200.2,
+  "json": "2_Data\\Real_Data\\_SYNTHETIC_SCAN\\n8\\stage8\\stage8_group_1.json"
+ }
+]
