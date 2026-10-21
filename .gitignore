@@ -21,3 +21,9 @@ __pycache__/
 /2_Data/Real_Data/_SYNTHETIC_DEMO_v1/_stage8_run.log
 /2_Data/Real_Data/*/_pipeline/
 /2_Data/Real_Data/*/_stage8_out/
+
+# 本地截图/浏览器临时目录
+1_Code/DDM_Core/_scratch/_edgeprof/
+1_Code/DDM_Core/_scratch/_*.png
+1_Code/DDM_Core/_scratch/_*.pdf
+

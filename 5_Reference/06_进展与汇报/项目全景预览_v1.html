@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>项目全景预览 v1 · 自我匹配任务的证据积累建模</title>
+<style>
+:root{--ink:#1a1d21;--dim:#5b6470;--line:#e3e7ee;--bg:#fbfcfe;--accent:#1f5fd6;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+ font:16px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px 80px}
+header.hero{background:linear-gradient(135deg,#12213f,#1f5fd6 70%,#3f8cff);color:#fff;
+ padding:52px 28px 40px;margin-bottom:26px}
+header.hero .inner{max-width:1000px;margin:0 auto}
+header.hero h1{margin:0 0 10px;font-size:30px;letter-spacing:.5px}
+header.hero p{margin:4px 0;color:#dbe6ff;font-size:14.5px}
+.badges{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+ padding:4px 11px;border-radius:999px;font-size:12.5px}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;
+ padding:16px 22px;margin:0 0 26px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+nav.toc b{display:block;font-size:13px;color:var(--dim);letter-spacing:1px;margin-bottom:8px}
+nav.toc a{color:var(--ink);text-decoration:none;font-size:14px;margin-right:14px;line-height:2}
+nav.toc a:hover{color:var(--accent);text-decoration:underline}
+h2{font-size:22px;margin:44px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+h2 .sn{color:var(--accent);font-size:14px;margin-right:10px;font-variant-numeric:tabular-nums}
+h3{font-size:17px;margin:28px 0 10px;color:#12213f}
+p{margin:10px 0}
+code{background:#eef2f9;border:1px solid #e0e7f3;border-radius:5px;padding:1px 5px;
+ font:13px/1.5 "Cascadia Mono",Consolas,monospace;color:#123}
+pre.code{background:#0f172a;color:#e2e8f0;padding:16px 18px;border-radius:12px;overflow:auto;
+ font:13px/1.6 "Cascadia Mono",Consolas,monospace}
+pre.latex{background:#f4f6fb;border:1px dashed #c9d4e8;border-radius:10px;padding:12px 16px;
+ font:12.5px/1.6 Consolas,monospace;color:#405;overflow:auto}
+.tblwrap{overflow:auto;margin:14px 0;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.2px}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f2f5fb;font-weight:600;color:#2b3a55;white-space:nowrap}
+tbody tr:hover{background:#fafcff}
+tr:last-child td{border-bottom:none}
+blockquote{margin:14px 0;padding:12px 18px;background:#f3f7ff;border-left:4px solid var(--accent);
+ border-radius:0 10px 10px 0;color:#2c3b57;font-size:14.6px}
+ul,ol{margin:10px 0 10px 22px}
+li{margin:4px 0}
+hr.sep{border:none;border-top:1px dashed var(--line);margin:34px 0}
+.eq{background:var(--card);border:1px solid var(--line);border-radius:14px;
+ padding:18px 22px;margin:22px 0;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.eq-name{display:inline-block;font-size:11.5px;letter-spacing:.6px;color:#fff;background:var(--accent);
+ padding:2px 9px;border-radius:999px;margin-bottom:12px}
+.fml{font:15.5px/2.1 "Cambria Math",Cambria,"Times New Roman",serif;text-align:center;color:#101a2e}
+.eqnote{margin-top:10px;font-size:13.2px;color:var(--dim);text-align:center}
+.cases{font-size:2.6em;line-height:.7;vertical-align:-.32em;margin-right:4px}
+.casebody{display:inline-block;text-align:left;vertical-align:middle}
+.caserow{display:block;padding:2px 0}
+figure{margin:22px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+figure img{width:100%;display:block;border-radius:8px}
+figcaption{margin-top:10px;font-size:13px;color:var(--dim);text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;
+ background:#e8f2ff;color:#12509b;border:1px solid #cfe2ff}
+.ok{background:#e8f7ee;color:#146c3a;border-color:#c8ecd6}
+.warn{background:#fff6e5;color:#8a5a00;border-color:#ffe3b0}
+.bad{background:#fdeaea;color:#a12626;border-color:#f6cccc}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);
+ color:var(--dim);font-size:13px}
+</style></head>
+<body>
+<header class="hero"><div class="inner">
+<h1>自我匹配任务中的证据积累：项目全景预览</h1>
+<p>2026-10-21 ｜ pipeline-v1.13 ｜ 全部数字可复现（脚本见 §10）</p>
+<div class="badges">
+<span class="badge">4 组 × 4 T × 3 W × 自我/匹配 × 12 = 576 试次/人</span>
+<span class="badge">两阶段 DDM（M-T1）</span>
+<span class="badge">β_T 需 37–43 人/组</span>
+<span class="badge">τ_P / β_ST 不可估</span>
+</div>
+</div></header>
+<div class="wrap">
+<nav class="toc"><b>目录</b><a href="#s1-0-一页摘要" class="lv2">0. 一页摘要</a><a href="#s2-1-研究问题与假设" class="lv2">1. 研究问题与假设</a><a href="#s101-1-1-三个层次的问题" class="lv3">1.1 三个层次的问题</a><a href="#s102-1-2-假设与判定标准" class="lv3">1.2 假设与判定标准</a><a href="#s3-2-实验设计" class="lv2">2. 实验设计</a><a href="#s4-3-计算模型" class="lv2">3. 计算模型</a><a href="#s103-3-1-三层结构" class="lv3">3.1 三层结构</a><a href="#s104-3-2-证据积累-两阶段漂移-m-t1" class="lv3">3.2 证据积累：两阶段漂移（M-T1）</a><a href="#s105-3-3-映射方程" class="lv3">3.3 映射方程</a><a href="#s106-3-4-参数表" class="lv3">3.4 参数表</a><a href="#s107-3-5-生成模型能造什么" class="lv3">3.5 生成模型能造什么</a><a href="#s5-4-可辨识性与样本量" class="lv2">4. 可辨识性与样本量</a><a href="#s108-4-1-解析-crlb-每被试-576-试次-4t-3w-r12" class="lv3">4.1 解析 CRLB（每被试 576 试次，`4T×3W r12`）</a><a href="#s109-4-2-组间识别力-oracle-用被试层真值做组间回归-不含拟合噪声" class="lv3">4.2 组间识别力（oracle：用被试层真值做组间回归，不含拟合噪声）</a><a href="#s110-4-3-小样本下的实际精度-保留-0-8-32-120" class="lv3">4.3 小样本下的实际精度（保留 `0/8/32/120`）</a><a href="#s111-4-4-三条必须写进论文的结论" class="lv3">4.4 三条必须写进论文的结论</a><a href="#s6-5-分析计划-拿到数据后按此顺序" class="lv2">5. 分析计划（拿到数据后按此顺序）</a><a href="#s7-6-证据阶梯-防-数字乱用" class="lv2">6. 证据阶梯（防&quot;数字乱用&quot;）</a><a href="#s8-7-当前进度-已交付" class="lv2">7. 当前进度（已交付）</a><a href="#s9-8-风险与对策" class="lv2">8. 风险与对策</a><a href="#s10-9-论文各章状态" class="lv2">9. 论文各章状态</a><a href="#s11-10-复现方式" class="lv2">10. 复现方式</a></nav>
+<blockquote><strong>这是什么</strong>：把整个毕业设计（问题 → 设计 → 模型 → 可辨识性 → 分析计划 → 进度）压成一页能读懂的文档。<br><strong>给谁看</strong>：导师、答辩委员、以及两个月后的你自己。<br><strong>口径</strong>：所有&quot;模拟/解析&quot;结论都标了口径；所有&quot;待数据&quot;的地方都标了 <code>【待数据】</code>。<br>更新：2026-10-21 ｜ 对应标签 <code>pipeline-v1.13</code></blockquote>
+<hr class="sep">
+<h2 id="s1-0-一页摘要"><span class="sn">01</span>0. 一页摘要</h2>
+<div class="tblwrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>研究问题</td><td>自我相关刺激是否让人<strong>更快更准</strong>？这种优势是&quot;证据积累变快&quot;还是&quot;反应更急&quot;？练习与呈现时长如何调制它？</td></tr><tr><td>核心方法</td><td>两阶段漂移扩散模型（M-T1）拟合逐试次选择与 RT；掩蔽后证据保留率 <code>ρ</code> 是关键机制参数</td></tr><tr><td>设计</td><td>4 组（练习量 <code>P</code> = 0/8/32/120）× 4 呈现时长 × 3 期限 × 自我/他人 × 匹配/不匹配 × 12 重复 = <strong>576 试次/人</strong></td></tr><tr><td>主检验</td><td><code>β_P</code>（练习 → 漂移，组间）、<code>β_T</code>（呈现时长 → 漂移，被试内）</td></tr><tr><td>样本量</td><td><code>β_T</code> 是硬约束：<strong>37–43 人/组</strong>达 10% 精度；实际可能只有 10–15 人/组 ⇒ 报<strong>区间</strong>不报&quot;达标&quot;</td></tr><tr><td>已知不可估</td><td><code>τ_P</code>（练习饱和）、<code>β_ST</code>（自我×时长）、<code>Δa</code>/<code>τ_a</code>（期限→边界）—— 已定量说明原因</td></tr><tr><td>当前阶段</td><td>模型与方法章<strong>已写完</strong>（只剩数据占位符）；流水线在合成数据上<strong>跑通</strong>；等真实数据</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="s2-1-研究问题与假设"><span class="sn">02</span>1. 研究问题与假设</h2>
+<h3 id="s101-1-1-三个层次的问题">1.1 三个层次的问题</h3>
+<ol><li><strong>现象层</strong>：自我相关刺激（自己的字形/名字）相对他人刺激，反应是否更快、更准？</li><li><strong>机制层</strong>：这个优势来自<strong>证据积累速率</strong>（漂移 <code>d</code> 变大）、<strong>反应阈值</strong>（<code>a</code> 变小，即更急）还是<strong>非决策时间</strong>（<code>t0</code> 变短）？</li><li><strong>调制层</strong>：练习量 <code>P</code> 与刺激呈现时长 <code>T</code> 如何改变上述机制？掩蔽出现后证据是否继续积累（<code>ρ</code>）？</li></ol>
+<h3 id="s102-1-2-假设与判定标准">1.2 假设与判定标准</h3>
+<div class="tblwrap"><table><thead><tr><th>假设</th><th>内容</th><th>判定</th></tr></thead><tbody><tr><td><strong>H1</strong></td><td>自我刺激的漂移更大（<code>β_S &gt; 0</code>）</td><td><code>β_S</code> 的 95% 区间不含 0；同时报 <code>a</code>、<code>t0</code> 的对比（排除&quot;只是更急&quot;）</td></tr><tr><td><strong>H2</strong></td><td>练习提高漂移（<code>β_P &gt; 0</code>）</td><td>组间回归 <code>β_P</code> 的区间不含 0，并报效应量</td></tr><tr><td><strong>H3</strong></td><td>呈现越久漂移越大（<code>β_T &gt; 0</code>）</td><td>被试内 <code>β_T</code> 的区间不含 0</td></tr><tr><td><strong>H4</strong></td><td>掩蔽后证据未完全消失（<code>ρ &gt; 0</code>）</td><td><code>ρ</code> 的区间不含 0，且 <code>ρ ≠ 1</code>（ΔBIC、ΔELPD 同向）</td></tr></tbody></table></div>
+<blockquote><strong>写作纪律</strong>：H1–H4 都用<strong>区间</strong>表述，不用&quot;显著/不显著&quot;作结论。样本量不足时明确写&quot;本研究的区间宽度为 ±X，因此只能排除大于 Y 的效应&quot;。</blockquote>
+<hr class="sep">
+<h2 id="s3-2-实验设计"><span class="sn">03</span>2. 实验设计</h2>
+<div class="tblwrap"><table><thead><tr><th>因素</th><th>水平</th><th>被试内/间</th></tr></thead><tbody><tr><td>练习量 <code>P</code></td><td>0 / 8 / 32 / 120 次</td><td><strong>间</strong>（4 组）</td></tr><tr><td>刺激呈现时长 <code>T</code></td><td>33.3 / 83.3 / 150 / 250 ms</td><td>内</td></tr><tr><td>反应期限 <code>W</code></td><td>800 / 1200 / 1800 ms</td><td>内</td></tr><tr><td>身份</td><td>自我 / 他人</td><td>内</td></tr><tr><td>匹配性</td><td>匹配 / 不匹配</td><td>内</td></tr><tr><td>重复</td><td>12 次/单元</td><td>—</td></tr></tbody></table></div>
+<ul><li>每被试 <strong>576 试次</strong> = 4 × 3 × 2 × 2 × 12。</li><li>每个试次记录：选择、RT（ms）、是否在期限内反应；刺激呈现的实际帧数与时长（用于质控）。</li><li>采集程序输出的列与模拟数据<strong>逐列一致</strong>（<code>groupID … stimulus_frames</code>），因此模拟数据可以直接走真实数据的流水线。</li></ul>
+<hr class="sep">
+<h2 id="s4-3-计算模型"><span class="sn">04</span>3. 计算模型</h2>
+
+<h3 id="s3-diagram">3.0 一张图看懂模型</h3>
+<figure><svg viewBox="0 0 900 300" width="100%" role="img" aria-label="三层结构示意图">
+<style>text{font-family:"Microsoft YaHei",system-ui,sans-serif}</style>
+<rect x="0" y="0" width="900" height="300" fill="#fbfcfe"/>
+<rect x="20" y="26" width="250" height="88" rx="12" fill="#eaf1ff" stroke="#b9cdf5"/>
+<text x="145" y="54" text-anchor="middle" font-size="14" fill="#1f5fd6" font-weight="700">任务层</text>
+<text x="145" y="78" text-anchor="middle" font-size="12.5" fill="#2c3b57">P · T · W · 自我/他人 · 匹配</text>
+<text x="145" y="98" text-anchor="middle" font-size="12.5" fill="#2c3b57">→ f_P 与 Q_T 两个饱和函数</text>
+<rect x="20" y="150" width="250" height="104" rx="12" fill="#f0fbf3" stroke="#bfe6cd"/>
+<text x="145" y="178" text-anchor="middle" font-size="14" fill="#146c3a" font-weight="700">被试层</text>
+<text x="145" y="202" text-anchor="middle" font-size="12.5" fill="#2c3b57">v 漂移 · a 边界 · z 起点</text>
+<text x="145" y="222" text-anchor="middle" font-size="12.5" fill="#2c3b57">t0 非决策 · ρ 掩蔽后保留率</text>
+<text x="145" y="242" text-anchor="middle" font-size="12.5" fill="#2c3b57">每被一套，来自 N(mu, sigma²)</text>
+<rect x="330" y="26" width="250" height="88" rx="12" fill="#fff7ea" stroke="#f2d9ab"/>
+<text x="455" y="54" text-anchor="middle" font-size="14" fill="#8a5a00" font-weight="700">组层</text>
+<text x="455" y="78" text-anchor="middle" font-size="12.5" fill="#2c3b57">β_P 练习效应 · τ_P 饱和</text>
+<text x="455" y="98" text-anchor="middle" font-size="12.5" fill="#2c3b57">β_S 自我效应（组间回归）</text>
+<rect x="330" y="150" width="250" height="104" rx="12" fill="#fdeef1" stroke="#f3c6d0"/>
+<text x="455" y="178" text-anchor="middle" font-size="14" fill="#a12626" font-weight="700">观测层</text>
+<text x="455" y="202" text-anchor="middle" font-size="12.5" fill="#2c3b57">RT · 选择 · 遗漏</text>
+<text x="455" y="222" text-anchor="middle" font-size="12.5" fill="#2c3b57">首次通过时间 + t0</text>
+<text x="455" y="242" text-anchor="middle" font-size="12.5" fill="#2c3b57">共同产生 576 试次/人</text>
+<rect x="640" y="26" width="240" height="228" rx="12" fill="#f5f7fb" stroke="#d5dceb"/>
+<text x="760" y="54" text-anchor="middle" font-size="14" fill="#2b3a55" font-weight="700">证据积累（两阶段）</text>
+<line x1="676" y1="150" x2="844" y2="150" stroke="#8894a8" stroke-dasharray="4 3"/>
+<line x1="676" y1="86" x2="844" y2="86" stroke="#8894a8"/>
+<line x1="676" y1="214" x2="844" y2="214" stroke="#8894a8"/>
+<text x="760" y="80" text-anchor="middle" font-size="11.5" fill="#5b6470">上边界 a</text>
+<text x="760" y="230" text-anchor="middle" font-size="11.5" fill="#5b6470">下边界 0</text>
+<path d="M700,150 L724,150 L742,124 L758,138 L774,104 L790,118 L806,96 L820,104"
+      fill="none" stroke="#1f5fd6" stroke-width="2.2"/>
+<circle cx="820" cy="104" r="4" fill="#1f5fd6"/>
+<text x="826" y="100" font-size="11.5" fill="#1f5fd6">反应</text>
+<line x1="742" y1="60" x2="742" y2="240" stroke="#e08a00" stroke-width="1.6" stroke-dasharray="5 3"/>
+<text x="746" y="250" font-size="11" fill="#8a5a00">掩蔽出现 → ρ·d</text>
+<path d="M145,114 L145,150" stroke="#9aa7bd" stroke-width="1.6" marker-end="url(#ar)"/>
+<path d="M270,80 L330,60" stroke="#9aa7bd" stroke-width="1.6" marker-end="url(#ar)"/>
+<path d="M270,190 L330,200" stroke="#9aa7bd" stroke-width="1.6" marker-end="url(#ar)"/>
+<path d="M580,200 L640,160" stroke="#9aa7bd" stroke-width="1.6" marker-end="url(#ar)"/>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#9aa7bd"/></marker></defs>
+</svg>
+<figcaption>图 0 · 三层结构：任务变量经映射方程进入被试层机制，机制产生观测；右侧是单个试次的两阶段证据积累。</figcaption>
+</figure>
+<h3 id="s103-3-1-三层结构">3.1 三层结构</h3>
+<pre class="code">任务层   P, T, W, 身份, 匹配
+   │  映射方程（§3.3）
+被试层   v(漂移) · a(边界) · z(起点) · t0(非决策时间) · ρ(掩蔽后保留率)
+   │  群体分布 mu ± sigma
+组层     βP(练习) · τP(练习饱和) · βS(自我)</pre>
+<h3 id="s104-3-2-证据积累-两阶段漂移-m-t1">3.2 证据积累：两阶段漂移（M-T1）</h3>
+<p>漂移在刺激呈现期内为 <code>d</code>，掩蔽出现后（<code>t &gt; T</code>）降为 <code>ρ·d</code>：</p>
+<div class="eq"><span class="eq-name">式 1 · 两阶段漂移</span>
+<div class="fml">d(t) =
+<span class="cases">{</span><span class="casebody">
+<span class="caserow">d<sub>stim</sub>,&nbsp;&nbsp;0 ≤ t ≤ T</span>
+<span class="caserow">ρ · d<sub>stim</sub>,&nbsp;&nbsp;t &gt; T</span>
+</span></div>
+<div class="eqnote">ρ ∈ [0, 3]：掩蔽后证据保留率。ρ = 1 时退化为单阶段模型 M-T3。</div></div>
+<ul><li><code>ρ ∈ [0, 3]</code>：掩蔽后证据保留率。<code>ρ = 0</code> = 掩蔽后停止积累；<code>ρ = 1</code> = 掩蔽无影响（退化为单阶段模型 <strong>M-T3</strong>）；<code>ρ &gt; 1</code> = 掩蔽后加速。</li><li><strong>M-T3 是 M-T1 的严格嵌套特例</strong>，所以&quot;掩蔽有没有影响&quot;是<strong>一个参数</strong>的检验，不是两个模型的取舍。</li><li>判别性预测：对 <code>RT &lt; T</code> 的试次，M-T1 下整个积累都在刺激期内 ⇒ RT 分布<strong>与 <code>T</code> 无关</strong>；M-T3 下这些快反应也会随 <code>T</code> 变。这是设置 4 个 <code>T</code> 水平的真正理由。</li></ul>
+<h3 id="s105-3-3-映射方程">3.3 映射方程</h3>
+<div class="eq"><span class="eq-name">式 2 · 设计变量 → 漂移</span>
+<div class="fml">d<sub>stim</sub> = d<sub>ref</sub>
++ β<sub>P</sub> [ f<sub>P</sub>(P; τ<sub>P</sub>) − f<sub>P</sub>(P<sub>ref</sub>; τ<sub>P</sub>) ]
++ β<sub>T</sub> [ Q<sub>T</sub>(T; τ<sub>T</sub>) − Q<sub>T</sub>(T<sub>ref</sub>; τ<sub>T</sub>) ]
++ 𝟙<sub>self</sub> ( β<sub>S</sub> + β<sub>SP</sub> Δf<sub>P</sub> + β<sub>ST</sub> ΔQ<sub>T</sub> )</div>
+<div class="eqnote">三项分别是：练习 / 呈现时长 / 自我（他人条件时 𝟙 = 0）。</div></div>
+<div class="eq"><span class="eq-name">式 3 · 两个饱和函数</span>
+<div class="fml">f<sub>P</sub>(P; τ<sub>P</sub>) = 1 − e<sup>−P/τ<sub>P</sub></sup>
+&nbsp;&nbsp;&nbsp;&nbsp; Q<sub>T</sub>(X; τ) = 1 − e<sup>−X/τ</sup></div>
+<div class="eqnote">练习量与呈现时长都按指数饱和：收益递减，τ 越大饱和越慢。</div></div>
+<div class="eq"><span class="eq-name">式 4 · 边界与起点</span>
+<div class="fml">a(W) = a<sub>ref</sub> + Δa [ Q<sub>T</sub>(W; τ<sub>a</sub>) − Q<sub>T</sub>(W<sub>ref</sub>; τ<sub>a</sub>) ]
+&nbsp;&nbsp;&nbsp;&nbsp; z = z<sub>ratio</sub> · a</div>
+<div class="eqnote">期限越长边界越宽（更保守）；起点居中（z_ratio = 0.5）。</div></div>
+<ul><li>参考点：<code>P_ref = 120</code>（最高练习组）、<code>T_ref = 100 ms</code>、<code>W_ref = 1200 ms</code>。</li><li>估计用线性形式（<code>ΔQ_T = T − T_ref</code>），生成用指数形式；两者通过设计层行为最小二乘对齐（最大残差 0.045）。</li></ul>
+<h3 id="s106-3-4-参数表">3.4 参数表</h3>
+<p><strong>被试层（每人一套）</strong></p>
+<div class="tblwrap"><table><thead><tr><th>参数</th><th>含义</th><th>能否估计</th></tr></thead><tbody><tr><td><code>d_ref</code></td><td>参考条件的漂移</td><td>✅</td></tr><tr><td><code>β_T</code></td><td>呈现时长 → 漂移</td><td>✅（主效应）</td></tr><tr><td><code>τ_T</code></td><td>时长饱和常数</td><td>⚠️ 弱</td></tr><tr><td><code>β_S</code></td><td>自我加性偏移</td><td>⚠️ 弱</td></tr><tr><td><code>β_ST</code></td><td>自我 × 时长</td><td>❌ 不可估</td></tr><tr><td><code>a_ref</code></td><td>参考期限的边界</td><td>✅</td></tr><tr><td><code>Δa</code> / <code>τ_a</code></td><td>期限 → 边界</td><td>❌ 不可估</td></tr><tr><td><code>t0</code></td><td>非决策时间</td><td>✅</td></tr><tr><td><code>ρ</code></td><td>掩蔽后保留率</td><td>✅（M-T1 特有）</td></tr></tbody></table></div>
+<p><strong>组层</strong>：<code>β_P</code>（练习效应，两步法组间回归）、<code>τ_P</code>（练习饱和）、<code>β_SP</code>（练习×身份）；<code>mu</code>/<code>sigma</code>（群体均值与个体差异 SD）。</p>
+<h3 id="s107-3-5-生成模型能造什么">3.5 生成模型能造什么</h3>
+<div class="tblwrap"><table><thead><tr><th>生成物</th><th>说明</th></tr></thead><tbody><tr><td><code>v, a, z, t0</code></td><td>每试次的机制参数（真值，可用于恢复检验）</td></tr><tr><td><code>RT</code></td><td>首次通过时间 + <code>t0</code></td></tr><tr><td><code>Response</code></td><td>上/下侧（含正确与否）</td></tr><tr><td><code>timeout</code> / <code>omission</code></td><td>超过期限未反应</td></tr><tr><td><code>stimulus_frames</code> / <code>stimulus_dur_actual</code></td><td>呈现帧数与实际时长（质控）</td></tr><tr><td>派生量</td><td>正确率、遗漏率、RT 分位数、刺激内反应比例</td></tr></tbody></table></div>
+<p>实际生成的数据（<code>S3</code> notebook，8 名被试 × 576 试次）：</p>
+<div class="tblwrap"><table><thead><tr><th><code>P</code></th><th><code>T</code>=33 ms 正确率</th><th><code>T</code>=250 ms 正确率</th><th>遗漏率（W=800→1800）</th></tr></thead><tbody><tr><td>0</td><td>0.589</td><td>0.682</td><td>0.36 → 0.31</td></tr><tr><td>8</td><td>0.665</td><td>0.834</td><td>0.39 → 0.29</td></tr><tr><td>32</td><td>0.722</td><td>0.856</td><td>0.38 → 0.33</td></tr><tr><td>120</td><td>0.633</td><td>0.820</td><td>0.41 → 0.33</td></tr></tbody></table></div>
+<p>（每格 288 试次；含个体差异，故 P=120 组不一定最高——2 人/组的抽样波动。）</p>
+<hr class="sep">
+<h2 id="s5-4-可辨识性与样本量"><span class="sn">05</span>4. 可辨识性与样本量</h2>
+<h3 id="s108-4-1-解析-crlb-每被试-576-试次-4t-3w-r12">4.1 解析 CRLB（每被试 576 试次，<code>4T×3W r12</code>）</h3>
+<div class="tblwrap"><table><thead><tr><th>参数</th><th>真值</th><th>单被试 SE</th><th>到 10% 需 N</th><th>到 25% 需 N</th><th>判定</th></tr></thead><tbody><tr><td><code>d_ref</code></td><td>0.70</td><td>0.103</td><td><strong>3</strong></td><td>1</td><td>✅</td></tr><tr><td><code>β_T</code></td><td>0.55</td><td>0.350</td><td><strong>41</strong></td><td>7</td><td>✅ 主效应</td></tr><tr><td><code>τ_T</code></td><td>0.08</td><td>0.104</td><td>169</td><td>27</td><td>⚠️</td></tr><tr><td><code>β_S</code></td><td>0.16</td><td>0.113</td><td>51</td><td>9</td><td>⚠️</td></tr><tr><td><code>β_ST</code></td><td>0.10</td><td>0.474</td><td><strong>2248</strong></td><td>360</td><td>❌</td></tr><tr><td><code>a_ref</code></td><td>2.00</td><td>0.076</td><td>1</td><td>1</td><td>✅</td></tr><tr><td><code>Δa</code></td><td>0.55</td><td>1.410</td><td>658</td><td>106</td><td>❌</td></tr><tr><td><code>τ_a</code></td><td>0.70</td><td>2.530</td><td>1307</td><td>209</td><td>❌</td></tr><tr><td><code>t0</code></td><td>0.22</td><td>0.012</td><td>1</td><td>1</td><td>✅</td></tr></tbody></table></div>
+<h3 id="s109-4-2-组间识别力-oracle-用被试层真值做组间回归-不含拟合噪声">4.2 组间识别力（oracle：用被试层真值做组间回归，不含拟合噪声）</h3>
+<div class="tblwrap"><table><thead><tr><th>每组人数</th><th><code>β_P</code> 相对 RMSE（判据 ≤0.30）</th><th><code>τ_P</code> 相对 RMSE（判据 ≤0.50）</th></tr></thead><tbody><tr><td>6</td><td>0.377 ❌</td><td>1.667 ❌</td></tr><tr><td>12</td><td>0.243 ✅</td><td>1.080 ❌</td></tr><tr><td>20</td><td>0.150 ✅</td><td>0.513 ❌</td></tr><tr><td>30</td><td>0.118 ✅</td><td>0.329 ✅</td></tr><tr><td>40</td><td>0.098 ✅</td><td>0.303 ✅</td></tr></tbody></table></div>
+<h3 id="s110-4-3-小样本下的实际精度-保留-0-8-32-120">4.3 小样本下的实际精度（保留 <code>0/8/32/120</code>）</h3>
+<div class="tblwrap"><table><thead><tr><th>每组人数</th><th><code>β_T</code> 相对精度</th><th><code>β_P</code> 相对精度</th><th><code>β_P</code> 95% 区间半宽</th></tr></thead><tbody><tr><td>10</td><td>±21%（折算后 ±30%）</td><td>±17%</td><td>±0.49</td></tr><tr><td>12</td><td>±19%（折算后 ±28%）</td><td>±15%</td><td>±0.44</td></tr><tr><td>15</td><td>±17%（折算后 ±25%）</td><td>±14%</td><td>±0.40</td></tr></tbody></table></div>
+<h3 id="s111-4-4-三条必须写进论文的结论">4.4 三条必须写进论文的结论</h3>
+<ol><li><strong><code>β_T</code> 是唯一硬约束</strong>（被试内漂移敏感度，靠人数平均）；<code>β_P</code> 在 P=32 与 P=120 的漂移差约 0.49，信噪比高。</li><li><strong><code>τ_P</code> 不可估，原因是模型口径</strong>：漂移幅度取 <code>max(·, 0)</code>，<code>P=0/8</code> 的漂移被截到 0，只有 <code>{32, 120}</code> 两个水平与组层模型自洽，<strong>两点定不出曲线的饱和常数</strong>。</li><li><strong><code>β_ST</code> 需要 2248 人/组</strong>：任何&quot;自我优势随时长变化&quot;的说法都必须来自新设计。</li></ol>
+<hr class="sep">
+
+<h3 id="s4-figs">4.5 三张论文级图（模拟/解析，可直接进论文）</h3>
+<div class="grid2">
+<figure><img src="../03_论文写作/figures_sim/fig_sim_crlb.png" alt="CRLB">
+<figcaption>图 1 · 参数精度的 Cramér–Rao 下界：每组多少人才能把参数压到 10%<br>
+<span class="pill ok">d_ref 3 人</span> <span class="pill ok">β_T 41 人</span> <span class="pill bad">β_ST 2248 人</span></figcaption></figure>
+<figure><img src="../03_论文写作/figures_sim/fig_sim_p_design.png" alt="P 方案识别力">
+<figcaption>图 2 · P 水平设计的纯识别力（oracle）：40 人/组稳、20 人/组是下限</figcaption></figure>
+</div>
+<figure><img src="../03_论文写作/figures_sim/fig_sim_trials.png" alt="试次级模拟">
+<figcaption>图 3 · 模型生成的试次级数据：RT 分位数随 T 单调、正确率 0.58→0.75、遗漏率随 W 单调下降</figcaption></figure>
+<figure><img src="../../2_Data/Real_Data/_SYNTHETIC_NOTEBOOK/fig_trial_sim_check.png" alt="S3 notebook 自检图">
+<figcaption>图 4 · <code>S3</code> notebook 的自检图（8 名被试 × 576 试次，含个体差异）</figcaption></figure>
+<h2 id="s6-5-分析计划-拿到数据后按此顺序"><span class="sn">06</span>5. 分析计划（拿到数据后按此顺序）</h2>
+<div class="tblwrap"><table><thead><tr><th>步</th><th>做什么</th><th>工具/产物</th><th>闸门</th></tr></thead><tbody><tr><td>1</td><td>导检与质控（帧数、时长、早期按键、遗漏）</td><td><code>run_pipeline.py</code> 第 1–2 步</td><td>帧偏差 &gt; 2 帧 ⇒ 该场作废</td></tr><tr><td>2</td><td>整表与描述统计</td><td>第 3 步</td><td>单元缺失 &gt; 5% ⇒ 报出并说明</td></tr><tr><td>3</td><td>层级拟合（拉普拉斯 + EM）</td><td><code>stage8_run.py</code></td><td><code>k_max</code>、<code>p_loo/n_obs</code> 正常</td></tr><tr><td>4</td><td>组间回归（<code>β_P</code>）</td><td><code>recover_group.fit_between</code></td><td>只用自洽水平 <code>{32,120}</code></td></tr><tr><td>5</td><td>模型比较（M-T1 vs M-T3）</td><td><code>ρ</code>、ΔBIC、ΔELPD</td><td>LOO 闸门未过时 ΔELPD 只作流程验证</td></tr><tr><td>6</td><td>后验预测检验</td><td>RT 分位数、正确率、遗漏率</td><td>系统性偏差 ⇒ 回查映射</td></tr><tr><td>7</td><td>效应量报告</td><td>区间 + 标准化效应量</td><td>不用&quot;显著/不显著&quot;</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="s7-6-证据阶梯-防-数字乱用"><span class="sn">07</span>6. 证据阶梯（防&quot;数字乱用&quot;）</h2>
+<p><strong>否决层</strong>（任一环不过，则后面的数字全部作废）：</p>
+<pre class="code">测量可信 → 可计算 → 可辨识 → 设计可承载</pre>
+<p><strong>加权层</strong>（互不替代，只能综合判断）：</p>
+<pre class="code">可区分 → 可复现 → 可检验 → 可解释</pre>
+<p>三条纪律：</p>
+<ol><li>合成/模拟结果进<strong>方法章</strong>，不进结果章；</li><li>LOO 闸门未过时，ΔELPD 只作流程验证；</li><li><strong>参数显著 ≠ 参数可估</strong>。</li></ol>
+<hr class="sep">
+<h2 id="s8-7-当前进度-已交付"><span class="sn">08</span>7. 当前进度（已交付）</h2>
+<div class="tblwrap"><table><thead><tr><th>模块</th><th>产物</th><th>状态</th></tr></thead><tbody><tr><td>设计定稿</td><td><code>正式采集_候选设计_v2_定稿.md</code></td><td>✅</td></tr><tr><td>模型章</td><td><code>论文_模型章_模板.md</code>（249 行）</td><td>✅ 只剩 10 个占位符</td></tr><tr><td>结果章骨架</td><td><code>论文_结果章_模板.md</code> + <code>manuscript.py</code></td><td>✅ 自动填表</td></tr><tr><td>可辨识性</td><td><code>Stage4_识别性结论与设计处方.md</code> + <code>figures_sim/sim_crlb.csv</code></td><td>✅</td></tr><tr><td>设计空间</td><td><code>Stage9_设计空间优化与论文整合方案.md</code> §13</td><td>✅</td></tr><tr><td>论文级图</td><td><code>fig_sim_crlb.png</code> / <code>fig_sim_p_design.png</code> / <code>fig_sim_trials.png</code></td><td>✅</td></tr><tr><td>模拟数据（试次级）</td><td><code>S3_两阶段DDM_模拟数据生成.ipynb</code> + 4 份 CSV</td><td>✅ 可一键重跑</td></tr><tr><td>流水线</td><td><code>run_pipeline.py</code>（5 步）</td><td>✅ 合成数据跑通</td></tr><tr><td>层级建模</td><td><code>stage8_run.py</code> / <code>stage8_health.py</code></td><td>✅ N=8 可行，N=4 不可辨识</td></tr><tr><td>写作纪律</td><td>D104 证据阶梯</td><td>✅</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="s9-8-风险与对策"><span class="sn">09</span>8. 风险与对策</h2>
+<div class="tblwrap"><table><thead><tr><th>风险</th><th>影响</th><th>对策</th></tr></thead><tbody><tr><td>每组只有 10–15 人</td><td><code>β_P</code>/<code>β_T</code> 区间变宽</td><td>报区间；主结论用方向一致的多指标</td></tr><tr><td>上层只有 30–40 人总量</td><td>组层 <code>sigma</code> 不稳</td><td>收缩估计 + 敏感性分析</td></tr><tr><td>帧偏差/掉帧</td><td>呈现时长不可信</td><td>质控闸门（&gt;2 帧作废）</td></tr><tr><td>掩蔽后仍有按键</td><td><code>ρ</code> 估计偏</td><td>记录刺激期按键，作为协变量</td></tr><tr><td>交稿时间紧（2026-02-21）</td><td>写作压缩</td><td>模型章/方法章已提前写完</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="s10-9-论文各章状态"><span class="sn">10</span>9. 论文各章状态</h2>
+<div class="tblwrap"><table><thead><tr><th>章</th><th>内容</th><th>状态</th></tr></thead><tbody><tr><td>第一章 引言</td><td>自我优势、DDM、练习效应</td><td>骨架可写</td></tr><tr><td>第二章 方法</td><td>被试、任务、材料、流程</td><td>大部分可写（样本量待填）</td></tr><tr><td>第三章 计算模型</td><td>§3 全文</td><td>✅ 已写完</td></tr><tr><td>第四章 结果</td><td>描述统计、模型比较、参数估计</td><td>【待数据】骨架已就位</td></tr><tr><td>第五章 讨论</td><td>机制解释、限制</td><td>部分可写（限制已定稿）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="s11-10-复现方式"><span class="sn">11</span>10. 复现方式</h2>
+<pre class="code"># 生成模拟数据（约 1 分钟）
+jupyter lab &quot;1_Code/Python_for_Generate/S3_两阶段DDM_模拟数据生成.ipynb&quot;
+# 或直接跑等价脚本
+python -X utf8 1_Code/DDM_Core/_scratch/_run_s3_notebook_cells.py
+
+# 出三张论文级图（约 2 分钟）
+python -X utf8 1_Code/Experiment/make_sim_figures.py
+
+# 设计空间搜索
+python -X utf8 1_Code/Experiment/design_search.py --quick --group-truth oracle</pre>
+<footer>由 <code>1_Code/DDM_Core/_scratch/build_preview_html.py</code> 从同名 Markdown 生成；
+图片相对路径指向 <code>5_Reference/03_论文写作/figures_sim/</code> 与 <code>2_Data/Real_Data/_SYNTHETIC_NOTEBOOK/</code>。</footer>
+</div></body></html>
