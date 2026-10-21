@@ -210,6 +210,24 @@ def main() -> int:
         except KeyError as exc:
             ok_p8 = "nope" in str(exc)
         check("P8 缺块必报错", ok_p8, "模板占位没有数据块 ⇒ KeyError，不许静默留空")
+
+        # ---- P9：模型章草稿（D112）----
+        import manuscript as MS
+        m7 = MS.write_model_draft(fake_data, out7, [], g7, None, h7)
+        t9 = m7.read_text(encoding="utf-8")
+        left = [x for x in MS.MARK_RE.findall(t9) if x not in MS.IGNORE_MARKS]
+        check("P9 模型章草稿可生成（无残留占位）",
+              m7.exists() and not left,
+              f"{len(t9.splitlines())} 行、{m7.stat().st_size} B、"
+              f"待数据处 {t9.count('【待数据：')}、残留占位 = {left[:3]}")
+        check("P9 §3.11 数值总表被填 + 缺项显式标注",
+              "## 3.11" in t9 and "本稿仍有" in t9 and "【待数据：" in t9
+              and "BIC(M-T1)" in t9,
+              "§3.11 是数值表而非清单 ⇒ 占位符必须替换；缺值以【待数据：原因】标注并在文首点名")
+        check("P9 组层读数已填（组数 / 健康表）",
+              "| `1` | 掩蔽后保留率估计与区间 |" in t9.replace("`1.325`", "")
+              or "组 1：" in t9,
+              "health_table 来自 stage8_health，不是模板常量")
     finally:
         import shutil
         shutil.rmtree(tmp, ignore_errors=True)

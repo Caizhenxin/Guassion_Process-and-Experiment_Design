@@ -22,8 +22,13 @@ __pycache__/
 /2_Data/Real_Data/*/_pipeline/
 /2_Data/Real_Data/*/_stage8_out/
 
-# ���ؽ�ͼ/�������ʱĿ¼
+# ���ؽ�ͼ/�������ʱĿ¼
 1_Code/DDM_Core/_scratch/_edgeprof/
 1_Code/DDM_Core/_scratch/_*.png
 1_Code/DDM_Core/_scratch/_*.pdf
 
+
+# 一次性日志与端到端产物（可再生）
+1_Code/DDM_Core/_scratch/_*.log
+1_Code/DDM_Core/_scratch/_e2e_*/
+1_Code/DDM_Core/_scratch/_ms8/

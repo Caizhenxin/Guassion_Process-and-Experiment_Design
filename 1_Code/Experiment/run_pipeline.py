@@ -115,8 +115,8 @@ def step_stage8(data: Path, out: Path, profile: str, resume: bool) -> tuple[bool
     return code == 0, log, {"returncode": code, "seconds": secs, "profile": profile, **cfg}
 
 
-def step_figures(data: Path, out: Path) -> tuple[bool, Path, dict]:
-    s8 = out / "stage8"
+def step_figures(data: Path, out: Path, s8: Path | None = None) -> tuple[bool, Path, dict]:
+    s8 = s8 or (out / "stage8")
     truth = None
     for cand in (data / "synth_truth.json", data / "_synth_truth.json"):
         if cand.is_file():
@@ -131,6 +131,24 @@ def step_figures(data: Path, out: Path) -> tuple[bool, Path, dict]:
     return code == 0, out / "figures" / "figures_index.md", {"returncode": code,
                                                             "seconds": secs,
                                                             "truth": str(truth) if truth else None}
+
+
+def resolve_stage8(out: Path, data: Path) -> Path:
+    """stage8 产物目录：优先 `<out>/stage8`，回退到 `<data>/stage8`。
+
+    扫描脚本（`scan_min_n.py`）把产物写在 `<scan>/n<N>/stage8` 下，数据在同层
+    `data/`；若只认 `<out>/stage8`，`--reuse-stage8` 会误判「没有可复用 JSON」
+    而重跑 2.5 h 的拟合（2026-10-21 实跑踩过）。这里与 `manuscript.py` 保持同一
+    口径，回退时也先确认目录里真有 `stage8_group_*.json`。
+    """
+    cand = out / "stage8"
+    if sorted(cand.glob("stage8_group_*.json")):
+        return cand
+    for alt in (data / "stage8", data.parent / "stage8"):
+        if sorted(alt.glob("stage8_group_*.json")):
+            print(f"[info] stage8 产物回退到：{alt}")
+            return alt
+    return cand
 
 
 def load_groups(s8: Path) -> dict[int, dict]:
@@ -329,7 +347,8 @@ def main() -> int:
 
     groups: dict = {}
     truth = None
-    cached = sorted((out / "stage8").glob("stage8_group_*.json"))
+    s8dir = resolve_stage8(out, data)
+    cached = sorted(s8dir.glob("stage8_group_*.json"))
     if args.skip_stage8:
         steps.append({"name": "3 层级拟合", "ok": True, "detail": "按 --skip-stage8 跳过",
                       "product": "—"})
@@ -337,8 +356,8 @@ def main() -> int:
     elif args.reuse_stage8 and cached:
         steps.append({"name": "3 层级拟合", "ok": True,
                       "detail": f"复用已有 {len(cached)} 组 JSON（--reuse-stage8）",
-                      "product": str(out / "stage8")})
-        print(f"[3/5] 层级拟合：复用已有 {len(cached)} 组 JSON")
+                      "product": str(s8dir)})
+        print(f"[3/5] 层级拟合：复用已有 {len(cached)} 组 JSON -> {s8dir}")
     else:
         if args.reuse_stage8 and not cached:
             print("[warn] --reuse-stage8 但没有可复用的 JSON，改为重新拟合", file=sys.stderr)
@@ -350,7 +369,7 @@ def main() -> int:
 
     health: dict[int, dict] = {}
     if not args.skip_stage8:
-        health = assess_health(out / "stage8")
+        health = assess_health(s8dir)
     if health:
         n_bad = sum(1 for h in health.values() if h.get("status") == H8.BAD)
         okh = n_bad == 0
@@ -362,12 +381,12 @@ def main() -> int:
         print(f"[3.5/5] LOO 健康：{detail}")
 
     if not args.skip_stage8:
-        okf, pidx, metaf = step_figures(data, out)
+        okf, pidx, metaf = step_figures(data, out, s8dir)
         steps.append({"name": "4 图", "ok": okf,
                       "detail": f"{metaf['seconds']:.0f} s" + ("、含真值线" if metaf["truth"] else ""),
                       "product": str(pidx)})
         print(f"[4/5] 图：{'完成' if okf else '失败'} -> {pidx}")
-        groups = load_groups(out / "stage8")
+        groups = load_groups(s8dir)
         if metaf["truth"]:
             t = json.loads(Path(metaf["truth"]).read_text(encoding="utf-8"))
             gt = t.get("group_truth") or {}
@@ -375,8 +394,9 @@ def main() -> int:
 
     skel = write_results_skeleton(data, out, rows, groups, truth, health)
 
-    # 第 5 步：把同一批块填进论文结果章模板（模板与填法见 manuscript.py）
+    # 第 5 步：把同一批块填进论文模板（结果章 + 模型章；模板与填法见 manuscript.py）
     draft: Path | None = None
+    model_draft: Path | None = None
     if not args.skip_stage8:
         try:
             import manuscript as MS
@@ -385,10 +405,22 @@ def main() -> int:
             steps.append({"name": "5 论文草稿", "ok": True,
                           "detail": f"{draft.stat().st_size} B、待写处 {n_pend}",
                           "product": str(draft)})
-            print(f"[5/5] 论文草稿：{draft}（待写处 {n_pend}）")
+            print(f"[5/5] 论文结果章草稿：{draft}（待写处 {n_pend}）")
         except (KeyError, FileNotFoundError, ValueError) as exc:
             steps.append({"name": "5 论文草稿", "ok": False, "detail": str(exc), "product": "—"})
-            print(f"[5/5] 论文草稿：失败（{exc}）", file=sys.stderr)
+            print(f"[5/5] 论文结果章草稿：失败（{exc}）", file=sys.stderr)
+        try:
+            import manuscript as MS
+            model_draft = MS.write_model_draft(data, out, rows, groups, truth, health)
+            mtxt = model_draft.read_text(encoding="utf-8")
+            n_todo = mtxt.count("【待数据：")
+            steps.append({"name": "5b 模型章草稿", "ok": True,
+                          "detail": f"{model_draft.stat().st_size} B、待数据处 {n_todo}",
+                          "product": str(model_draft)})
+            print(f"[5/5] 论文模型章草稿：{model_draft}（待数据处 {n_todo}）")
+        except (KeyError, FileNotFoundError, ValueError) as exc:
+            steps.append({"name": "5b 模型章草稿", "ok": False, "detail": str(exc), "product": "—"})
+            print(f"[5/5] 论文模型章草稿：失败（{exc}）", file=sys.stderr)
 
     total = time.time() - t_all
     L = ["# 流水线报告", "", f"- 数据目录：`{data}`", f"- 输出目录：`{out}`",
