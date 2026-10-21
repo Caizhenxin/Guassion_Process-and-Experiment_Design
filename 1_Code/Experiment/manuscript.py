@@ -122,11 +122,11 @@ IGNORE_MARKS = {"双花括号"}       # 文档里演示占位符语法的例子�
 
 # 填不了的原因（写进【待数据：…】里，让读者一眼知道**缺什么、去哪儿补**）
 PENDING_WHY = {
-    "bic_mt1": "BIC(M-T1)：stage8 JSON 未落盘 BIC，需用 `twophase.bic` 重算",
+    "bic_mt1": "BIC(M-T1)：stage8 JSON 未落盘 BIC，需用 twophase.bic 重算",
     "bic_mt3": "BIC(M-T3)：同上",
     "delta_bic": "ΔBIC：同上",
-    "rho_ci": "ρ 的区间：需拟合时落盘 `cov` 对角，或做剖面似然",
-    "se_elpd": "ELPD 的 SE：`loo.psis_loo` 本次返回 None",
+    "rho_ci": "ρ 的区间：需拟合时落盘 cov 对角，或做剖面似然",
+    "se_elpd": "ELPD 的 SE：loo.psis_loo 本次返回 None",
     "beta_T_ci": "β_T 的区间：需组层 SE（stage8 JSON 未落盘）",
     "beta_P": "β_P：组层回归需要 ≥2 个 P 水平（本次数据只有 1 档）",
     "beta_P_ci": "β_P 的区间：只有 1 档 P 或自举样本不足",
