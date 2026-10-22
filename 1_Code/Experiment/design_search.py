@@ -25,8 +25,8 @@
 
 产物
 ----
-    5_Reference/03_论文写作/figures_sim/design_search_<truth>.csv
-    5_Reference/03_论文写作/figures_sim/design_search_<truth>.md
+    2_Data/Generate_Data/_design_search/design_search_<truth>.csv
+    2_Data/Generate_Data/_design_search/design_search_<truth>.md
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ from mapping import f_P  # noqa: E402
 from recover_group import P_COMMON_REF, P_LEVELS  # noqa: E402
 from simulate import SUBJECT_SD, build_design, design_arrays, simulate_subject  # noqa: E402
 
-OUT = _ROOT / "5_Reference" / "03_论文写作" / "figures_sim"
+OUT = _ROOT / "2_Data" / "Generate_Data" / "_design_search"
 
 #: 两套组层真值（见 `_scratch/_diag_tau_p.py` 的诊断）：
 #: * ``design``  —— `design_fim.TRUTH`：P_ref=120、beta_P=1.5 ⇒ 由于

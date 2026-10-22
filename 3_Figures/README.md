@@ -12,6 +12,7 @@
 | `M-T3/` | 同上（单阶段） | 同上 | `2_Data/Generate_Data/M-T3/…` |
 | `_compare/` | `fig7_model_compare` 三模型对照 / `fig8_spe_locus` SPE 位点签名 | `gen_viz.py`（fig7）、`python 1_Code/Experiment/spe_locus.py`（fig8） | `2_Data/Generate_Data/_compare/spe_locus.csv` |
 | `_practice/` | `fig9_practice_lambda` λ 天花板 × 练习 × SPE | `python 1_Code/Experiment/practice_lambda.py` | `2_Data/Generate_Data/_practice/practice_lambda*.{csv,json}` |
+| `_design/` | `fig10_design_frontier` 成本—精度前沿（三联） | `python 1_Code/Experiment/design_frontier.py` | `2_Data/Generate_Data/_design_search/design_frontier.csv` |
 | `figures_sim/` | `fig_sim_crlb` 参数精度下界 / `fig_sim_p_design` P 方案识别力 / `fig_sim_trials` 模拟试次级数据 | `python 1_Code/Experiment/make_sim_figures.py` | 数值表在 `5_Reference/03_论文写作/figures_sim/*.csv` |
 
 ## 2. 历史目录（旧项目口径）
