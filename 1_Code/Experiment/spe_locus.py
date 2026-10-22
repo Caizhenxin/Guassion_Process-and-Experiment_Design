@@ -22,7 +22,7 @@
 - `drift` 与 `boundary` 靠 **CRF（条件正确率函数）斜率** 区分：降边界会同时抬高快慢试次的正确率，
   提漂移主要抬高慢试次的正确率。
 
-产物：`2_Data/Generate_Data/_compare/fig8_spe_locus.png` + `spe_locus.csv`
+产物：`3_Figures/_compare/fig8_spe_locus.png` + `spe_locus.csv`
 """
 from __future__ import annotations
 
@@ -42,6 +42,7 @@ sys.path.insert(0, str(ROOT / "1_Code" / "DDM_Core"))
 from make_figures import setup_matplotlib  # noqa: E402
 
 OUT = ROOT / "2_Data" / "Generate_Data" / "_compare"
+FIG_OUT = ROOT / "3_Figures" / "_compare"
 
 # 真值（与 gen_model_data.GEN_TRUTH 同一口径；这里只取需要的几个）
 V_OTHER = 0.90          # 他人试次在 T=150 ms、W=1800 ms 处的漂移
@@ -187,10 +188,11 @@ def main() -> int:
     df = pd.concat(frames, ignore_index=True)
     summary = summarize(df)
     OUT.mkdir(parents=True, exist_ok=True)
+    FIG_OUT.mkdir(parents=True, exist_ok=True)
     summary.to_csv(OUT / "spe_locus.csv", index=False, encoding="utf-8-sig")
-    make_figure(summary, df, OUT / "fig8_spe_locus.png")
+    make_figure(summary, df, FIG_OUT / "fig8_spe_locus.png")
     print(summary.round(2).to_string(index=False))
-    print(f"\n[ok] {OUT / 'fig8_spe_locus.png'}（{time.time() - t0:.0f} s；"
+    print(f"\n[ok] {FIG_OUT / 'fig8_spe_locus.png'}（{time.time() - t0:.0f} s；"
           f"{args.n_subjects} 人 × {args.n_trials} 试次/条件/位点）")
     (OUT / "spe_locus_meta.json").write_text(
         json.dumps({"n_subjects": args.n_subjects, "n_trials": args.n_trials,

@@ -36,6 +36,10 @@ C_OTHER = "#2c6fbb"
 T_COLORS = ["#4c72b0", "#dd8452", "#55a868", "#c44e52"]
 DPI = 150
 
+# 图与数据分家（用户口径 2026-10-24）：图一律进 3_Figures/，数据留在 2_Data/。
+ROOT = _HERE.parents[1]
+FIG_ROOT = ROOT / "3_Figures"
+
 
 def _save(fig, out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -379,9 +383,10 @@ def plot_model_compare(dfs: dict[str, pd.DataFrame], out: Path) -> Path:
 # 一键
 # ----------------------------------------------------------------------
 def make_all(model: str, df: pd.DataFrame, out_dir: Path,
-             rho: float = 0.8, tau_ramp: float = 0.08) -> list[Path]:
-    """给一个模型出全套图（写到 ``out_dir/figures``），返回文件清单。"""
-    figdir = Path(out_dir) / "figures"
+             rho: float = 0.8, tau_ramp: float = 0.08,
+             fig_dir: Path | None = None) -> list[Path]:
+    """给一个模型出全套图（默认写到 ``3_Figures/<model>``），返回文件清单。"""
+    figdir = Path(fig_dir) if fig_dir else (FIG_ROOT / model)
     tag = f"{model}（模拟数据，非人类被试）"
     paths = [
         plot_rt_density(df, figdir / "fig1_rt_density.png", title=tag),
@@ -392,10 +397,10 @@ def make_all(model: str, df: pd.DataFrame, out_dir: Path,
         plot_mechanism(figdir / "fig6_mechanism.png", model, rho=rho, tau_ramp=tau_ramp,
                        title=f"{model}：漂移轨迹"),
     ]
-    # CRF 的数值表也存一份（论文里要报数）
+    # CRF 的数值表也存一份（论文里要报数）——数值表属于数据，留在数据目录
     agg = crf_table(df)
     if not agg.empty:
-        p = figdir.parent / "crf_table.csv"
+        p = Path(out_dir) / "crf_table.csv"
         agg.to_csv(p, index=False, encoding="utf-8-sig")
         paths.append(p)
     return paths
@@ -410,9 +415,12 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="给生成的数据出图")
     ap.add_argument("--model", default="all")
     ap.add_argument("--root", default=str(G.DEFAULT_OUT))
+    ap.add_argument("--figroot", default=str(FIG_ROOT),
+                    help="图输出根目录，默认 3_Figures/")
     a = ap.parse_args(argv)
 
     root = Path(a.root)
+    figroot = Path(a.figroot)
     models = list(G.MODELS) if a.model == "all" else [a.model]
     dfs = {}
     for m in models:
@@ -423,11 +431,12 @@ def main(argv: list[str] | None = None) -> int:
         df = G.load_trials(d)
         meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
         figs = make_all(m, df, d, rho=meta.get("rho", 0.8),
-                        tau_ramp=meta.get("tau_ramp") or 0.08)
-        print(f"[{m}] {len(figs)} 个产物 → {d / 'figures'}")
+                        tau_ramp=meta.get("tau_ramp") or 0.08,
+                        fig_dir=figroot / m)
+        print(f"[{m}] {len(figs)} 个产物 → {figroot / m}")
         dfs[m] = df
     if len(dfs) >= 2:
-        out = root / "_compare" / "fig7_model_compare.png"
+        out = figroot / "_compare" / "fig7_model_compare.png"
         out.parent.mkdir(parents=True, exist_ok=True)
         p = plot_model_compare(dfs, out)
         print(f"[compare] → {p}")

@@ -379,7 +379,7 @@ def write_index(out: Path, c: dict, orows: list[dict], td: dict, figs: list[Path
         "|---|---|---|",
         "| `fig_sim_crlb.png` | `design_fim.TRUTH`（exp 形式，`beta_P = 1.5`、`P_ref = 120`） | 组层 SE 与所需人数 |",
         "| `fig_sim_trials.png` | `design_grid.TRUTH_LIN`（同一设计前提的线性近似，换算残差 0.045） | 图的形态与量级 |",
-        "| `2_Data/Real_Data/_SYNTHETIC_DEMO_v1/` | `_make_ddm_pilot.QC_TRUTH`（lin，`beta_T = 0.45`） | T 的漂移跨度只有 0.098，比设计前提弱 3–4 倍 ⇒ **恢复验证偏保守** |",
+        "| `2_Data/Generate_Data/_synth_datasets/_SYNTHETIC_DEMO_v1/` | `_make_ddm_pilot.QC_TRUTH`（lin，`beta_T = 0.45`） | T 的漂移跨度只有 0.098，比设计前提弱 3–4 倍 ⇒ **恢复验证偏保守** |",
         "",
         "* 设计真值在 **P = 0** 组的漂移约 0.0005（`exp` 形式在 `P=0` 处几乎归零）⇒ 期望正确率 0.50，"
         "而 S6-5 的下限是 0.45；两者不相容（首场真实数据 0.440 正落在这一位置）。",
@@ -402,7 +402,10 @@ def write_index(out: Path, c: dict, orows: list[dict], td: dict, figs: list[Path
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="论文级模拟图（无需真实数据）")
-    ap.add_argument("--out", default=None, help="输出目录，默认 5_Reference/03_论文写作/figures_sim")
+    ap.add_argument("--out", default=None,
+                    help="数值表输出目录，默认 5_Reference/03_论文写作/figures_sim")
+    ap.add_argument("--figout", default=None,
+                    help="图片输出目录，默认 3_Figures/figures_sim")
     ap.add_argument("--lang", default="zh", choices=["zh", "en"])
     ap.add_argument("--crlb-nfim", type=int, default=12, help="CRLB 的独立模拟份数（默认 12）")
     ap.add_argument("--oracle-rep", type=int, default=400, help="oracle 每次的重复数（默认 400）")
@@ -413,7 +416,9 @@ def main() -> int:
     a = ap.parse_args()
 
     out = Path(a.out) if a.out else (_CODE.parent / "5_Reference" / "03_论文写作" / "figures_sim")
+    figout = Path(a.figout) if a.figout else (_CODE.parent / "3_Figures" / "figures_sim")
     out.mkdir(parents=True, exist_ok=True)
+    figout.mkdir(parents=True, exist_ok=True)
 
     plt, lang = setup_matplotlib(a.lang)
     figs: list[Path] = []
@@ -422,7 +427,7 @@ def main() -> int:
     c = crlb(a.crlb_nfim)
     for n in c["names"]:
         print(f"  {n:8s} 单人 SE={c['se'][n]:.4f}  10% 需 N={n_for_target(c, n, 0.10)}")
-    figs.append(fig_crlb(plt, c, out, lang))
+    figs.append(fig_crlb(plt, c, figout, lang))
     with (out / "sim_crlb.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["param", "truth", "se_per_subject", "n_for_10pct", "n_for_25pct"])
@@ -431,7 +436,7 @@ def main() -> int:
 
     print("[2/3] P 方案识别力（oracle）…")
     orows = oracle_table(a.oracle_rep)
-    figs.append(fig_oracle(plt, orows, out, lang))
+    figs.append(fig_oracle(plt, orows, figout, lang))
     with (out / "sim_oracle.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(orows[0].keys()))
         w.writeheader()
@@ -439,7 +444,7 @@ def main() -> int:
 
     print("[3/3] 试次级生成数据 …")
     td = trial_data(a.seed)
-    figs.append(fig_trials(plt, td, out, lang))
+    figs.append(fig_trials(plt, td, figout, lang))
     with (out / "sim_trials_conditions.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(td["per"][0].keys()))
         w.writeheader()

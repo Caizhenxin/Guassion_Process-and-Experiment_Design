@@ -1,0 +1,7 @@
+$ D:\Conda\python.exe -X utf8 -u D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\1_Code\Experiment\make_figures.py D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\stage8 --data D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1 --out D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\figures --truth D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\synth_truth.json
+
+[truth] D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\synth_truth.json（合成数据）
+[ok] fig1_behavior_by_P.png  ← D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\figures\fig1_behavior_by_P.png
+[ok] fig2_param_recovery.png  ← D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\figures\fig2_param_recovery.png
+[ok] fig3_model_comparison.png  ← D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\figures\fig3_model_comparison.png
+[ok] figures_index.md ← D:\GitHub_programe\GitHub\Guassion-Process-Experiment-Design\2_Data\Real_Data\_SYNTHETIC_DEMO_v1\_pipeline\figures\figures_index.md

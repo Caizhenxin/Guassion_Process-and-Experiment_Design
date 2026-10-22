@@ -123,7 +123,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="扫最小可辨识组层样本量（合成数据）")
     ap.add_argument("--n-list", type=int, nargs="+", default=[4, 8, 12])
     ap.add_argument("--group", type=int, default=1)
-    ap.add_argument("--root", default=str(ROOT / "2_Data" / "Real_Data" / "_SYNTHETIC_SCAN"))
+    ap.add_argument("--root", default=str(ROOT / "2_Data" / "Generate_Data" / "_synth_datasets" / "_SYNTHETIC_SCAN"))
     ap.add_argument("--reuse", action="store_true", help="已有 stage8_group_*.json 的 N 跳过拟合")
     args = ap.parse_args()
 
