@@ -5,8 +5,9 @@ recover_single.py —— 逐被试参数恢复（Stage 3 的第一块验收）
 回答的问题：**给定设计 D4 的一个被试（P 固定），哪些被试内参数能被恢复？**
 
 ⚠️ P 是**被试间**因子，单被试的 P 不变，故 `β_P / τ_P / β_SP` 在单被试内**不可识别**，
-本脚本只恢复被试内自由参数（`exp` 下是 `mapping.WITHIN_FREE` 的 9 个，
-`lin` 下是 `mapping.WITHIN_FREE_LIN` 的 7 个），并在报告里说明这一点。
+本脚本只恢复被试内自由参数（`exp` 下是 `mapping.WITHIN_FREE` 的 10 个，
+`lin` 下是 `mapping.WITHIN_FREE_LIN` 的 8 个 —— 2026-10 加 `dz_S` 前分别为 9 / 7 个），
+并在报告里说明这一点。
 
 流程（每个重复）：
   1. 用真值参数按设计生成一个被试的观测数据（`simulate.simulate_subject`）；
@@ -148,9 +149,12 @@ def print_design_diagnostics(design, p, T_levels, W_levels):
             d_other = float(_tp({**one, "is_self": np.array([0.0])}, p)["d"][0])
             d_self = float(_tp({**one, "is_self": np.array([1.0])}, p)["d"][0])
             a = float(_tp({**one, "is_self": np.array([0.0])}, p)["a"][0])
+            # 起点也走 trial_params，这样 dz_S≠0 时正确率预览才是对的
+            z_other = float(_tp({**one, "is_self": np.array([0.0])}, p)["z"][0])
+            z_self = float(_tp({**one, "is_self": np.array([1.0])}, p)["z"][0])
             rows.append((T, W, a, d_other, d_self,
-                         float(p_upper(d_other, a, 0.5 * a)),
-                         float(p_upper(d_self, a, 0.5 * a))))
+                         float(p_upper(d_other, a, z_other)),
+                         float(p_upper(d_self, a, z_self))))
             print(f"{T*1000:7.1f} {W*1000:7.1f} {a:7.4f} {d_other:9.4f} {d_self:8.4f} "
                   f"{rows[-1][5]:14.4f} {rows[-1][6]:13.4f}")
     arr = np.array(rows)

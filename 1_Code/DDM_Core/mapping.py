@@ -19,7 +19,7 @@ mapping.py —— 实验设计 (P, T, W, 身份, 匹配性) → DDM 参数（Sta
 
     v = +d（匹配试次，正确答案 = Match = 上边界）
     v = −d（不匹配试次，正确答案 = Nonmatch = 下边界）
-    z = z_ratio · a
+    z = (z_ratio + I_self·dz_S) · a                 起点（判据通道，2026-10-22）
 
 ⚠️ **为什么必须做参考点锚定**（2026-10-13 的实测教训）
 -----------------------------------------------------
@@ -59,12 +59,15 @@ W_MODELS = ("W0", "W1")
 SHAPE_MODELS = ("exp", "lin")
 
 # 被试**内**可识别的参数（T、W 被试内变化；P 固定）
+#: 2026-10-22 增加 ``dz_S``（起点通道的自我偏移，见 `MappingParams.dz_S`）：
+#: exp 形状下 9 → 10 个，lin 形状下 7 → 8 个。``dz_S`` 是**被试内**对比
+#: （同一被试的自我 vs 他人试次），因此进被试层，不进 `BETWEEN_FREE`。
 WITHIN_FREE = ["d_ref", "beta_T", "tau_T", "beta_S", "beta_ST",
-               "a_ref", "delta_a", "tau_a", "t0"]
+               "a_ref", "delta_a", "tau_a", "t0", "dz_S"]
 
-# ``shape_model="lin"`` 时的被试内自由参数：**τ_T 与 τ_a 不复存在**（7 个）。
+# ``shape_model="lin"`` 时的被试内自由参数：**τ_T 与 τ_a 不复存在**（8 个）。
 WITHIN_FREE_LIN = ["d_ref", "beta_T", "beta_S", "beta_ST",
-                   "a_ref", "delta_a", "t0"]
+                   "a_ref", "delta_a", "t0", "dz_S"]
 
 # 只有**跨被试**（P 的被试间变化）才能识别的参数
 BETWEEN_FREE = ["beta_P", "tau_P", "beta_SP"]
@@ -82,6 +85,9 @@ PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "delta_a":   (-3.0, 3.0),
     "tau_a":     (0.05, 5.0),
     "t0":        (0.05, 0.60),
+    #: 起点相对偏移（以 ``a`` 为单位）。上下限 ±0.45 与 ``z_ratio = 0.50`` 配合，
+    #: 保证 ``z_self/a ∈ [0.05, 0.95]``，即起点永远严格落在两边界之间。
+    "dz_S":      (-0.45, 0.45),
 }
 
 
@@ -119,7 +125,27 @@ class MappingParams:
 
     # --- 其他 ---
     t0: float = 0.22
+
+    #: 起点 ``z`` 的位置，以边界间距 ``a`` 为单位（``z = z_ratio·a``）。锚定在
+    #: ``0.5``（无偏起点），**不估计**——只有它的自我偏移 ``dz_S`` 是自由参数，
+    #: 否则 ``z_ratio`` 与 ``dz_S`` 的公共平移不可识别（同 α₁/α₂ 与 base_scale
+    #: 的教训，见 `理论假设稳固性审查与W重定义_20260925.md`）。
     z_ratio: float = 0.50
+
+    #: **SPE 的起点（判据）通道**：自我条件相对起点的偏移，以 ``a`` 为单位。
+    #: ``z_self = (z_ratio + dz_S)·a``；他人条件恒为 ``z_ratio·a``。
+    #:
+    #: 方向：``z`` 从**下边界**量起，``is_match=1`` 时上边界 = 正确答案 = Match
+    #: 键（`trial_params` 的 ``sign``），故 ``dz_S > 0`` ⇒ 自我条件下起点离上边界
+    #: 更近 ⇒ 更快更易做 Match 反应 ⇒ SDT 判据 ``c`` 更负（更"敢说一样"），而
+    #: ``d′`` 基本不动。这正是 SDT 拆解结果要求的形态：Self 比 Other
+    #: ``Δd′ = +0.410``（= 张开，走 ``beta_S``）与 ``Δc = −0.239``（= 上移，
+    #: 走 ``dz_S``）。依据见 `5_Reference/02_方法学审查/生成模型编码约定审查_20260930.md:81-83`。
+    #:
+    #: 量纲：无量纲（``/a``），因此跨 W 层次可比、可跨被试做层次模型；改为绝对
+    #: 偏移（``Δz`` 秒）会把 ``a`` 的量纲混进被试间方差，故不采用。
+    #: 默认 ``0.0`` ⇒ ``z = 0.5·a`` 与加入前**逐位相同**（可作回归测试）。
+    dz_S: float = 0.0
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -282,11 +308,20 @@ def trial_params(trials: dict, p: MappingParams) -> dict:
 
     ``trials`` 需含：``P``（次）、``T``（秒）、``W``（秒）、
     ``is_self``（0/1）、``is_match``（0/1，1 = 正确答案为 Match = 上边界）。
+
+    身份进入**两个**通道：
+
+    * 漂移 ``v`` —— 幅度经 `drift_magnitude`，幅度随 P、T、身份变化；
+    * 起点 ``z`` —— 仅自我条件整体偏移 ``dz_S·a``（判据通道，见 `MappingParams.dz_S`）。
     """
     d = drift_magnitude(trials["P"], trials["T"], trials["is_self"], p)
     sign = np.where(np.asarray(trials["is_match"]) == 1, 1.0, -1.0)
     a = boundary_a(trials["W"], p)
+    is_self = np.asarray(trials["is_self"], dtype=float)
+    # 起点比例：他人恒 z_ratio，自我为 z_ratio + dz_S。夹到 (0,1) 内侧 1e-4，
+    # 仅为数值兜底（dz_S 的界已保证 z/a ∈ [0.05, 0.95]），不参与梯度。
+    zf = np.clip(p.z_ratio + is_self * p.dz_S, 1e-4, 1.0 - 1e-4)
     return {
-        "v": sign * d, "a": a, "z": float(p.z_ratio) * a,
+        "v": sign * d, "a": a, "z": zf * a,
         "t0": float(p.t0), "d": d,
     }

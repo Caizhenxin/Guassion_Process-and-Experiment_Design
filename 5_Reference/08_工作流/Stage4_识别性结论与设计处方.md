@@ -315,7 +315,7 @@
 
 `mapping.py` 增加了 `shape_model ∈ {"exp","lin"}`：
 `lin` 时 `dqt = T − T_ref`、`dq = W − W_ref`，**没有任何时间常数**
-（`WITHIN_FREE_LIN = {d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0}`，7 个）。
+（`WITHIN_FREE_LIN = {d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0}`，7 个；**2026-10 已加入 `dz_S`，现为 8 个**。本节全部读数都是在无 `dz_S` 时得到，等价于 `dz_S = 0`，故结论不变）。
 
 **A. 用 exp 真值生成的数据去比较两个模型（决定性）**
 
@@ -1290,7 +1290,7 @@ D33 原写「ρ 只能写成**不高于 1**」。本轮据此放宽为：
    把 `Q_T(X, tau) = 1 − exp(−X/tau)` 换成**无尺度参数**的函数：
    - **线性（采用）**：`Q(X) = X / X_ref`，即 `dqt = T − T_ref`、`dq = W − W_ref`。
      `beta_T` 单位变成"每秒的漂移变化"、`delta_a` 变成"每秒的边界变化"，直接可解释。
-     实现：`MappingParams(shape_model="lin")`，自由参数 7 个（`WITHIN_FREE_LIN`）。
+     实现：`MappingParams(shape_model="lin")`，自由参数 7 个（`WITHIN_FREE_LIN`；2026-10 加 `dz_S` 后为 8 个）。
    - 备选：2 水平对比（低 vs 高），只报**差值**。
    这样 `beta_T`、`beta_ST` 不再能与"尺度"互相补偿。
    **判定依据**（任一条都足够，四条同时成立）：

@@ -124,6 +124,16 @@ class CellParams:
     #: 因此比较 cell-mean 与 lin 时必须用**同一个** ``tau_P``。
     tau_P: float = 30.0
 
+    #: 起点（``z``）的自我偏移，单位 = 边界间距 ``a``（与
+    #: `mapping.MappingParams.dz_S` 同定义、同符号：``z = (0.5 + is_self·dz_S)·a``）。
+    #:
+    #: ⚠️ **不在 `CELL_NAMES` 里**：单元均值模型（D31 的近似路线）暂不估计这条
+    #: 通道，恒为 0，因此加入后本模块所有拟合结果与加入前逐位相同。留字段是为了
+    #: 保住「与 `mapping.trial_params` 同接口」的约定（`_scratch/check_cellmean.py`
+    #: 就是拿两个接口对拍），日后要让单元均值模型也带判据通道时，只需把它追加进
+    #: `CELL_NAMES` 与 `CELL_BOUNDS`。
+    dz_S: float = 0.0
+
     def as_dict(self) -> dict:
         return {n: float(getattr(self, n)) for n in CELL_NAMES}
 
@@ -247,10 +257,12 @@ def trial_params_cell(tr: dict, p: CellParams) -> dict:
 
     is_match = np.asarray(tr["is_match"], dtype=float)
     sign = np.where(is_match == 1, 1.0, -1.0)
+    is_self = np.asarray(tr["is_self"], dtype=float)
+    zf = np.clip(0.5 + is_self * float(getattr(p, "dz_S", 0.0)), 1e-4, 1.0 - 1e-4)
     return {
         "v": sign * np.maximum(d, 1e-6),
         "a": np.maximum(a, 1e-3),
-        "z": 0.5 * np.maximum(a, 1e-3),
+        "z": zf * np.maximum(a, 1e-3),
         "t0": float(p.t0),
         "d": d,
     }

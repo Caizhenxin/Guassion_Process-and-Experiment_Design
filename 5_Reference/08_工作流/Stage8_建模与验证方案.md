@@ -48,7 +48,7 @@
 ## 4. 模型族与参数化
 
 - **参数化**：以定稿的 `shape_model="lin"` 为准（README §8.7/§8.11 的结论：exp 参数集下 9 个设计的信息矩阵全部非正定，lin 下全部正定）。
-- **被试内自由参数**（`mapping.WITHIN_FREE_LIN`，7 个）：`d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0`。
+- **被试内自由参数**（`mapping.WITHIN_FREE_LIN`，7+1 个）：`d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0`，**2026-10 新增 `dz_S`**（起点/判据通道，见 `5_Reference/03_论文写作/论文_模型章_模板.md` §3.15；`dz_S = 0` 时逐位退化为原 7 参数模型，旧拟合与产物仍有效）。
 - **两个竞争模型**：
   - **M-T1**：时变输入（两阶段漂移），多一个自由参数 `rho`；
   - **M-T3**：恒定漂移，即 `rho = 1` 的严格嵌套特例；

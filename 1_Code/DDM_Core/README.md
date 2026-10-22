@@ -128,8 +128,8 @@ z      = z_ratio·a
 ```
 
 **为什么要 `"lin"`**：`τ_T` / `τ_a` 在本设计上不可识别（D18/D19，见 §8）。
-`shape_model="lin"` 时 `tau_T` / `tau_a` 被忽略，自由参数集改用 `WITHIN_FREE_LIN`（7 个）：
-`["d_ref","beta_T","beta_S","beta_ST","a_ref","delta_a","t0"]`。
+`shape_model="lin"` 时 `tau_T` / `tau_a` 被忽略，自由参数集改用 `WITHIN_FREE_LIN`（7 个；**2026-10 加入 `dz_S` 后为 8 个**，`dz_S = 0` 时逐位退化为原模型，见 `5_Reference/03_论文写作/论文_模型章_模板.md` §3.15）：
+`["d_ref","beta_T","beta_S","beta_ST","a_ref","delta_a","t0"]`（末尾另加 `dz_S`）。
 
 ### 6.2 ⚠️ 参考点锚定（`d_ref` / `a_ref`）不是风格问题，是识别性问题
 
@@ -326,7 +326,7 @@ oracle 只有在被试层参数**确实携带了 P 效应**时才有诊断意义
 ### 8.7 主处方已实测确认：去掉时间常数（`shape_model="lin"`）
 
 `mapping.py` 新增 `shape_model ∈ {"exp","lin"}`；`lin` 时 `dqt = T − T_ref`、`dq = W − W_ref`，
-**零时间常数**，`WITHIN_FREE_LIN = {d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0}`（7 个）。
+**零时间常数**，`WITHIN_FREE_LIN = {d_ref, beta_T, beta_S, beta_ST, a_ref, delta_a, t0}`（7 个；**2026-10 加入 `dz_S` 后为 8 个**，见模型章 §3.15）。
 （`_scratch/check_lin.py` → `_scratch/check_lin_u8.txt`，64 s；`design_grid.py` → `design_grid_u8.txt`。）
 
 1. **BIC 偏向 lin**：在 **exp 真值生成的数据**上，`ll(exp MLE, k=9) = −456.0075`

@@ -114,7 +114,8 @@ def param_names_for(param_set: str = "exp") -> list[str]:
     """把参数集名字翻成参数名列表。
 
     ``"exp"`` = `design_fim.NAMES`，**9 个**被试内参数（与 `design_fim.py` 排出的
-    9 设计名次可比）；``"lin"`` = `mapping.WITHIN_FREE_LIN`，**7 个**（= 定稿文档
+    9 设计名次可比）；``"lin"`` = `mapping.WITHIN_FREE_LIN`，**8 个**（2026-10 加
+    `dz_S` 前为 7 个；= 定稿文档
     声明要用的分析模型 `shape_model="lin"`，把 `tau_T`/`tau_a` 当已知固定值）。
 
     ⚠️ Stage 9 的 Objective (A) 项用的是 **D24 确证集 `C6`**（6 个，决策 D49），
