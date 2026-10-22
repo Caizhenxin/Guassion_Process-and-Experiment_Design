@@ -72,9 +72,18 @@ def plot_rt_density(df: pd.DataFrame, out: Path, title: str = "") -> Path:
         if rt.size:
             axes[0].hist(rt, bins=bins, density=True, histtype="step", lw=2,
                          color=color, label=f"{lab}（n={rt.size}）")
+            axes[0].axvline(np.median(rt), color=color, ls=":", lw=1.4)
+    med_o = float(np.median(d.loc[d["is_self"] == 0, "rt_ms"]))
+    med_s = float(np.median(d.loc[d["is_self"] == 1, "rt_ms"]))
+    sd = float(np.std(d["rt_ms"]))
+    axes[0].annotate(f"Δ中位 = {med_o - med_s:+.0f} ms\n"
+                     f"（仅占分布宽度 {abs(med_o - med_s) / sd * 100:.0f}%）",
+                     xy=(max(med_o, med_s), axes[0].get_ylim()[1] * 0.55),
+                     xytext=(med_o + 120, axes[0].get_ylim()[1] * 0.72), fontsize=8,
+                     arrowprops=dict(arrowstyle="->", lw=0.8, color="0.35"))
     axes[0].set_xlabel("RT（ms）")
     axes[0].set_ylabel("概率密度")
-    axes[0].set_title("RT 分布：自我 vs 他人（合并所有 T/W）")
+    axes[0].set_title("RT 分布：自我 vs 他人（合并所有 T/W；虚线 = 各自中位）")
     axes[0].legend(fontsize=8)
 
     for i, T in enumerate(sorted(d["T_ms"].unique())):
