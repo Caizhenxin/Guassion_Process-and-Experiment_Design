@@ -36,3 +36,5 @@ __pycache__/
 1_Code/DDM_Core/_scratch/_frontier*.log
 1_Code/DDM_Core/_scratch/_lambda_run*.log
 1_Code/DDM_Core/_scratch/_viz_all*.log
+1_Code/DDM_Core/_scratch/_ms314/
+1_Code/DDM_Core/_scratch/_families_run*.log

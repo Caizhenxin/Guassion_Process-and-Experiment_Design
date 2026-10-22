@@ -212,3 +212,28 @@ matching-first −3.16、nonmatching-first −3.47，两组斜率差 p=.87）。
 | `3_Figures/_practice/fig9_practice_lambda.png` | 三联图：① SPE_RT 随 P（按 λ）② SPE_ACC 同族 ③ 与 HuYQ 归一化实测对照 |
 
 重跑：`python 1_Code/Experiment/practice_lambda.py`（约 2 min）
+
+---
+
+## 7. SPE 的函数形式比较（`_families/`，D117）
+
+`1_Code/Experiment/spe_families.py` 把「自我优势放在哪一层、用哪种函数」当自变量，跑 8 支候选
+（同一模拟器、同一群被试、同一噪声流）：
+
+| 文件 | 内容 |
+|---|---|
+| `families.csv` | 每支 × 每档练习的 SPE_RT / SPE_ACC / 可见度 |
+| `families_sensitivity.csv` | 每支关键参数的 `dSPE/dθ`（取绝对值）与 `SE@40 人/组` |
+| `trials_families.csv` | 试次级原始数据（约 18 万行） |
+| `families_meta.json` | 基线参数与随机种子（可复现） |
+
+**读图要点**（图在 `3_Figures/_compare/fig11_spe_families.png`）：
+
+1. 左图看 **RT 侧走向**：`const`/`ratio` 随练习**变大**（与长期练习数据相反），`ceiling`/`power`/`selfsat` 变小，
+   `gate`/`gate_drift` 因为分母 RT 变快而**自然**变小，`noise` 全程为负（自我更慢）。
+2. 中图看 **正确率侧走向**：`gate` 几乎贴在 0（纯速度机制没有正确率差），`const` 保持在 5–6 pp，
+   `selfsat` 会一路跌到 0。
+3. 右图看 **P=0 的可见度**：四个「只换链接函数」的支共用一个点（22.4 ms / 6.4 pp）——这是本轮的
+   核心结论：**换练习映射不改 P=0，换通道才改**。
+
+⚠️ 这些都是**模拟**（`families_meta.json` 里 `note` 写明），不能当结果章数据用。
