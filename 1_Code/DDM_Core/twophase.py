@@ -172,7 +172,8 @@ def simulate_step_subject(design: dict, p: MappingParams, rho: float,
 # ------------------------------------------------------------------
 def simulate_euler_subject(design: dict, p: MappingParams, rho: float,
                            rng: np.random.Generator, dt: float = 5e-5,
-                           t_max: float | None = None) -> dict:
+                           t_max: float | None = None,
+                           drift_sd: float = 0.0) -> dict:
     """用 **Euler-Maruyama 路径模拟**生成一名被试的 M-T1 数据。
 
     为什么不用 `simulate_step_subject`（解析逆 CDF）
@@ -208,6 +209,9 @@ def simulate_euler_subject(design: dict, p: MappingParams, rho: float,
     """
     tp = trial_params(design, p)
     v = np.asarray(tp["v"], dtype=float)
+    if drift_sd and drift_sd > 0:
+        # 逐试次漂移变异（lognormal，均值为 1）：真实数据的 CAF 上升靠的就是它
+        v = v * np.exp(rng.normal(0.0, float(drift_sd), v.size))
     a = np.asarray(tp["a"], dtype=float)
     z = np.asarray(tp["z"], dtype=float)
     t0 = tp["t0"]

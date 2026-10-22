@@ -1,0 +1,32 @@
+{
+  "model": "M-T2",
+  "label": "两阶段斜坡（漂移逐步爬升）",
+  "gloss": "刺激期内 d(t)=d_stim·(1−e^{−t/τ_T})；掩蔽后 × rho",
+  "kind": "ramp",
+  "rho": 0.8,
+  "tau_ramp": 0.08,
+  "ramp_beta_t": "zero",
+  "dt": 5e-05,
+  "drift_sd": 0.25,
+  "n_subjects": 16,
+  "n_subjects_per_group": 4,
+  "n_rep": 12,
+  "n_trials_total": 9216,
+  "seed": 20261021,
+  "truth": {
+    "d_ref": 0.8,
+    "beta_P": 0.35,
+    "beta_T": 0.0,
+    "beta_S": 0.3,
+    "beta_ST": 0.12,
+    "a_ref": 1.52,
+    "delta_a": 0.3,
+    "t0": 0.19,
+    "P_ref": 30.0,
+    "T_ref": 0.1,
+    "W_ref": 1.2
+  },
+  "truth_note": "beta_T 已置 0：M-T2 的 T 效应由斜坡产生",
+  "elapsed_s": 15.3,
+  "schema_version": 1
+}

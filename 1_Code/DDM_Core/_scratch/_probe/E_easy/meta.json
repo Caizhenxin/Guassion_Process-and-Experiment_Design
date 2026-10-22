@@ -1,0 +1,31 @@
+{
+  "model": "M-T1",
+  "label": "两阶段阶跃（掩蔽后 × rho）",
+  "gloss": "刺激期内漂移恒为 d_stim；掩蔽后降为 rho·d_stim",
+  "kind": "twophase",
+  "rho": 0.8,
+  "tau_ramp": null,
+  "ramp_beta_t": "zero",
+  "dt": 5e-05,
+  "n_subjects": 8,
+  "n_subjects_per_group": 2,
+  "n_rep": 12,
+  "n_trials_total": 4608,
+  "seed": 20261021,
+  "truth": {
+    "d_ref": 0.85,
+    "beta_P": 0.35,
+    "beta_T": 1.0,
+    "beta_S": 0.28,
+    "beta_ST": 0.05,
+    "a_ref": 1.55,
+    "delta_a": 0.3,
+    "t0": 0.2,
+    "P_ref": 30.0,
+    "T_ref": 0.1,
+    "W_ref": 1.2
+  },
+  "truth_note": "",
+  "elapsed_s": 6.3,
+  "schema_version": 1
+}

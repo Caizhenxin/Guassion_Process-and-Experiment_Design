@@ -1,0 +1,32 @@
+{
+  "model": "M-T3",
+  "label": "单阶段（掩蔽无影响，rho=1）",
+  "gloss": "M-T1 在 rho=1 处的严格嵌套特例",
+  "kind": "single",
+  "rho": 1.0,
+  "tau_ramp": null,
+  "ramp_beta_t": "zero",
+  "dt": 5e-05,
+  "drift_sd": 0.25,
+  "n_subjects": 16,
+  "n_subjects_per_group": 4,
+  "n_rep": 12,
+  "n_trials_total": 9216,
+  "seed": 20261021,
+  "truth": {
+    "d_ref": 0.8,
+    "beta_P": 0.35,
+    "beta_T": 0.95,
+    "beta_S": 0.3,
+    "beta_ST": 0.12,
+    "a_ref": 1.52,
+    "delta_a": 0.3,
+    "t0": 0.19,
+    "P_ref": 30.0,
+    "T_ref": 0.1,
+    "W_ref": 1.2
+  },
+  "truth_note": "",
+  "elapsed_s": 10.6,
+  "schema_version": 1
+}
