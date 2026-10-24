@@ -70,10 +70,8 @@ def _run(cmd: list[str], log: Path) -> tuple[int, float]:
 
 def step_intake(data: Path, out: Path) -> tuple[bool, list[dict], Path]:
     sessions = INTAKE.find_sessions([data])
-    rows = []
-    for s in sessions:
-        rows.append(INTAKE.audit_one(s["gid"], s["sid"], s["csv"], s["txt"],
-                                     s.get("shadowed")))
+    # 判据只有一份：直接调 intake.screen()（五层全跑，含质量层），不在这里重写裁决逻辑（D120）
+    rows = INTAKE.screen(sessions)["res"]
     keep = [r for r in rows if r["verdict"] == "KEEP"]
 
     L = ["# 入库判定（intake）", "", f"- 数据目录：`{data}`", f"- 场次：{len(rows)}"
@@ -81,7 +79,11 @@ def step_intake(data: Path, out: Path) -> tuple[bool, list[dict], Path]:
          "|---|---|---|---|---|---|---|---|"]
     for r in rows:
         rec = r.get("rec") or {}
-        note = "；".join(r.get("reasons") or []) or "—"
+        # D120：裁决理由分三档（硬/软/信息），信息项只记录不阻塞，这里一并列出但标出层级
+        parts = [f"❌{x}" for x in r.get("hard") or []]
+        parts += [f"🟠{x}" for x in r.get("soft") or []]
+        parts += [f"ℹ{x}" for x in r.get("notes") or []]
+        note = "；".join(parts) or "—"
         L.append(f"| {r['gid']} | {r['sid']} | {r['verdict']} | "
                  f"{rec.get('n_formal', '?')}/{rec.get('n_practice', '?')} | "
                  f"{rec.get('n_dropped', 0)} | {rec.get('acc_mean', float('nan')):.3f} | "
