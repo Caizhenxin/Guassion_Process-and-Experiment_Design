@@ -105,3 +105,8 @@ python -X utf8 1_Code/Experiment/intake.py <单场目录>
 `n = (SD/目标SE)²` 无解，此时结论是「**还没测**」而不是「测够了」——代码里 `block()["unknown"]`
 会把该组标成需补、`group_plan` 置 `None`，报告写「定编暂时算不出来，先把每组收到 ≥2 人」。
 只有「所有组都有解、且每组 `need_more == 0`」才判达标。
+
+**判据只有一份**：`intake.screen(sessions, expect_n)` 是唯一的裁决函数，`main()` 与
+`run_pipeline.py` 的第 1 步都调它。别在别处重写三层/五层逻辑——2026-10-24 就出过一次事故：
+`run_pipeline` 只调了 `audit_one`（三层、不含质量层），同一批数据它给 **19/1/0**、`intake` 给 **17/1/2**，
+两个入口两个答案。现在两处都走 `screen()`，冒烟脚本 `_scratch/_smoke_pipeline_step1.py` 可复核。
