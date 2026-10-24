@@ -1,0 +1,591 @@
+{
+  "data": "2_Data\\Real_Data\\New_Design",
+  "expect_n": 40,
+  "counts": {
+    "KEEP": 17,
+    "REVIEW": 1,
+    "EXCLUDE": 2
+  },
+  "sessions": [
+    {
+      "group": 1,
+      "subject": 1,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 1\\EXP_data_group1_1.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "响应试次正确率 0.590 < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 1,
+      "subject": 2,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 1\\EXP_data_group1_2.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 16.7% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 1,
+      "subject": 3,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 1\\EXP_data_group1_3.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "timeout 43.9% > 40%",
+        "时限内响应率 0.561 < 0.6（软阈值）",
+        "提前按键率 12.7% > 0.1（软阈值）",
+        "可用试次率 55.6% < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 1,
+      "subject": 4,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 1\\EXP_data_group1_4.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "S6-1 FAIL",
+        "提前按键率 12.7% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 1,
+      "subject": 5,
+      "verdict": "REVIEW",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 1\\EXP_data_group1_5.csv",
+      "hard": [],
+      "soft": [
+        "txt 按 (stage, trialID) 去重丢弃 14 行（`fopen(...,'a+')` 追加写 ⇒ 整场跑了两遍；CSV 以最后一次为准，只能计一次，需确认不是两场混写）"
+      ],
+      "notes": [
+        "S6-1 FAIL",
+        "timeout 42.7% > 40%",
+        "时限内响应率 0.573 < 0.6（软阈值）",
+        "提前按键率 13.7% > 0.1（软阈值）",
+        "可用试次率 55.9% < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 2,
+      "subject": 1,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 2\\EXP_data_group2_1.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：刺激期内按键被记录：0 例（其中最小 T 档 33.33 ms 有 0 例） ⇒ **本次回放没有刺激期内按键**，6-B 无法算通过：请在实机验收时有意识地在该档内按一次",
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到"
+      ]
+    },
+    {
+      "group": 2,
+      "subject": 2,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 2\\EXP_data_group2_2.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 11.1% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 2,
+      "subject": 3,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 2\\EXP_data_group2_3.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：刺激期内按键被记录：0 例（其中最小 T 档 33.33 ms 有 0 例） ⇒ **本次回放没有刺激期内按键**，6-B 无法算通过：请在实机验收时有意识地在该档内按一次",
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到"
+      ]
+    },
+    {
+      "group": 2,
+      "subject": 4,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 2\\EXP_data_group2_4.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-C 帧量化（核心）（单行级）：无刺激期按键的 580 行：stimulus_dur_actual − T ∈ [−0.5, +1.5) 帧（1 处：['L13 (dur−T)/FlipIntv=+5.79 帧（96.18 ms）']）",
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "一致层：`stimulus_dur_actual` 超过 T + 1 帧：1 行",
+        "一致层：未在刺激期内按键、但 |stimulus_dur_actual − T| ≥ 1 帧：1 行",
+        "提前按键率 12.5% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 2,
+      "subject": 5,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 2\\EXP_data_group2_5.csv",
+      "hard": [],
+      "soft": [],
+      "notes": []
+    },
+    {
+      "group": 3,
+      "subject": 1,
+      "verdict": "EXCLUDE",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 3\\EXP_data_group3_1.csv",
+      "hard": [
+        "响应试次正确率 0.520 < 0.55（硬阈值）",
+        "清洗后 RT 中位 (ms) 228 < 250（硬阈值）"
+      ],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "刺激时长偏差>20ms 占比 14.6% > 0.05（软阈值）"
+      ]
+    },
+    {
+      "group": 3,
+      "subject": 2,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 3\\EXP_data_group3_2.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "timeout 43.4% > 40%",
+        "时限内响应率 0.566 < 0.6（软阈值）",
+        "提前按键率 13.7% > 0.1（软阈值）",
+        "可用试次率 55.6% < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 3,
+      "subject": 3,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 3\\EXP_data_group3_3.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-C 帧量化（核心）（单行级）：无刺激期按键的 605 行：stimulus_dur_actual − T ∈ [−0.5, +1.5) 帧（1 处：['L6 (dur−T)/FlipIntv=+5.59 帧（92.57 ms）']）",
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 14.4% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 3,
+      "subject": 4,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 3\\EXP_data_group3_4.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 14.4% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 3,
+      "subject": 5,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 3\\EXP_data_group3_5.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 11.1% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 4,
+      "subject": 1,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 4\\EXP_data_group4_1.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "timeout 41.0% > 40%",
+        "时限内响应率 0.590 < 0.6（软阈值）",
+        "可用试次率 58.9% < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 4,
+      "subject": 2,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 4\\EXP_data_group4_2.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 10.2% > 0.1（软阈值）"
+      ]
+    },
+    {
+      "group": 4,
+      "subject": 3,
+      "verdict": "EXCLUDE",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 4\\EXP_data_group4_3.csv",
+      "hard": [
+        "响应试次正确率 0.378 < 0.55（硬阈值）"
+      ],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "S6-5 FAIL",
+        "timeout 42.5% > 40%",
+        "时限内响应率 0.575 < 0.6（软阈值）",
+        "可用试次率 57.3% < 0.6（软阈值）"
+      ]
+    },
+    {
+      "group": 4,
+      "subject": 4,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 4\\EXP_data_group4_4.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "一致层：`stimulus_dur_actual` 超过 T + 1 帧：1 行",
+        "一致层：未在刺激期内按键、但 |stimulus_dur_actual − T| ≥ 1 帧：1 行"
+      ]
+    },
+    {
+      "group": 4,
+      "subject": 5,
+      "verdict": "KEEP",
+      "path": "2_Data\\Real_Data\\New_Design\\Condition 4\\EXP_data_group4_5.csv",
+      "hard": [],
+      "soft": [],
+      "notes": [
+        "6-B KbQueue 刺激期按键：最小 T 档（33.33 ms）里至少 1 例 `Response` 非 NA 且 `RT < T`（实得 0 例） ⇒ 缺这个证据就说明 2 帧条件的按键没被记到",
+        "S6-1 FAIL",
+        "提前按键率 19.6% > 0.1（软阈值）"
+      ]
+    }
+  ],
+  "stats": {
+    "overall": {
+      "label": "全体",
+      "n": 18,
+      "n_plan": 160,
+      "metrics": [
+        {
+          "key": "drt_med",
+          "name": "ΔRT 中位 (ms)",
+          "n": 18,
+          "mean": 38.64059722561961,
+          "sd": 30.925804093753875,
+          "se": 7.289281929446687,
+          "ci": [
+            24.353604643904102,
+            52.92758980733511
+          ],
+          "target": 10.0,
+          "n_need": 10,
+          "ok": true
+        },
+        {
+          "key": "d_acc",
+          "name": "Δacc（比例，×100 = pp）",
+          "n": 18,
+          "mean": 0.06815571077179843,
+          "sd": 0.10099365902637418,
+          "se": 0.02380443371813039,
+          "ci": [
+            0.021499020684262862,
+            0.11481240085933399
+          ],
+          "target": 0.03,
+          "n_need": 12,
+          "ok": true
+        },
+        {
+          "key": "slope",
+          "name": "分位斜率 (ms)",
+          "n": 18,
+          "mean": 36.051634433291284,
+          "sd": 80.26240849289135,
+          "se": 18.91803110656274,
+          "ci": [
+            -1.0277065355716886,
+            73.13097540215426
+          ],
+          "target": 30.0,
+          "n_need": 8,
+          "ok": true
+        }
+      ],
+      "n_need": 12,
+      "unknown": false,
+      "need_more": 37,
+      "hire": 45,
+      "status": "需补",
+      "group_plan": 55,
+      "group_have": 18,
+      "group_short": [
+        "组 1（P=0） 差 11 人",
+        "组 2（P=8） 差 6 人",
+        "组 3（P=32） 差 11 人",
+        "组 4（P=120） 差 9 人"
+      ],
+      "group_need_min": 11,
+      "group_need_max": 16
+    },
+    "by_group": [
+      {
+        "label": "组 1（P=0）",
+        "n": 5,
+        "n_plan": 40,
+        "metrics": [
+          {
+            "key": "drt_med",
+            "name": "ΔRT 中位 (ms)",
+            "n": 5,
+            "mean": 59.7465100057889,
+            "sd": 39.47433504902596,
+            "se": 17.65345930724491,
+            "ci": [
+              25.145729763588882,
+              94.34729024798892
+            ],
+            "target": 10.0,
+            "n_need": 16,
+            "ok": false
+          },
+          {
+            "key": "d_acc",
+            "name": "Δacc（比例，×100 = pp）",
+            "n": 5,
+            "mean": 0.14429244266287033,
+            "sd": 0.07997836613945132,
+            "se": 0.03576741268343611,
+            "ci": [
+              0.07418831380333556,
+              0.2143965715224051
+            ],
+            "target": 0.03,
+            "n_need": 8,
+            "ok": false
+          },
+          {
+            "key": "slope",
+            "name": "分位斜率 (ms)",
+            "n": 5,
+            "mean": 98.7354259879796,
+            "sd": 75.22914549284006,
+            "se": 33.64349664224246,
+            "ci": [
+              32.79417256918437,
+              164.67667940677484
+            ],
+            "target": 30.0,
+            "n_need": 7,
+            "ok": false
+          }
+        ],
+        "n_need": 16,
+        "unknown": false,
+        "need_more": 11,
+        "hire": 20,
+        "status": "需补"
+      },
+      {
+        "label": "组 2（P=8）",
+        "n": 5,
+        "n_plan": 40,
+        "metrics": [
+          {
+            "key": "drt_med",
+            "name": "ΔRT 中位 (ms)",
+            "n": 5,
+            "mean": 34.00154001428731,
+            "sd": 18.003038005943555,
+            "se": 8.05120335656041,
+            "ci": [
+              18.221181435428903,
+              49.78189859314571
+            ],
+            "target": 10.0,
+            "n_need": 4,
+            "ok": true
+          },
+          {
+            "key": "d_acc",
+            "name": "Δacc（比例，×100 = pp）",
+            "n": 5,
+            "mean": 0.054415279304980205,
+            "sd": 0.0975745890802245,
+            "se": 0.04363668281199813,
+            "ci": [
+              -0.031112619006536127,
+              0.13994317761649655
+            ],
+            "target": 0.03,
+            "n_need": 11,
+            "ok": false
+          },
+          {
+            "key": "slope",
+            "name": "分位斜率 (ms)",
+            "n": 5,
+            "mean": 44.13837795262201,
+            "sd": 44.889860832267786,
+            "se": 20.07535606429121,
+            "ci": [
+              4.7906800666112375,
+              83.48607583863279
+            ],
+            "target": 30.0,
+            "n_need": 3,
+            "ok": true
+          }
+        ],
+        "n_need": 11,
+        "unknown": false,
+        "need_more": 6,
+        "hire": 14,
+        "status": "需补"
+      },
+      {
+        "label": "组 3（P=32）",
+        "n": 4,
+        "n_plan": 40,
+        "metrics": [
+          {
+            "key": "drt_med",
+            "name": "ΔRT 中位 (ms)",
+            "n": 4,
+            "mean": 27.49442497588487,
+            "sd": 37.5871164333439,
+            "se": 18.79355821667195,
+            "ci": [
+              -9.340949128792154,
+              64.32979908056188
+            ],
+            "target": 10.0,
+            "n_need": 15,
+            "ok": false
+          },
+          {
+            "key": "d_acc",
+            "name": "Δacc（比例，×100 = pp）",
+            "n": 4,
+            "mean": 0.020600982734348405,
+            "sd": 0.1032165186214737,
+            "se": 0.05160825931073685,
+            "ci": [
+              -0.08055120551469581,
+              0.12175317098339263
+            ],
+            "target": 0.03,
+            "n_need": 12,
+            "ok": false
+          },
+          {
+            "key": "slope",
+            "name": "分位斜率 (ms)",
+            "n": 4,
+            "mean": -10.401429992634874,
+            "sd": 71.52272999485228,
+            "se": 35.76136499742614,
+            "ci": [
+              -80.49370538759011,
+              59.69084540232036
+            ],
+            "target": 30.0,
+            "n_need": 6,
+            "ok": false
+          }
+        ],
+        "n_need": 15,
+        "unknown": false,
+        "need_more": 11,
+        "hire": 18,
+        "status": "需补"
+      },
+      {
+        "label": "组 4（P=120）",
+        "n": 4,
+        "n_plan": 40,
+        "metrics": [
+          {
+            "key": "drt_med",
+            "name": "ΔRT 中位 (ms)",
+            "n": 4,
+            "mean": 29.203200014308095,
+            "sd": 20.84129391994908,
+            "se": 10.42064695997454,
+            "ci": [
+              8.778731972757996,
+              49.627668055858194
+            ],
+            "target": 10.0,
+            "n_need": 5,
+            "ok": false
+          },
+          {
+            "key": "d_acc",
+            "name": "Δacc（比例，×100 = pp）",
+            "n": 4,
+            "mean": 0.03771506327893134,
+            "sd": 0.10814276209300061,
+            "se": 0.054071381046500305,
+            "ci": [
+              -0.06826484357220926,
+              0.14369497013007193
+            ],
+            "target": 0.03,
+            "n_need": 13,
+            "ok": false
+          },
+          {
+            "key": "slope",
+            "name": "分位斜率 (ms)",
+            "n": 4,
+            "mean": -5.958469983306358,
+            "sd": 96.27411080071872,
+            "se": 48.13705540035936,
+            "ci": [
+              -100.3070985680107,
+              88.39015860139799
+            ],
+            "target": 30.0,
+            "n_need": 11,
+            "ok": false
+          }
+        ],
+        "n_need": 13,
+        "unknown": false,
+        "need_more": 9,
+        "hire": 16,
+        "status": "需补"
+      }
+    ]
+  },
+  "targets": {
+    "drt_med": 10.0,
+    "d_acc": 0.03,
+    "slope": 30.0
+  }
+}

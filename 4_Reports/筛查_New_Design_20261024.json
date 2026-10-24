@@ -337,6 +337,7 @@
         }
       ],
       "n_need": 12,
+      "unknown": false,
       "need_more": 37,
       "hire": 45,
       "status": "需补",
@@ -404,6 +405,7 @@
           }
         ],
         "n_need": 16,
+        "unknown": false,
         "need_more": 11,
         "hire": 20,
         "status": "需补"
@@ -460,6 +462,7 @@
           }
         ],
         "n_need": 11,
+        "unknown": false,
         "need_more": 6,
         "hire": 14,
         "status": "需补"
@@ -516,6 +519,7 @@
           }
         ],
         "n_need": 15,
+        "unknown": false,
         "need_more": 11,
         "hire": 18,
         "status": "需补"
@@ -572,6 +576,7 @@
           }
         ],
         "n_need": 13,
+        "unknown": false,
         "need_more": 9,
         "hire": 16,
         "status": "需补"

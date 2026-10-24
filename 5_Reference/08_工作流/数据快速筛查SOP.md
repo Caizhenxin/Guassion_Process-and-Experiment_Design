@@ -87,3 +87,21 @@ python -X utf8 1_Code/Experiment/intake.py 2_Data\Real_Data\<批次目录> `
 
 > 被本工具取代的旧 DQ 管线（`run_dq.py` / `make_figures.py` / `verify_independent.py`、旧 DQ 报告与图）已于 2026-10-24 整体移到
 > `_scratch/_attic_20261024/`（该目录不进版本库），清单与理由见其中的 `README.md`。
+
+## 8. 复现性与边收边查的自检
+
+**同一份数据必须跑出同一个结论**，这是「可信可重复」的底线。两条自检：
+
+```powershell
+# ① 连跑两次，JSON 除时间戳外逐字节一致；并与已提交快照比对
+python -X utf8 1_Code/DDM_Core/_scratch/check_intake_repro.py
+# ② 只交回一场 / 一个组刚开了头，判词不能变「达标」
+python -X utf8 1_Code/Experiment/intake.py <单场目录>
+```
+
+按这两条验过 2026-10-24 的 20 人批次：两次运行完全一致、与提交快照一致；单场批次判**需补**。
+
+**「样本不足」不等于「达标」**（2026-10-24 修的一个真 bug）：某个端点量在某组里不到 2 人时，
+`n = (SD/目标SE)²` 无解，此时结论是「**还没测**」而不是「测够了」——代码里 `block()["unknown"]`
+会把该组标成需补、`group_plan` 置 `None`，报告写「定编暂时算不出来，先把每组收到 ≥2 人」。
+只有「所有组都有解、且每组 `need_more == 0`」才判达标。

@@ -301,9 +301,11 @@ def stats_layer(df_all: "pd.DataFrame", keep_ids: set[str], expect_n: int) -> di
     def block(x: "pd.DataFrame", label: str, n_plan: int) -> dict:
         out = {"label": label, "n": int(len(x)), "n_plan": int(n_plan), "metrics": []}
         need = 0
+        unknown = False
         for key, target in TARGET.items():
             v = x[key].to_numpy(float)
             if len(v) < 2:
+                unknown = True
                 out["metrics"].append({"key": key, "name": METRIC_CN[key], "n": len(v),
                                        "mean": float("nan"), "sd": float("nan"),
                                        "se": float("nan"), "target": target,
@@ -317,10 +319,12 @@ def stats_layer(df_all: "pd.DataFrame", keep_ids: set[str], expect_n: int) -> di
                                    "mean": float(v.mean()), "sd": sd, "se": se,
                                    "ci": list(R.t_ci(v)), "target": target,
                                    "n_need": n_need, "ok": se <= target})
-        out["n_need"] = need
-        out["need_more"] = max(0, need - out["n"])
-        out["hire"] = int(math.ceil(need * 1.2))
-        out["status"] = "达标" if out["need_more"] == 0 else "需补"
+        out["n_need"] = None if unknown else need
+        out["unknown"] = unknown
+        out["need_more"] = 0 if unknown else max(0, need - out["n"])
+        out["hire"] = 0 if unknown else int(math.ceil(need * 1.2))
+        # 样本不足（n<2 或 SD=0 算不出定编）不能判「达标」——那是「还没测」，不是「测够了」。
+        out["status"] = "需补" if (unknown or out["need_more"] > 0) else "达标"
         return out
 
     stats = {"overall": block(per, "全体", expect_n * 4), "by_group": []}
@@ -333,19 +337,23 @@ def stats_layer(df_all: "pd.DataFrame", keep_ids: set[str], expect_n: int) -> di
     total_need = 0
     total_have = 0
     short = []
+    unknown_groups = []
     for blk in stats["by_group"]:
-        total_need += blk["n_need"]
+        total_need += blk["n_need"] or 0
         total_have += blk["n"]
-        if blk["need_more"] > 0:
+        if blk["unknown"]:
+            unknown_groups.append(f"{blk['label']} 样本不足（{blk['n']} 人），无法定编")
+        elif blk["need_more"] > 0:
             short.append(f"{blk['label']} 差 {blk['need_more']} 人")
     ov = stats["overall"]
-    ov["group_plan"] = total_need
+    ov["group_plan"] = None if unknown_groups else total_need
     ov["group_have"] = total_have
-    ov["group_short"] = short
-    needs = [blk["n_need"] for blk in stats["by_group"]]
+    ov["group_short"] = short + unknown_groups
+    needs = [blk["n_need"] for blk in stats["by_group"] if blk["n_need"]]
     ov["group_need_min"] = min(needs) if needs else 0
     ov["group_need_max"] = max(needs) if needs else 0
-    ov["status"] = ("达标" if (not short and ov["need_more"] == 0) else "需补")
+    ov["status"] = ("达标" if (not short and not unknown_groups and not ov["unknown"]
+                           and ov["need_more"] == 0) else "需补")
     ov["need_more"] = max(ov["need_more"], total_need - total_have)
     ov["hire"] = int(math.ceil(ov["need_more"] * 1.2))
     return {"per": per, "stats": stats}
@@ -384,9 +392,13 @@ def render_report(res: list[dict], qmap: dict, st: dict, expect_n: int,
         out.append(f"- 🟠 {n[REVIEW]} 场待复核：可进分析，但要在论文方法节报备。")
     out.append(f"- 统计层：计入 n={ov['n']}，判 **{ov['status']}**")
     if ov["status"] != "达标":
-        out.append(f"  - 按组定编：每组需 {ov['group_need_min']}–{ov['group_need_max']} 人，"
-                   f"四个组合计 **{ov['group_plan']}** 人，现有 {ov['group_have']} 人 ⇒ "
-                   f"差 **{ov['need_more']} 人**（按 20% 损耗应再招 {ov['hire']} 人）。")
+        if ov["group_plan"] is None:
+            out.append(f"  - 按组定编：**暂时算不出来**（有组不到 2 人，`n=(SD/目标SE)²` 无解）；"
+                       f"现有 {ov['group_have']} 人，先把每组收到 ≥2 人再定编。")
+        else:
+            out.append(f"  - 按组定编：每组需 {ov['group_need_min']}–{ov['group_need_max']} 人，"
+                       f"四个组合计 **{ov['group_plan']}** 人，现有 {ov['group_have']} 人 ⇒ "
+                       f"差 **{ov['need_more']} 人**（按 20% 损耗应再招 {ov['hire']} 人）。")
         if ov["group_short"]:
             out.append("  - 分组缺口：" + "；".join(ov["group_short"]) + "。")
     out.append("")
@@ -406,8 +418,15 @@ def render_report(res: list[dict], qmap: dict, st: dict, expect_n: int,
             out.append(f"| {blk['label'] if i == 0 else ''} | {mm['n']} | {mm['name']} | "
                        f"{mm['mean']:.3f} | {mm['sd']:.3f} | {mm['se']:.3f} | "
                        f"[{lo:.3f}, {hi:.3f}] | {mm['target']:g} | {mm['n_need']} | {mark} |")
-    out += ["", f"全体判定：**{ov['status']}**（全体 18 人以上的『全体精度』已满足，"
-            f"需 n = {ov['n_need']}；真正的缺口在分组精度，见 §一）。", ""]
+    if ov["unknown"]:
+        tail = (f"全体判定：**{ov['status']}**（全体不到 2 人，`n=(SD/目标SE)²` 无解——这是『还没测』，"
+                "不是『测够了』，先补人）。")
+    elif ov["status"] == "达标":
+        tail = f"全体判定：**达标**（全体精度已满足，需 n = {ov['n_need']}）。"
+    else:
+        tail = (f"全体判定：**需补**（全体 n = {ov['n']} 的『全体精度』需 n = {ov['n_need']}，"
+                "这一项已满足；真正的缺口在**分组**精度，见 §一）。")
+    out += ["", tail, ""]
 
     out += ["## 三、逐场判定", "",
             "| # | 组-被试 | 正式/练习 | 响应率 | 提前 | 正确率 | RT中位 | 可用率 | 逐格(原) | 裁决 | 理由 |",
@@ -604,9 +623,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"| {blk['label'] if i == 0 else ''} | {mm['n']} | {mm['name']} | {mm['mean']:.3f} | "
                       f"{mm['sd']:.3f} | {mm['se']:.3f} | [{lo:.3f}, {hi:.3f}] | {mm['n_need']} | "
                       f"{'✅' if mm['ok'] else '🟠'} |")
-        print(f"\n⇒ 全体判定：**{ov['status']}**"
-              + ("" if ov["status"] == "达标" else
-                 f"；还需 {ov['need_more']} 人（按 20% 损耗应招 {ov['hire']} 人）。"))
+        hint = ""
+        if ov["status"] != "达标":
+            if ov["group_plan"] is None:
+                hint = "；有组不到 2 人，定编暂时算不出来，先每组补到 ≥2 人。"
+            else:
+                hint = f"；还需 {ov['need_more']} 人（按 20% 损耗应招 {ov['hire']} 人）。"
+        print(f"\n⇒ 全体判定：**{ov['status']}**{hint}")
 
     cmd = "python -X utf8 1_Code/Experiment/intake.py " + " ".join(str(p) for p in paths)
     if st is not None and args.out:
