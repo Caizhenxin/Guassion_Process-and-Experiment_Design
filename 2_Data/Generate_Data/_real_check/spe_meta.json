@@ -1,0 +1,12 @@
+{
+  "n_subjects": 20,
+  "n_rows": 20,
+  "quantiles": [
+    0.1,
+    0.3,
+    0.5,
+    0.7,
+    0.9
+  ],
+  "filter": "responded==1, 120<RT<=W+50"
+}
