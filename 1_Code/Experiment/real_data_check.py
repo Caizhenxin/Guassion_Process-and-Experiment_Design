@@ -35,16 +35,28 @@ C_SELF, C_OTHER = "#c0392b", "#2c6fbb"
 
 # ---------------------------------------------------------------- 读入与清洗
 def load_trials(data: Path) -> pd.DataFrame:
-    frames = []
-    for c in sorted(data.glob("Condition *")):
-        for f in sorted(c.glob("*.csv")):
-            d = pd.read_csv(f, encoding="utf-8-sig")
-            d["cond_dir"] = c.name
-            frames.append(d)
-    if not frames:
+    files = [f for c in sorted(data.glob("Condition *")) for f in sorted(c.glob("*.csv"))]
+    if not files:
         raise SystemExit(f"没找到 CSV：{data}")
-    df = pd.concat(frames, ignore_index=True)
+    return load_files(files)
+
+
+def load_files(files: list[Path]) -> pd.DataFrame:
+    """读指定 CSV 列表（`intake.py` 的逐场/整批质检共用同一套派生列）。"""
+    frames = []
+    for f in files:
+        d = pd.read_csv(f, encoding="utf-8-sig")
+        d["cond_dir"] = f.parent.name
+        d["src_csv"] = f.name
+        frames.append(d)
+    if not frames:
+        raise SystemExit("没有可读的 CSV")
+    return _derive(pd.concat(frames, ignore_index=True))
+
+
+def _derive(df: pd.DataFrame) -> pd.DataFrame:
     num = lambda col: pd.to_numeric(df[col], errors="coerce")
+    df["is_formal"] = df["stage"].astype(str).str.lower().str.strip().eq("formal")
     df["is_self"] = df["Label"].astype(str).str.lower().str.strip().eq("self").astype(int)
     df["responded"] = num("responded_by_deadline").fillna(0).astype(int)
     df["correct"] = num("Correct").fillna(0).astype(int)
@@ -67,16 +79,22 @@ def _nearest(x: pd.Series, levels: tuple[float, ...]) -> pd.Series:
     return pd.Series(arr[idx], index=x.index)
 
 
-def clean(df: pd.DataFrame) -> pd.DataFrame:
-    """试次级清洗：按期响应 + RT 在 (120 ms, W+50 ms]。"""
-    d = df[(df.responded == 1) & df.rt_ms.notna()].copy()
+def clean(df: pd.DataFrame, formal_only: bool = True) -> pd.DataFrame:
+    """试次级清洗：正式段 + 按期响应 + RT 在 (120 ms, W+50 ms]。
+
+    正式段必须单独挑出来：练习段（`stage=practice`，P=0/8/32/120 行）固定用
+    T=83.3 ms / W=1200 ms，混进来会把 (T,W) 单元计数和 SPE 一起带偏——组 4 的
+    练习有 120 行，占该场 17%。
+    """
+    d = df[df.is_formal] if formal_only else df
+    d = d[(d.responded == 1) & d.rt_ms.notna()].copy()
     return d[(d.rt_ms > 120) & (d.rt_ms <= d.W_ms + 50)].reset_index(drop=True)
 
 
 # ---------------------------------------------------------------- 质检
 def qc_session(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    for sid, sub in df.groupby("subject_id"):
+    for sid, sub in df[df.is_formal].groupby("subject_id"):
         dev = sub.dur_dev_ms.abs()
         rows.append({
             "subject_id": sid, "P": float(sub.P.iloc[0]), "n_trials": len(sub),
@@ -109,7 +127,7 @@ def desc_cell(df: pd.DataFrame) -> pd.DataFrame:
               .reset_index())
 
 
-def spe_per_subject(d: pd.DataFrame) -> pd.DataFrame:
+def spe_per_subject(d: pd.DataFrame, raw: pd.DataFrame | None = None) -> pd.DataFrame:
     rows = []
     for (sid, P), sub in d.groupby(["subject_id", "P"]):
         s, o = sub[sub.is_self == 1], sub[sub.is_self == 0]
@@ -119,8 +137,14 @@ def spe_per_subject(d: pd.DataFrame) -> pd.DataFrame:
                "acc_self": float(s.correct.mean()), "acc_other": float(o.correct.mean()),
                "rt_self_med": float(s.rt_ms.median()), "rt_other_med": float(o.rt_ms.median())}
         rec["d_acc"] = rec["acc_self"] - rec["acc_other"]
-        rec["d_timeout"] = float((1 - o.responded.mean()) - (1 - s.responded.mean())) \
-            if False else float(0.0)  # 占位：d 只在响应试次内算
+        # 超时不对称：必须在**原始（未清洗）正式段**上算，清洗后 responded 全是 1
+        rec["d_timeout"] = float("nan")
+        if raw is not None:
+            r = raw[(raw["subject_id"] == sid) & (raw["is_formal"])]
+            if len(r):
+                sf, of = r[r.is_self == 1], r[r.is_self == 0]
+                if len(sf) and len(of):
+                    rec["d_timeout"] = float((1 - of.responded.mean()) - (1 - sf.responded.mean()))
         for q in QUANT:
             rec[f"drt_q{int(q*100)}"] = float(np.quantile(o.rt_ms, q) - np.quantile(s.rt_ms, q))
         rec["drt_med"] = float(o.rt_ms.median() - s.rt_ms.median())
@@ -345,7 +369,7 @@ def main() -> None:
     qs = qc_session(df); qs.to_csv(out / "qc_session.csv", index=False, encoding="utf-8-sig")
     qc_cell(df).to_csv(out / "qc_cell.csv", index=False, encoding="utf-8-sig")
     desc_cell(df).to_csv(out / "desc_cell.csv", index=False, encoding="utf-8-sig")
-    per = spe_per_subject(d); per.to_csv(out / "spe_per_subject.csv", index=False, encoding="utf-8-sig")
+    per = spe_per_subject(d, raw=df); per.to_csv(out / "spe_per_subject.csv", index=False, encoding="utf-8-sig")
     sm = spe_summary(per); sm.to_csv(out / "spe_summary.csv", index=False, encoding="utf-8-sig")
     by_p = (per.groupby("P").agg(n=("subject_id", "size"), d_acc=("d_acc", "mean"),
                                  drt_med=("drt_med", "mean"), slope=("slope", "mean"))
