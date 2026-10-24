@@ -45,12 +45,13 @@ from make_figures import setup_matplotlib           # noqa: E402  复用中文�
 T_LEVELS = [2 / 60, 5 / 60, 9 / 60, 15 / 60]
 W_LEVELS = [48 / 60, 72 / 60, 108 / 60]
 N_GRID = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40, 48]
-KEY_PARAMS = ["d_ref", "beta_T", "beta_S", "beta_ST"]
+KEY_PARAMS = ["d_ref", "beta_T", "beta_S", "beta_ST", "dz_S"]
 
 ZH = {
     "d_ref": "漂移幅度 d_ref", "beta_T": "T 效应 beta_T", "beta_S": "自我效应 beta_S",
     "beta_ST": "自我×T beta_ST", "a_ref": "边界 a_ref", "delta_a": "身份边界差 delta_a",
     "tau_a": "边界时间常数 tau_a", "tau_T": "T 饱和常数 tau_T", "t0": "非决策时间 t0",
+    "dz_S": "起点偏移 dz_S",
     "beta_P": "P 效应 beta_P", "tau_P": "P 饱和常数 tau_P",
     "n": "组人数 n（每组）", "rel": "相对精度（SE / 真值，%）",
     "rel_rmse": "相对 RMSE（RMSE / 真值）", "rt": "RT（ms）", "p": "概率",
@@ -61,6 +62,7 @@ EN = {
     "d_ref": "drift d_ref", "beta_T": "T effect beta_T", "beta_S": "self effect beta_S",
     "beta_ST": "self x T beta_ST", "a_ref": "boundary a_ref", "delta_a": "identity delta_a",
     "tau_a": "boundary tau_a", "tau_T": "T saturation tau_T", "t0": "non-decision t0",
+    "dz_S": "self start shift dz_S",
     "beta_P": "P effect beta_P", "tau_P": "P saturation tau_P",
     "n": "subjects per group", "rel": "relative precision (SE / truth, %)",
     "rel_rmse": "relative RMSE (RMSE / truth)", "rt": "RT (ms)", "p": "probability",
@@ -101,9 +103,10 @@ def fig_crlb(plt, c: dict, out: Path, lang: str) -> Path:
     fig, axes = plt.subplots(1, 2, figsize=(12.4, 4.8))
     n_arr = np.array(N_GRID, float)
     for ax, names, title in (
-        (axes[0], c["names"], "全部 9 个被试层参数" if lang == "zh" else "all 9 within-subject parameters"),
-        (axes[1], KEY_PARAMS, "四个关键参数（10% 与 25% 参考线）" if lang == "zh"
-         else "four key parameters (10% / 25% reference lines)"),
+        (axes[0], c["names"], f"全部 {len(c['names'])} 个被试层参数" if lang == "zh"
+         else f"all {len(c['names'])} within-subject parameters"),
+        (axes[1], KEY_PARAMS, f"{len(KEY_PARAMS)} 个关键参数（10% 与 25% 参考线）" if lang == "zh"
+         else f"{len(KEY_PARAMS)} key parameters (10% / 25% reference lines)"),
     ):
         for name in names:
             rel = [100.0 * c["se"][name] / np.sqrt(n) / abs(c["truth"][name]) for n in n_arr]
@@ -351,7 +354,8 @@ def write_index(out: Path, c: dict, orows: list[dict], td: dict, figs: list[Path
         "",
         f"* CRLB 用的是 **{c['n_trials']} 试次/人**（4 T × 3 W × 4 种 × 12 次）；该设计在真值下的行为："
         f"正确率 **{c['acc']:.3f}**、遗漏 **{c['omission']:.3f}**、RT 均值 **{c['rt_ms']:.0f} ms**。",
-        "* 组层相对 SE 达到 10% 所需组人数：",
+        f"* 组层相对 SE 达到 10% 所需组人数（**{len(c['names'])} 个被试层参数全部自由**，"
+        "含判据通道 `dz_S`）：",
         "",
         "| 参数 | 10% 需要 N | 25% 需要 N |",
         "|---|---|---|",
@@ -383,8 +387,8 @@ def write_index(out: Path, c: dict, orows: list[dict], td: dict, figs: list[Path
         "",
         "* 设计真值在 **P = 0** 组的漂移约 0.0005（`exp` 形式在 `P=0` 处几乎归零）⇒ 期望正确率 0.50，"
         "而 S6-5 的下限是 0.45；两者不相容（首场真实数据 0.440 正落在这一位置）。",
-        "* 设计真值的遗漏率约 0.32（`design_fim.TRUTH`）/ 0.35（`TRUTH_LIN`）⇒ 高于 S6-1 的 20% 阈值，"
-        "说明设计真值偏悲观，须与 S6-5/S6-1 一起复核。",
+        f"* 设计真值的遗漏率 **{c['omission']:.3f}**（`design_fim.TRUTH`）/ 0.35（`TRUTH_LIN`）"
+        "⇒ 高于 S6-1 的 20% 阈值，说明设计真值偏悲观，须与 S6-5/S6-1 一起复核。",
         "",
         "## 复现",
         "",

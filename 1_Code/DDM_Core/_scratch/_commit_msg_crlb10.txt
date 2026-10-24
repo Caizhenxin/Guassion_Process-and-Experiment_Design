@@ -1,0 +1,30 @@
+feat(crlb): 可辨识性产物升到 10 参数（含 dz_S），§8.79 + 模型章 §3.8 收口
+
+D118 把判据通道 Δz_S 加进主模型后，WITHIN_FREE 9→10、WITHIN_FREE_LIN 7→8，
+但已落盘的 CRLB 图与人数表仍是旧口径（模型章 §3.8 还挂着「尚未重跑」的脚注）。
+
+代码
+- design_fim.py：TRUTH 加 dz_S=0.10（不能取 0，相对 SE 会除零）；
+  PRIMARY 扩为 6 个展示参数；NAMES = list(WITHIN_FREE) 加注释（自动跟随，现 10 个）
+- make_sim_figures.py：KEY_PARAMS 加 dz_S（右图 5 条）；ZH/EN 补条目；
+  小标题改按 len() 计数；write_index 里两处写死文案改吃 c["omission"] 与参数个数
+  （不改的话，下次整脚本一跑会把 figures_index.md 覆盖回旧数）
+- 新建 _scratch/regen_crlb_10p.py：只重跑 CRLB 三件，避免顺带跑 oracle
+
+读数（D4，576 试次/人，10 参数）
+- 正确率 0.823、遗漏 0.309、RT 749 ms；cond(I)=1.3e+05
+- 单被试 SE：dz_S 0.0162（16.2%，3 人/组到 10%）、beta_S 0.1151、
+  beta_ST 0.4773、tau_T 0.1054、delta_a 1.4133、tau_a 2.5339
+- 其余九行相对 9 参数版本变化 <1.5% ⇒ D109 的 37–43 人/组、beta_T 为硬约束不变
+- 名次仍为 D4-rep16 0.545 < T-wide 0.583 < W-high 0.608 < D4 0.641（档位阈值未改）
+
+文档
+- 1_Code/DDM_Core/README.md 新增 §8.79（为什么要重跑 / 改了什么 / 读数表 / 产物 / 尚未做），
+  §8.75 的 CRLB 行换成 10 参数读数并指向 §8.79，§9 表补第 99 行（D118 + 本次重跑）
+- 模型章 §3.8：表全行换 10 参数读数，Δz_S 真值改 0.10/SE 0.016/N 3，删掉旧 † 脚注，
+  改写为两条口径说明（九行不变 ⇒ 人群规模沿用；CRLB 0.016 与 §3.15.4 的 OPG 0.015 互相印证）
+- figures_index.md 由修好的 write_index 重生成（10 行人数表、遗漏率 0.309）
+- 对照表 §3.3 的 TRUTH_EXP 补 Δz_S=0.10（10 参数口径，2026-10-24）
+
+产物：fig_sim_crlb.png（10 条曲线）、sim_crlb.csv（10 行）重生成；
+fig_sim_p_design.png / fig_sim_trials.png 未动（走 TRUTH_LIN，与本参数集无关）。

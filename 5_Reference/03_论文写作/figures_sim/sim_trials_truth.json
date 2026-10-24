@@ -17,6 +17,7 @@
   "tau_a": 0.7,
   "t0": 0.22,
   "z_ratio": 0.5,
+  "dz_S": 0.0,
   "rho": 0.8,
   "kind": "SYNTHETIC",
   "n_trials": 1728

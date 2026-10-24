@@ -4115,7 +4115,7 @@ python -X utf8 1_Code/Experiment/scan_min_n.py --n-list 4 --reuse  # 只补缺�
 
 | 图 | 回答什么 | 关键读数 |
 |---|---|---|
-| `fig_sim_crlb.png` | 每组要多少人才能把参数压到 10% | `d_ref` **3**、`beta_T` **41**、`beta_S` **51**、`tau_T` **169**、`delta_a` **658**、`tau_a` **1307**、`beta_ST` **2248**、`a_ref` / `t0` **1** |
+| `fig_sim_crlb.png` | 每组要多少人才能把参数压到 10% | `d_ref` **3**、`beta_T` **41**、`beta_S` **52**、`tau_T` **174**、`delta_a` **661**、`tau_a` **1311**、`beta_ST` **2281**、`dz_S` **3**、`a_ref` / `t0` **1**（**10 参数口径，2026-10-24 重跑，见 §8.79**；上一版 9 参数读数 51 / 169 / 658 / 1307 / 2248 变化均 <1.5%） |
 | `fig_sim_p_design.png` | P 水平怎么选 | `beta_P` 判据 0.30：n=12 时 0.243、n=20 时 0.150；`tau_P` 判据 0.50：n=20 时 0.513 ⇒ 40 人/组稳、20 人/组下限 |
 | `fig_sim_trials.png` | 模型能生成什么样的试次数据 | 正确率随 T 从 0.58 升到 0.75、遗漏率随 W 从 0.56 降到 0.20（3 名被试合并） |
 
@@ -4219,6 +4219,58 @@ P=0/8/32 的漂移被算成 **0.000 / 0.000 / 0.211**，只有 `{32,120}` 与「
 2. `tau_P` **只报「本设计无法估计」**并给出截断机制，不给点估计与区间。
 3. 人数不是「够不够」而是「区间多宽」：30 人/组时 `beta_P` 的 95% 区间约 ±0.28（真值 1.5 的 ±19%）。
 
+## 8.79 10 参数 CRLB 重跑：`dz_S` 进可辨识性口径（D118 后续，2026-10-24）
+
+**一句话**：D118 把判据通道 `Δz_S` 加进主模型后，可辨识性产物（CRLB 图 / 所需人数表）从 9 参数升到 **10 参数**；结论是**新参数没动旧结论**——其余九个参数的人数需求变化 <1.5%。
+
+### 为什么要重跑
+
+模型章 §3.8 与 `figures_sim/` 里的人数表是 `Δz_S` 加进来之前算的（`WITHIN_FREE` 当时 9 个、分析用 `WITHIN_FREE_LIN` 7 个）。D118 之后 `mapping.WITHIN_FREE` 变 **10**、`WITHIN_FREE_LIN` 变 **8**，而 `design_fim.NAMES` 本来就写成 `list(WITHIN_FREE)` ⇒ **口径会自动跟随**，但已落盘的 CSV/PNG 仍是旧的。不重跑就有两种危险：读者以为图里包含 `Δz_S`（其实没有），或以为新参数没被算进样本量（其实旧表也不再对应模型）。
+
+### 改了什么
+
+| 文件 | 改动 |
+|---|---|
+| `1_Code/DDM_Core/design_fim.py` | `TRUTH` 加 `dz_S = 0.10`；`PRIMARY` 扩为 `["d_ref","beta_T","tau_T","beta_S","beta_ST","dz_S"]`（diag/相关矩阵的展示集）；`NAMES = list(WITHIN_FREE)` 加注释说明「自动跟随，当前 10 个」 |
+| `1_Code/Experiment/make_sim_figures.py` | `KEY_PARAMS` 加 `dz_S`（右图 5 条曲线）；`ZH`/`EN` 加 `dz_S` → `起点偏移 dz_S` / `self start shift dz_S`；两处小标题改成按 `len()` 计数（左图「全部 10 个被试层参数」） |
+| `1_Code/DDM_Core/_scratch/regen_crlb_10p.py`（新建） | 只重跑 CRLB 三件（复用 `make_sim_figures.crlb / fig_crlb / n_for_target`），避免顺带重跑 `p_design` 的 400×3 场景 oracle |
+
+`TRUTH["dz_S"]` 取 **0.10**（不是 0.085）的理由与 §3.15.4 的量级换算同一档（0.085–0.10 都落在「真实数据反解值」附近，差 1 个 CRLB 的 1.5 倍），但**绝不能取 0**——相对 SE 是 `SE / 真值`，真值 0 会把这一行变成除零。
+
+### 读数（D4，4T×3W r12，576 试次/人；`design_fim.py` 全 9 设计 exit 0）
+
+设计真值下的行为：正确率 **0.823**、遗漏 **0.309**、RT 均值 **749 ms**、`cond(I) = 1.3e+05`。
+
+| 参数 | 真值 | 单被试 SE | 相对 SE | 10% 需 N | 25% 需 N |
+|---|---|---|---|---|---|
+| `d_ref` | 0.70 | 0.1039 | 14.8% | **3** | 1 |
+| `beta_T` | 0.55 | 0.3503 | 63.7% | **41** | 7 |
+| `tau_T` | 0.08 | 0.1054 | 131.7% | **174** | 28 |
+| `beta_S` | 0.16 | 0.1151 | 72.0% | **52** | 9 |
+| `beta_ST` | 0.10 | 0.4773 | 477.3% | **2281** | 365 |
+| `a_ref` | 2.00 | 0.0744 | 3.7% | 1 | 1 |
+| `delta_a` | 0.55 | 1.4133 | 257.0% | **661** | 106 |
+| `tau_a` | 0.70 | 2.5339 | 362.0% | **1311** | 210 |
+| `t0` | 0.22 | 0.0114 | 5.2% | 1 | 1 |
+| **`dz_S`** | 0.10 | **0.0162** | **16.2%** | **3** | **1** |
+
+**关键一条**：把 `dz_S` 加进来后，其余九个参数的 SE **几乎不动**（`beta_S` 0.113 → 0.115、`beta_ST` 0.474 → 0.478，其余 <1.5%）⇒ 「`Δz_S` 与既有漂移参数近似正交」不只是 §3.15.4 相关矩阵里的 `corr(β_S, Δz_S) = +0.117`，在 CRLB 上也是同一个结论；**D109 的 37–43 人/组、`beta_T` 为硬约束这条定稿不受影响**。
+
+`dz_S` 自己：单被试 16.2% ⇒ **3 人/组**到 10%、**1 人/组**到 25%，是全部 10 个参数里第二好的（仅次于 `d_ref` 与 `t0`）。它与 §3.15.4 的 lin/OPG 读数（0.0150，相对 12.5%）**互相印证**——两条路径（解析 CRLB 的 exp 真值 vs 数值 OPG 的 lin 真值）差 8%，量级一致。
+
+名次侧（`PRIMARY` 含 `dz_S` 后重新排序）：`D4-rep16` 0.545 > `T-wide` 0.583 > `W-high` 0.608 > `D4` 0.641，判定档位阈值 0.30 / 0.60 未改 ⇒ **D4 仍判「❌ 不可用」**，与 §8.6/§8.21 的旧结论一致（D4 的定位是「被试内设计的参照点」，不是「最优设计」）。相关性结构也与旧版同：`bT~bST −0.63`、`a~delta_a +0.68`、`a~tau_a −0.70`、`delta_a~tau_a −0.96`。
+
+### 产物
+
+* `3_Figures/figures_sim/fig_sim_crlb.png` 重生成：左图 10 条曲线（含「起点偏移 dz_S」，与 `d_ref` 几乎重合在 1.4–3% 档）、右图 5 条关键参数。
+* `5_Reference/03_论文写作/figures_sim/sim_crlb.csv` 重写（10 行）。
+* 日志 `1_Code/DDM_Core/_scratch/design_fim_10p.log`（9 个设计，每个 1.4–1.9 s）。
+* `fig_sim_p_design.png` / `fig_sim_trials.png` 与对应 CSV **未动**（它们走 `design_grid.TRUTH_LIN` 与 oracle，与本参数集无关）。
+
+### 尚未做
+
+`1_Code/Experiment/make_sim_figures.py::write_index` 里还有两句写死的文案——「设计真值的遗漏率约 0.32」应改用 `c["omission"]`（本次实算 0.309）、「组层相对 SE 达到 10% 所需组人数：」应带上参数个数。**不改的后果**：下次整脚本一跑，`figures_index.md` 会被覆盖回旧数（本次是手工改的 index）。
+
 ## 9. 尚未做
 
 | # | 事项 | 说明 |
@@ -4321,3 +4373,4 @@ P=0/8/32 的漂移被算成 **0.000 / 0.000 / 0.211**，只有 `{32,120}` 与「
 | 96 | ✅ **图文数据三分 + λ 天花板敏感性（D115）** | 图移 `3_Figures/`（`M-T1..3` / `_compare` / `figures_sim` / `_practice`）、合成数据移 `2_Data/Generate_Data/_synth_datasets/`，代码加 `FIG_ROOT`（`gen_viz`）/`--figout`（`make_sim_figures`）/`FIG_OUT`（`spe_locus`）；新增 `1_Code/Experiment/practice_lambda.py`：λ ∈ {1,.75,.5,.25,0} × P ∈ {0,8,32,120} 的 SPE_RT/SPE_ACC 轨迹 + (λ,τ_P) Fisher 信息。读数：λ=1 ⇒ SPE_RT 随练习 +20.5→+27.6 ms（**与 HuYQ 实测 −3.30 ms/阶段 方向相反**），λ=0 ⇒ 衰减到 +0.3 ms；SE(λ)=0.230/0.162/0.115（20/40/80 人/组）⇒ 只作可检验预测进论文，不改主模型。`_scratch/` 梳理见 `5_Reference/08_工作流/文件结构整理_待办.md` |
 | 97 | ✅ **③ 成本—精度前沿图（D116）** | `1_Code/Experiment/design_frontier.py` 把 `design_search` 的 43 行排名表画成三联图（精度 vs N / 等预算前沿 + 帕累托 / 判据分解），输出 `3_Figures/_design/fig10_design_frontier.png` 与 `2_Data/Generate_Data/_design_search/design_frontier.csv`。读数（oracle）：现行 `4T×3W r12` **45 人 / 25.9k 试次**；`4T×4W r9`（加 W=1400）**39 人 / 22.5k 试次**且人均试次不变（−13%）；加重复或加 T 水平都要多付 14–18% 试次。30 人/组时 `beta_T` 相对 SE 12.2%（现行）/ 11.3%（加 W）⇒ 交稿约束下报区间而非「达标」。design 组层真值下现行 P 方案的 `beta_P`/`tau_P` 仍不可识别（与 D109 一致） |
 | 98 | ✅ **SPE 的 8 支候选机制（D117）** | `1_Code/Experiment/spe_families.py`：同一模拟器 + 共同随机数，只换作用通道 / 链接函数。结论：λ / 幂律 / 自我饱和在 P=0 与现行加法常数**完全同值**（22.4 ms、+6.4 pp）⇒ 换链接函数不提升可见度；`gate` 64 ms 但 Δacc≈0；`noise`/`boundary` 方向相反；**`gate_drift` 50 ms + 3.2 pp 且随练习自动收缩**。图 `3_Figures/_compare/fig11_spe_families.png` |
+| 99 | ✅ **判据通道 `Δz_S` 进主模型（D118）+ 10 参数 CRLB 重跑（§8.79）** | 主模型从「身份只进漂移」扩成「漂移 + 起点」双通道：`mapping.MappingParams.dz_S`（界 `±0.45`、`z = (z_ratio + 𝟙_self·Δz_S)·a`）、`WITHIN_FREE` 9→**10**、`WITHIN_FREE_LIN` 7→**8**、`simulate.SUBJECT_SD["dz_S"]=0.06`；立项依据是 87 份历史数据的 SDT 拆解 `Δd′=+0.410 / Δc=−0.239`（若只有漂移通道，`Δc` 的模型预测恒为 0）。落地验证：`_scratch/check_dz_S.py`（与 `HEAD` 逐位对拍，`dz_S=0` 时 v/a/z/t0 完全相同）、`check_dz_S_ident.py`（OPG 相对 SE **0.0150 / 12.5%**、`corr(β_S,dz_S)=+0.117`、细网格反解 `β_S≈0.190 / Δz_S≈0.085`）、`check_dz_S_power.py`（嵌套 LRT 三场景，双通道互不冒名、交叉假阳性 0%）、`check_dz_S_hier.py`（层级通路跑通，`n_flipped/n_fallback/n_nonfinite_g=0`）。可辨识性产物按 **10 参数**重跑（`design_fim.TRUTH` 加 `dz_S=0.10`、`PRIMARY` 加 `dz_S`）：其余九个参数人数需求变化 **<1.5%** ⇒ D109 的 37–43 人/组不受影响，`dz_S` 自己 3 人/组到 10%。**未做**：`r_S`（速率/时间压缩通道，需改似然加 `log r` 雅可比）留作 M-T4 |
