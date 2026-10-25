@@ -1,0 +1,5 @@
+# 作业面板：只插一个客户端面板（侧边栏「作业」→ 主区看板）。
+# 停用（从 desired.json 移除）后自动回退，不改官方侧栏与设置壳。
+- insert:
+    - id: dsh-jobboard
+      name: '@local/dsh-jobboard'
