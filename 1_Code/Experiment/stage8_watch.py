@@ -109,6 +109,44 @@ def pid_alive(pid: int | None) -> bool:
     return str(pid) in out
 
 
+def find_stage8_pids() -> list[int]:
+    """从 OS 找**真正在跑**的 `stage8_run.py` 进程（不信 pid 文件）。
+
+    ❗ 为什么需要这层：pid 文件是「我们自己写的约定」，而进程可能被会话回收、
+    被手工杀掉、或由别的方式拉起（`Start-Process`、看板重启）。2026-10-25 的
+    事故里，pid 文件写的是 cmd 包装器的 PID、包装器退出后 python 子进程还活着，
+    于是看板误判「进程不在」并拉起第二个运行。直接问 OS 更可靠。
+
+    实现上先用 `wmic`（老系统），再用 PowerShell 的 `Get-CimInstance`
+    （Windows 11 起 `wmic` 已被移除，2026-10-25 实测本机就是 False）。
+    """
+    ps_cmd = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
+              "Where-Object { $_.CommandLine -match 'stage8_run' } | "
+              "ForEach-Object { $_.ProcessId }")
+    for cmd in (["wmic", "process", "where", "name='python.exe'",
+                 "get", "processid,commandline", "/format:csv"],
+                ["powershell", "-NoProfile", "-Command", ps_cmd]):
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True,
+                                 errors="ignore", timeout=40).stdout
+        except Exception:                                        # noqa: BLE001
+            continue
+        pids = []
+        for line in out.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if "stage8_run" in line:            # wmic 的 CSV 形态
+                tail = line.rsplit(",", 1)[-1].strip()
+                if tail.isdigit():
+                    pids.append(int(tail))
+            elif line.isdigit():                # powershell 的纯数字形态
+                pids.append(int(line))
+        if pids:
+            return pids
+    return []
+
+
 def read_pid(path: Path) -> int | None:
     try:
         return int(path.read_text(encoding="ascii").strip().splitlines()[0])
@@ -128,6 +166,16 @@ def build_status(log_path: Path, out_dir: Path, pid_file: Path,
         info["groups"].setdefault(gid, {"n_subj": 0, "models": {}})
     pid = read_pid(pid_file)
     alive = pid_alive(pid)
+    adopted = None
+    if not alive:
+        # pid 文件不可信时以 OS 为准（见 find_stage8_pids 的说明）
+        live = find_stage8_pids()
+        if live:
+            pid, alive, adopted = live[0], True, live[0]
+            try:
+                pid_file.write_text(str(pid), encoding="ascii")
+            except Exception:                                    # noqa: BLE001
+                pass
     done_models = 0
     total_models = 0
     per_group = []
@@ -398,6 +446,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--relaunch", type=Path, default=DEFAULT_RELAUNCH,
                     help="掉线时执行的启动脚本（.cmd）；不传则不自动重启")
     ap.add_argument("--max-restart", type=int, default=5)
+    ap.add_argument("--min-gap", type=int, default=180,
+                    help="两次重启之间的最小间隔（秒）。防止启动脚本本身坏掉时"
+                         "在 2 分钟内把重启额度烧光（2026-10-25 踩过）")
     ap.add_argument("--n-groups", type=int, default=4,
                     help="预期组数（用于把尚未出现在日志里的组也画成「等待」）")
     ap.add_argument("--job-id", default="stage8_d123",
@@ -409,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     restarts: list[str] = []
+    last_restart: list[float | None] = [None]
     if args.once:
         st = one_cycle(args, restarts)
         print(render_md(st))
@@ -422,6 +474,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[watch] ✅ 已完成（{st['generated_at']}）")
             return 0
         if not st["alive"]:
+            if last_restart[0] is not None and (time.time() - last_restart[0]) < args.min_gap:
+                wait = int(args.min_gap - (time.time() - last_restart[0]))
+                print(f"[watch] 冷却中（{wait}s 后才允许再次重启），不消耗重启额度")
+                time.sleep(args.every)
+                continue
             if len(restarts) >= args.max_restart:
                 print(f"[watch] ⛔ 进程不在，且已达重启上限 {args.max_restart} 次")
                 return 1
@@ -432,6 +489,7 @@ def main(argv: list[str] | None = None) -> int:
             args.pid_file.write_text(str(pid), encoding="ascii")
             stamp = datetime.now().strftime("%m-%d %H:%M:%S")
             restarts.append(f"{stamp}　检测到进程不在 ⇒ 重启（新 PID {pid}）")
+            last_restart[0] = time.time()
             print(f"[watch] 🔁 {stamp} 重启，PID {pid}（第 {len(restarts)} 次）")
             one_cycle(args, restarts)
         else:
