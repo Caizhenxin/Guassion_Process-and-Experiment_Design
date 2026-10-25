@@ -349,6 +349,54 @@ def t0_bounds(tr: dict, margin: float = T0_SAFE_MARGIN,
     return {"t0": (lo, hi)}
 
 
+def tech_line_issues(rec: dict, tr: dict) -> list[str]:
+    """⑥ 技术列（Stage 1 的成果）的**逐行**异常，返回值仅供记录、不作剔除依据。
+
+    刺激在 T 结束，**但刺激期内按键会把它提前**——用户 2026 年方案变更：允许被试
+    在刺激呈现期内反应并直接进入下一试次，程序把 `stimulus_dur_actual` 截到
+    「按键后的下一帧」。⚠️ 因此 `|dur − T| < 1 帧` 是错的判据：它会把正常的提前截断
+    误判成缺陷。
+
+    这些异常天然是**单行级**的（一次掉帧 = 一行），把它们当作「整份被试不可用」
+    等于用一个不能复现的渲染抖动丢掉整场数据（D122：20 人批里 2-4、4-4 因此被拒，
+    stage8 只吃到 15 人，而筛查层按 D120 只记信息项 ⇒ 同一份数据两套严重性）。
+    """
+    bad: list[str] = []
+    n = tr["rt"].size
+    responded = rec["Response"] != ""
+    if "stimulus_dur_actual" in rec and np.size(rec["stimulus_dur_actual"]) == n:
+        dur = np.asarray(rec["stimulus_dur_actual"], dtype=float)
+        frame = 1.0 / 60.0
+        early = (responded & np.isfinite(tr["rt"]) & (tr["rt"] < tr["T"]))
+        over = dur > tr["T"] + frame + 1e-9
+        if np.any(over):
+            bad.append(f"`stimulus_dur_actual` 超过 T + 1 帧：{int(np.sum(over))} 行")
+        late = ~early & (np.abs(dur - tr["T"]) >= frame + 1e-9)
+        if np.any(late):
+            bad.append(
+                f"未在刺激期内按键、但 |stimulus_dur_actual − T| ≥ 1 帧："
+                f"{int(np.sum(late))} 行")
+        exp_early = np.minimum(tr["T"],
+                               (np.floor(tr["rt"] / frame) + 1.0) * frame)
+        wrong_early = early & (np.abs(dur - exp_early) >= frame + 1e-9)
+        if np.any(wrong_early):
+            bad.append(
+                f"刺激期内按键、但 stimulus_dur_actual 不等于「按键后下一帧」："
+                f"{int(np.sum(wrong_early))} 行")
+    return bad
+
+
+def validate_split(rec: dict, tr: dict) -> tuple[list[str], list[str]]:
+    """把校验结果拆成 **(硬项, 软项)**：硬项 ⇒ 整份被试不可用；软项 ⇒ 只记录。
+
+    与 `validate()` 的区别只在**严重性**，判据本身完全同源（软项 = `validate()`
+    结果里属于 `tech_line_issues()` 的那些）。
+    """
+    soft = tech_line_issues(rec, tr)
+    hard = [e for e in validate(rec, tr) if e not in soft]
+    return hard, soft
+
+
 def validate(rec: dict, tr: dict) -> list[str]:
     """对 (观测数组, 试次表) 做一致性与完整性检查，返回"问题"清单（空 = 通过）。"""
     bad: list[str] = []

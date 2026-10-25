@@ -15,6 +15,7 @@
 | `_design/` | `fig10_design_frontier` 成本—精度前沿（三联） | `python 1_Code/Experiment/design_frontier.py` | `2_Data/Generate_Data/_design_search/design_frontier.csv` |
 | `_compare/` | `fig11_spe_families` SPE 的 8 支候选机制（三联） | `python 1_Code/Experiment/spe_families.py` | `2_Data/Generate_Data/_families/families.csv` |
 | `_real_check/` | `fig_r1_qc` 质检三联 / `fig_r2_rt_density` RT 分布 / `fig_r3_spe_delta` 分位差 / `fig_r4_acc` 正确率×设计 / `fig_r5_spe_by_p` SPE×练习 / `fig_r6_tradeoff` 取舍平面 | `python 1_Code/Experiment/real_data_check.py` | `2_Data/Generate_Data/_real_check/*.csv`（源数据 `2_Data/Real_Data/New_Design`） |
+| `_power/` | `fig12_power_precision` N_精度（SE 曲线 + 检验力）/ `fig13_power_discriminate` N_区分（LRT 直方图 + 检验力） | `python 1_Code/Experiment/power_recovery.py --mode all` | `2_Data/Generate_Data/_power/*.csv` |
 | `figures_sim/` | `fig_sim_crlb` 参数精度下界 / `fig_sim_p_design` P 方案识别力 / `fig_sim_trials` 模拟试次级数据 | `python 1_Code/Experiment/make_sim_figures.py` | 数值表在 `5_Reference/03_论文写作/figures_sim/*.csv` |
 
 ## 2. 历史目录（旧项目口径）

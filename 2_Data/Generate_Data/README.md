@@ -237,3 +237,31 @@ matching-first −3.16、nonmatching-first −3.47，两组斜率差 p=.87）。
    核心结论：**换练习映射不改 P=0，换通道才改**。
 
 ⚠️ 这些都是**模拟**（`families_meta.json` 里 `note` 写明），不能当结果章数据用。
+
+---
+
+## 8. 定编依据：N_精度 与 N_区分（`_power/`，D122）
+
+`1_Code/Experiment/power_recovery.py` 用模拟群体回答两个此前没算过的问题：**要多少人才够精**、
+**要多少人才能把两个机制分开**。方法、读数与结论见
+`5_Reference/03_论文写作/定编依据_N精度与N区分_20261025.md`。
+
+| 文件 | 内容 |
+|---|---|
+| `power_precision.csv` | 逐组 × 逐端点的均值 / SD / 定编人数（每组 100 人） |
+| `power_precision_curve.csv` | SE(N) 曲线：N × 端点 × 解析 `SD/√N` vs 自助 |
+| `power_precision_subjects.csv` | 400 名模拟被试的逐人端点量（可自行重算） |
+| `power_discriminate.csv` | ρ 的逐人 LRT / ρ̂（M-T3 vs M-T1） |
+| `power_discriminate_curve.csv` | 检验力随 N（alt 自助 + null 经验一类错误） |
+| `power_meta.json` | 真值、种子、dt、清洗口径（可复现） |
+
+**两条最容易读错的点**：
+
+1. **定编人数取决于「你主张哪个端点」**。按 AIPE 的圆整阈值（10 ms / 0.03 / 30 ms）是每组
+   11–16 人；按 80% 检验力反推则是 ΔRT **6 人**、Δacc **37 人**、斜率 **33 人**。论文主张三个都报
+   ⇒ 应按 37 人/组规划。
+2. **模拟群体的 SPE 只有实测的一半**（18.3 ms vs 38.8 ms），所以按模拟定编偏保守；
+   但 Δacc 的**跨被试 SD** 又只有实测的一半（0.058 vs 0.112），这一项会让模拟**低估**所需人数。
+   定编一律以真实 SD 为准。
+
+⚠️ `_power/` 全是模拟，`power_meta.json` 的 `note` 写明；不能当结果章数据用。

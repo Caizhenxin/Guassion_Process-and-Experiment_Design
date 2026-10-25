@@ -204,16 +204,23 @@ def layer_structure(txt: Path, gid: int, sid: int) -> dict:
             "n_prac_expect": n_prac_expect}
 
 
-def layer_consistency(csv: Path) -> tuple[list[str], dict]:
-    """一致层 → (错误列表, 供打印的摘要)。"""
+def layer_consistency(csv: Path) -> tuple[list[str], list[str], dict]:
+    """一致层 → (硬项, 软项, 供打印的摘要)。
+
+    严重性由 `read_formal_data.validate_split()` 一处决定（D122）：
+    **硬项** = 列结构 / 单元计数 / `P` 不唯一，**软项** = 逐行的技术列异常
+    （掉帧 1 行这类）。此前这里按「错文里含『列』字」分流，虽然 20 人批结果相同，
+    但那是巧合——判据必须同源，否则同一个现象在不同入口会有两种严重性。
+    """
     rec, meta = RF.load_file(csv)
     tr = RF.to_trials(rec)
-    errors = RF.validate(rec, tr)
+    hard, soft = RF.validate_split(rec, tr)
     mk = rec.get("matchKey")
     pv = rec.get("P")
     mk0 = str(mk[0]).strip() if mk is not None and len(mk) else "—"
-    return errors, {"matchKey": mk0,
-                    "P": sorted({int(round(float(x))) for x in pv}) if pv is not None else []}
+    return hard, soft, {"matchKey": mk0,
+                        "P": sorted({int(round(float(x))) for x in pv})
+                        if pv is not None else []}
 
 
 # --------------------------------------------------------------------------- #
@@ -497,7 +504,7 @@ def audit_one(gid: int, sid: int, csv: Path | None, txt: Path | None,
     if source is None:
         raise ValueError(f"组 {gid} 被试 {sid} 既没有 CSV 也没有 txt")
     tech_ok, tech_hard, tech_notes = layer_tech(source)
-    cons_errors, cons = layer_consistency(source)
+    cons_errors, cons_soft_raw, cons = layer_consistency(source)
     if txt is None:
         st = {"rec": {"n_formal": -1, "n_practice": -1, "n_dropped": -1,
                       "acc_mean": None, "timeout_prop": None},
@@ -507,10 +514,10 @@ def audit_one(gid: int, sid: int, csv: Path | None, txt: Path | None,
     else:
         st = layer_structure(txt, gid, sid)
 
-    # 一致层：列结构问题（缺列/多列/列名）是硬项；逐行取值异常只记录——
-    # 它和 6-C 是同一批掉帧行的两种说法（D120）。
-    cons_hard = [f"一致层：{e}" for e in cons_errors if "列" in e]
-    cons_notes = [f"一致层：{e}" for e in cons_errors if "列" not in e]
+    # 一致层：`validate_split()` 已经把硬/软分开——硬项（列结构、单元计数、
+    # `P` 不唯一）进剔除，软项（逐行掉帧）只记录。它和 6-C 是同一批掉帧行的两种说法（D120/D122）。
+    cons_hard = [f"一致层：{e}" for e in cons_errors]
+    cons_notes = [f"一致层：{e}" for e in cons_soft_raw]
     hard = tech_hard + st["hard"] + cons_hard
     soft = list(st["soft"])
     notes = tech_notes + list(st.get("notes", [])) + cons_notes

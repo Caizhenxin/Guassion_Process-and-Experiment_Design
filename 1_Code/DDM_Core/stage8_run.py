@@ -196,7 +196,7 @@ def collect(paths: list[Path], limit: int | None, p_base: MappingParams):
                                        f"（表头：{rep.get('header', '未知')}）"})
             continue
         try:
-            errs = RF.validate(rec, RF.to_trials(rec))
+            errs, warns = RF.validate_split(rec, RF.to_trials(rec))
         except Exception as e:                                   # noqa: BLE001
             rejected.append({"file": f.name, "subject": rec.get("subjectID"),
                              "reason": f"校验异常：{type(e).__name__}: {e}"})
@@ -207,6 +207,11 @@ def collect(paths: list[Path], limit: int | None, p_base: MappingParams):
             print(f"  ⛔ {f.name}：{errs[0]}" + (f"（另有 {len(errs) - 1} 条）"
                                                  if len(errs) > 1 else ""))
             continue
+        # 软项（逐行技术异常，如掉帧 1 行）只记录、不拒收：判据与筛查层的
+        # `intake.py` 同源（D122），否则同一份数据在两个入口有 15 人 / 17 人两种答案。
+        if warns:
+            print(f"  ⚠ {f.name}：{warns[0]}" + (f"（另有 {len(warns) - 1} 条）"
+                                                if len(warns) > 1 else ""))
         tr_full = RF.to_trials(rec)
         tr, fr = RF.fit_ready(tr_full)
         # 每人的 t0 上界不同（= 保留试次最小 RT − 余量）⇒ 必须逐人写进 bounds
