@@ -54,9 +54,27 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 #: 作业根目录：`$DSH_HOME/jobboard/jobs`，没有 DSH_HOME 时退到 `~/.dsh-jobboard`。
-ROOT = Path(os.environ.get("DSH_JOBBOARD_DIR")
-            or (Path(os.environ["DSH_HOME"]) / "jobboard" / "jobs"
-                if os.environ.get("DSH_HOME") else Path.home() / ".dsh-jobboard"))
+#:
+#: ⚠️ 2026-10-25 修：任务计划 / 命令行拉起的进程**没有 `DSH_HOME`**，旧写法会
+#: 悄悄退到 `~/.dsh-jobboard` —— 作业写得进去，面板却永远显示旧快照（面板读的是
+#: `%APPDATA%/dsh-desktop/harness/jobboard/jobs`）。现在多认一个候选路径。
+def _resolve_root() -> Path:
+    explicit = os.environ.get("DSH_JOBBOARD_DIR")
+    if explicit:
+        return Path(explicit)
+    cands: list[Path] = []
+    if os.environ.get("DSH_HOME"):
+        cands.append(Path(os.environ["DSH_HOME"]) / "jobboard" / "jobs")
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        cands.append(Path(appdata) / "dsh-desktop" / "harness" / "jobboard" / "jobs")
+    for c in cands:
+        if c.is_dir():
+            return c
+    return cands[0] if cands else Path.home() / ".dsh-jobboard"
+
+
+ROOT = _resolve_root()
 
 
 def now_iso() -> str:

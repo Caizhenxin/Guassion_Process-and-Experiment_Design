@@ -424,9 +424,34 @@ def emit_generic(st: dict, restarts: list[str], args) -> Path:
     return d / "status.json"
 
 
+def progress_from_disk(out_dir: Path) -> dict:
+    """按**落盘文件**数进度，不靠日志行。
+
+    日志会换文件（`_r2` → `_r3`）、会被截断、`--resume` 也不重打旧行的「完成」，
+    所以「解析日志」必然低估进度。磁盘是唯一不会说谎的：一个组文件 = 2 个模型，
+    一个 `stage8_model_g*_*.json` 检查点 = 1 个模型。
+    """
+    done: set[tuple[str, str]] = set()
+    for p in out_dir.glob("stage8_group_*.json"):
+        g = p.stem.split("_")[-1]
+        done.update({(g, "M-T1"), (g, "M-T3")})
+    for p in out_dir.glob("stage8_model_g*_*.json"):
+        parts = p.stem.split("_")           # stage8_model_g3_M-T1
+        if len(parts) >= 4:
+            done.add((parts[2].lstrip("g"), parts[3]))
+    return {"n": len(done), "pairs": sorted(done)}
+
+
 def one_cycle(args, restarts: list[str]) -> dict:
     st = build_status(args.log, args.out_dir, args.pid_file, restarts, args.relaunch,
                       n_groups=args.n_groups)
+    # 日志口径会低估（换日志 / --resume 不重打），磁盘口径取大者
+    disk = progress_from_disk(args.out_dir)
+    if disk["n"] > st.get("done_models", 0):
+        st["done_models"] = disk["n"]
+        st["progress_source"] = "disk"
+    else:
+        st["progress_source"] = "log"
     st["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "status.json").write_text(

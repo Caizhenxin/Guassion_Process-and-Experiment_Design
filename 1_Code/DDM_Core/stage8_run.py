@@ -301,10 +301,29 @@ def project(people, n_em: int, n_draws: int, n_models: int, n_ppc: int,
 
 def fit_group(people, n_em: int, n_x: int, n_draws: int, seed: int,
               do_bruteforce: bool, hyper_method: str = "fd",
-              loo_level: str = "participant") -> dict:
-    """只做拟合：返回 ``{模型名: hier.fit_and_loo(...) 的结果}``。"""
+              loo_level: str = "participant", ckpt: dict | None = None) -> dict:
+    """只做拟合：返回 ``{模型名: hier.fit_and_loo(...) 的结果}``。
+
+    ``ckpt``（D125）：逐**模型**检查点。组层缓存（``stage8_group_<g>.json``）
+    要求组内两个模型都跑完才落盘 —— 组里 M-T3 崩了，M-T1 那一两个小时就白烧
+    （2026-10-25 真实发生过两次）。这里让每个模型跑完立刻落自己的文件，
+    ``--resume`` 时按模型跳过。
+    """
     results = {}
     for name, rho_free in MODELS.items():
+        if ckpt is not None:
+            mf = _model_file(ckpt["dir"], ckpt["tag"], name)
+            if ckpt.get("resume") and mf.exists():
+                obj = _load_model(mf, name, ckpt.get("config"))
+                r = obj["result"]
+                if r.get("log_lik") is not None:
+                    # 矩阵要还原成 ndarray：`render_group` → `compare_models`
+                    # 以及 PPC 都会对它做数组运算，裸 list 会静默算错。
+                    r["log_lik"] = np.asarray(r["log_lik"], float)
+                results[name] = r
+                print(f"  [{name}] ♻️ 命中逐模型检查点 `{mf.name}`"
+                      f"（{r.get('seconds', 0):.0f}s，未重拟合）", flush=True)
+                continue
         subs = _subjects(people, rho_free, n_x)
         t0 = time.time()
         print(f"  [{name}] rho_free={rho_free} 开始（{len(subs)} 人、n_em={n_em}、"
@@ -340,6 +359,12 @@ def fit_group(people, n_em: int, n_x: int, n_draws: int, seed: int,
         r["n_degenerate_nonfinite"] = n_nf
         r["n_degenerate_hessian"] = n_hf
         results[name] = r
+        if ckpt is not None:
+            # 立刻落盘（原子写）：这一个模型已经花掉的时间不能再丢
+            _write_json_atomic(
+                _model_file(ckpt["dir"], ckpt["tag"], name),
+                {"model": name, "result": _jsonable(r),
+                 "config": ckpt.get("config")})
     # ⚠️ 这里**不能** pop `log_lik`：`render_group` 还要用它做 `compare_models`
     #    （配对差需要同一批被试的 (S,N) 矩阵）。剥离交给 `strip_matrices`，
     #    在渲染**之后**调用 —— 否则 `compare_models` 必 `KeyError`。
@@ -515,11 +540,13 @@ def render_group(results: dict, people, tag: str, n_draws: int, seed: int) -> li
 
 def run_group(people, tag: str, n_em: int, n_draws: int, n_x: int, seed: int,
               do_bruteforce: bool, keep_matrices: bool,
-              hyper_method: str = "fd", loo_level: str = "participant") -> dict:
+              hyper_method: str = "fd", loo_level: str = "participant",
+              ckpt: dict | None = None) -> dict:
     """对一组人拟合两个模型、比较、并对每人跑分单元 PPC。"""
     print(f"\n{'=' * 92}\n组 {tag}：{len(people)} 人\n{'=' * 92}")
     results = fit_group(people, n_em, n_x, n_draws, seed, do_bruteforce,
-                        hyper_method=hyper_method, loo_level=loo_level)
+                        hyper_method=hyper_method, loo_level=loo_level,
+                        ckpt=ckpt)
     lines = render_group(results, people, tag, n_draws, seed)
     if not keep_matrices:
         strip_matrices(results)
@@ -529,6 +556,26 @@ def run_group(people, tag: str, n_em: int, n_draws: int, n_x: int, seed: int,
 def _group_file(outdir: Path, g) -> Path:
     """单组结果缓存文件（D72）。用组号命名 ⇒ `--resume` 只按组跳过。"""
     return outdir / f"stage8_group_{g}.json"
+
+
+def _model_file(outdir: Path, g, name: str) -> Path:
+    """逐**模型**检查点（D125）：`stage8_model_g<组>_<模型>.json`。"""
+    return outdir / f"stage8_model_g{g}_{name}.json"
+
+
+def _load_model(mf: Path, name: str, config) -> dict:
+    """读逐模型检查点。破文件必须大声失败，理由同 `_load_group`。"""
+    try:
+        obj = json.loads(mf.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{mf} 不是合法 JSON（{exc}）⇒ 删掉该文件后重跑") from exc
+    if "result" not in obj or obj.get("model") != name:
+        raise ValueError(f"{mf} 不是模型 {name} 的检查点 ⇒ 删掉该文件后重跑")
+    if config is not None and obj.get("config") != config:
+        raise ValueError(
+            f"{mf} 的配置与本次不一致：缓存 {obj.get('config')} ≠ 本次 {config}"
+            f" ⇒ 换 `--out` 目录重跑，或删掉缓存")
+    return obj
 
 
 def _load_group(gf: Path) -> dict:
@@ -590,6 +637,20 @@ def main(argv=None) -> int:
 
     outdir = (Path(args.out) if Path(args.out).is_absolute() else REPO / args.out)
     outdir.mkdir(parents=True, exist_ok=True)
+
+    # ❗ 单实例锁（D123）：看板的重启逻辑一旦误判「进程不在」，会拉起**第二个**
+    #    同一 `--out` 的运行，两份进程同时写同一条日志和同一批组文件，结果互相覆盖。
+    #    这里用独占文件锁兜底：拿不到锁就立刻退出（退出码 0，不制造假失败）。
+    lock = None
+    if not args.synthetic:
+        try:
+            import msvcrt
+            lock = open(outdir / ".stage8.lock", "a+b")
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError:
+            print(f"⏸ 另一个实例正在写 {outdir}（.stage8.lock 被占用）⇒ 本进程退出")
+            return 0
+
 
     # 干跑结束后必须清掉合成数据，别把它混进真实结果目录
     tmp = None
@@ -670,7 +731,9 @@ def main(argv=None) -> int:
             continue
         out = run_group(plist, str(g), args.n_em, args.n_draws, args.n_x,
                         args.seed, args.bruteforce, keep_matrices=False,
-                        hyper_method=args.hyper_method, loo_level=args.loo_level)
+                        hyper_method=args.hyper_method, loo_level=args.loo_level,
+                        ckpt={"dir": outdir, "tag": str(g), "config": run_config,
+                              "resume": bool(args.resume)})
         report += out["lines"] + [""]
         obj = {"tag": str(g), "lines": list(out["lines"]),
                "results": _jsonable(out["results"]), "config": run_config}
