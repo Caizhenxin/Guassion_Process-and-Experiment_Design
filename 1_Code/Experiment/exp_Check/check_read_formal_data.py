@@ -158,9 +158,15 @@ def case_a(tmp: Path) -> None:
         check("A8b 剔除抢按后 per_trial_loglik 逐条有限",
               bool(finite), f"保留 {tr_fit['rt'].size} 试次、"
               f"最小 RT {np.nanmin(tr_fit['rt']) * 1000:.1f} ms")
-        check("A8c fit_ready 剔掉的正好是 rt < RT_FLOOR 的已响应试次",
-              rep_fit["n_dropped"] == n_below,
-              f"fit_ready 剔 {rep_fit['n_dropped']}、直接数 {n_below}")
+        check("A8c fit_ready 剔掉的抢按数 = 已响应且 rt < RT_FLOOR 的条数",
+              rep_fit["n_dropped_slow"] == int(np.sum((~tr1["omission"].astype(bool))
+                                                      & (tr1["rt"] < R.RT_FLOOR))),
+              f"fit_ready 剔抢按 {rep_fit['n_dropped_slow']}、"
+              f"直接数 {int(np.sum((~tr1['omission'].astype(bool)) & (tr1['rt'] < R.RT_FLOOR)))}")
+        # D123 新增：不传 rec 时「刺激期内按键」这条必须完全不生效（向后兼容）
+        check("A8c2 不传 rec ⇒ 刺激期内按键剔除数为 0（向后兼容）",
+              rep_fit["n_dropped_dev"] == 0,
+              f"n_dropped_dev = {rep_fit['n_dropped_dev']}")
         check("A8d fit_ready 保留全部未响应试次（它们走 survival 不受 t>0 约束）",
               int(np.sum(tr_fit["omission"].astype(bool)))
               == int(np.sum(tr1["omission"].astype(bool))),

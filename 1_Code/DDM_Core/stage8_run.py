@@ -213,18 +213,22 @@ def collect(paths: list[Path], limit: int | None, p_base: MappingParams):
             print(f"  ⚠ {f.name}：{warns[0]}" + (f"（另有 {len(warns) - 1} 条）"
                                                 if len(warns) > 1 else ""))
         tr_full = RF.to_trials(rec)
-        tr, fr = RF.fit_ready(tr_full)
+        # D123：`rec` 传进去才能按「刺激期内按键」剔除（`|dur − T| > 一帧`），
+        # 否则 min(RT) 常落在 150–200 ms 的机会水平带上，把 t0 上界顶死。
+        tr, fr = RF.fit_ready(tr_full, rec=rec)
         # 每人的 t0 上界不同（= 保留试次最小 RT − 余量）⇒ 必须逐人写进 bounds
         tb = RF.t0_bounds(tr)
         people.append({
             "file": f.name, "subject": int(rec["subjectID"]),
             "group": int(rec["groupID"]), "n_trials": int(np.asarray(tr["rt"]).size),
             "n_dropped": int(fr.get("n_dropped", 0)),
+            "n_dropped_dev": int(fr.get("n_dropped_dev", 0)),
             "t0_hi": float(tb["t0"][1]), "tr": tr, "tr_full": tr_full,
             "t0_bounds": tb, "p_base": p_base,
         })
         print(f"  ✅ {f.name}：被试 {rec['subjectID']}（组 {rec['groupID']}）"
-              f"{people[-1]['n_trials']} 试次、剔抢按 {people[-1]['n_dropped']}、"
+              f"{people[-1]['n_trials']} 试次、剔抢按 {people[-1]['n_dropped']}"
+              f"（其中刺激期内按键 {people[-1]['n_dropped_dev']}）、"
               f"t0 上界 {people[-1]['t0_hi']:.3f}")
     return people, rejected
 

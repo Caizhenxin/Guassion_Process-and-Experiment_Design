@@ -228,23 +228,68 @@ def to_trials(rec: dict) -> dict:
 #: 用"把 t0 压到数据最小值以下"的方式绕过 —— 那等于让一条抢按决定
 #: 非决策时间的估计。所以必须**先验地**把这类试次摆到明面上。
 #:
-#: 为什么取 0.15
-#: -------------
-#: 设计本身就把 `RT < 0.15 s` 当作预期性反应（合成数据生成器
-#: `1_Code/DDM_Core/_scratch/make_fake_pilot.py` 的 `--rt-lt-t` 就是按它造的），
-#: 而模型的 `t0` 真值在 0.2 s 附近 —— 两者方向一致，0.15 是保守（少剔）的一侧。
-RT_FLOOR = 0.15
+#: 为什么取 0.20（D123 由 0.15 上调，依据是 20 人真实数据的读数）
+#: ------------------------------------------------------------
+#: 旧值 0.15 的依据是设计侧：合成数据生成器
+#: `1_Code/DDM_Core/_scratch/make_fake_pilot.py` 的 `--rt-lt-t` 按 0.15 造抢按，
+#: 加上「模型的 `t0` 真值在 0.2 s 附近 —— 两者方向一致」。**真实数据推翻了 0.15
+#: 够低**这个前提：
+#:
+#: 1. `150–200 ms` 这一带的**正确率 = 0.486**（`_scratch/_probe_rt_floor.py`，
+#:    n=146），即**机会水平** —— 这些试次不含辨识信息，进似然只是噪声；
+#: 2. 该带里 **28.1%** 的试次是「刺激期内按键」（刺激被程序截到按键后一帧，
+#:    `stimulus_dur_actual ≈ rt + 3 ms`），本质是预期性抢按的慢端；
+#: 3. 逐被试 `t0` 上界 = `min(RT) − 0.02`，而 min RT 常常正落在这一带
+#:    （2-5：0.1545 s ⇒ 上界 0.135，拟合时 t0 顶死在该上界）。
+#:
+#: 上调后：`t0` 上界 13/18 人抬 30–142 ms；剔除量 1.63% → 3.69%。
+RT_FLOOR = 0.20
+
+#: 「刺激期内按键」的判定阈值（秒）：`|stimulus_dur_actual − T|` 超过一帧即视为
+#: 该试次在刺激呈现期内就按了键（程序把刺激截到按键后下一帧，属**合法**记录）。
+#: 60 Hz 刷新率 ⇒ 一帧 16.7 ms。见 `dev_mask`。
+DEV_MAX = 0.0167
 
 
-def fit_ready(tr: dict, rt_floor: float = RT_FLOOR) -> tuple[dict, dict]:
-    """剔除"抢按"试次，返回 ``(可进似然的试次表, 剔除报告)``。
+def dev_mask(tr: dict, rec: dict | None, dev_max: float = DEV_MAX) -> np.ndarray:
+    """标出「刺激期内按键」的试次（`|stimulus_dur_actual − T| > 一帧`）。
 
-    只动**已响应且 `rt < rt_floor`** 的试次；未响应试次原样保留
-    （它们走 `survival_series`，不受 `t = rt − t0` 那条约束）。
+    ❗ 这不是掉帧检测。`read_formal_data` 的 `tech_line_issues` 早就写明：被试在
+    刺激呈现期内反应时，程序直接进入下一试次，把 `stimulus_dur_actual` 截到「按键
+    后的下一帧」。20 人批的实测签名（`_scratch/_probe_dev_sign.py`）：
+    `|dev| > 16.7 ms` 的 151 个已响应试次里 **99.3% dev 为负、99.3% 满足 RT < T、
+    `dur − rt` 中位 3 ms**；真正「刺激比设定更长」（掉帧）的全数据集只有 **1 个**试次。
+
+    所以这个掩码抓的是**抢在刺激期内就按**的那批试次（预期性反应/猜测），在拟合里
+    与 `rt < rt_floor` 一样属于「反应不来自证据累积」的一侧。
+    """
+    zero = np.zeros(np.asarray(tr["rt"]).size, dtype=bool)
+    if rec is None or "stimulus_dur_actual" not in rec:
+        return zero
+    dur = np.asarray(rec["stimulus_dur_actual"], dtype=float)
+    T = np.asarray(tr["T"], dtype=float)
+    if dur.size != T.size:
+        return zero
+    return np.abs(dur - T) > dev_max
+
+
+def fit_ready(tr: dict, rt_floor: float = RT_FLOOR,
+              rec: dict | None = None, dev_max: float = DEV_MAX) -> tuple[dict, dict]:
+    """剔除"抢按"与"刺激期内按键"试次，返回 ``(可进似然的试次表, 剔除报告)``。
+
+    两个剔除口径（理由分别见 `RT_FLOOR` 与 `dev_mask`）：
+
+    1. 已响应且 `rt < rt_floor` —— 快于先验下限，属预期性反应；
+    2. `|stimulus_dur_actual − T| > dev_max` —— 在刺激呈现期内就按了键（只有同时
+       传入 `rec` 才能判定；不传则这一条不生效，保持向后兼容）。
+
+    未响应试次两处都原样保留（它们走 `survival_series`，不受 `t = rt − t0` 约束）。
     """
     rt = np.asarray(tr["rt"], dtype=float)
     responded = ~np.asarray(tr["omission"], dtype=bool)
-    keep = ~(responded & (rt < rt_floor))
+    slow = responded & (rt < rt_floor)
+    dev_bad = dev_mask(tr, rec, dev_max)
+    keep = ~(slow | dev_bad)
     if keep.size != rt.size:
         raise ValueError("tr 各列长度不一致")
     out = {}
@@ -258,14 +303,19 @@ def fit_ready(tr: dict, rt_floor: float = RT_FLOOR) -> tuple[dict, dict]:
         by_t.append({
             "T": float(t),
             "n_kept": int(np.sum(sel_t & keep)),
-            "n_dropped": int(np.sum(sel_t & responded & (rt < rt_floor))),
+            "n_dropped": int(np.sum(sel_t & ~keep)),
+            "n_dropped_slow": int(np.sum(sel_t & slow)),
+            "n_dropped_dev": int(np.sum(sel_t & dev_bad)),
         })
     rep = {
         "n_total": int(keep.size),
         "n_responded": n_resp,
         "n_dropped": int((~keep).sum()),
+        "n_dropped_slow": int(slow.sum()),
+        "n_dropped_dev": int(dev_bad.sum()),
         "n_kept": int(keep.sum()),
         "rt_floor": float(rt_floor),
+        "dev_max": float(dev_max),
         "pct_of_responded": (100.0 * float((~keep).sum()) / n_resp) if n_resp else 0.0,
         "min_rt_kept": float(np.min(rt[keep & responded])) if np.any(keep & responded) else float("nan"),
         "by_T": by_t,
@@ -276,7 +326,9 @@ def fit_ready(tr: dict, rt_floor: float = RT_FLOOR) -> tuple[dict, dict]:
 def format_fit_ready(rep: dict) -> str:
     """把 `fit_ready` 的报告压成一行。"""
     bt = "、".join(f"{b['T'] * 1000:.0f}ms {b['n_dropped']}" for b in rep["by_T"])
-    return (f"拟合前剔除抢按（rt < {rep['rt_floor'] * 1000:.0f} ms）："
+    dev = rep.get("n_dropped_dev", 0)
+    return (f"拟合前剔除：rt < {rep['rt_floor'] * 1000:.0f} ms 抢按 "
+            f"{rep.get('n_dropped_slow', rep['n_dropped'])} 条 + 刺激期内按键 {dev} 条 = "
             f"{rep['n_dropped']}/{rep['n_responded']} = "
             f"{rep['pct_of_responded']:.1f}%（按 T 分档 " + bt + "）；"
             f"保留 {rep['n_kept']}/{rep['n_total']} 试次、"
