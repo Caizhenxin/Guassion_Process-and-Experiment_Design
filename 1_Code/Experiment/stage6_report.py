@@ -177,14 +177,21 @@ def build(sessions: list[dict], counts: dict[str, dict[str, int]], expect_n: int
     return "\n".join(L), ok
 
 
-def collect(path: Path) -> list[dict]:
+def collect(path: Path, expect_n: int | None = None) -> list[dict]:
     sessions = intake.find_sessions([path])
+    if not sessions:
+        return []
+    # D120：裁决只走 intake.screen()（五层），不在报告器里另走一遍三层口径——
+    # 两份裁决会给同一批数据两个答案（19/1/0 vs 17/1/2，见 2026-10-25 事故）。
+    out = intake.screen(sessions, expect_n=expect_n or 8)
+    by_id = {(r["gid"], r["sid"]): r for r in out["res"]}
     for s in sessions:
-        r = intake.audit_one(s["gid"], s["sid"], s["csv"], s["txt"], s.get("shadowed"))
+        r = by_id[(s["gid"], s["sid"])]
         s.update({"verdict": r["verdict"], "hard": r["hard"], "soft": r["soft"],
-                  "rec": r["rec"], "verdicts": verdicts_of(r["rec"]), "root": str(path)})
+                  "notes": r.get("notes", []), "rec": r["rec"],
+                  "verdicts": verdicts_of(r["rec"]), "root": str(path)})
         print(f"[intake] 组{s['gid']} 被试{s['sid']} ⇒ {r['verdict']}"
-              + (f"（{s['hard'][0]}）" if r["hard"] else ""), file=sys.stderr)
+              + (f"（{r['hard'][0]}）" if r["hard"] else ""), file=sys.stderr)
     return sessions
 
 
@@ -202,7 +209,7 @@ def main() -> int:
         print(f"[FAIL] 不是目录：{path}", file=sys.stderr)
         return 2
 
-    sessions = collect(path)
+    sessions = collect(path, args.expect_n)
     if not sessions:
         print(f"[FAIL] {path} 下没有找到 `EXP_data_group<组>_<编号>.csv` 或 `exp_group<组>_subject<编号>.txt`。",
               file=sys.stderr)

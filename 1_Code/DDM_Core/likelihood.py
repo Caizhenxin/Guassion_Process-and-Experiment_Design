@@ -33,8 +33,13 @@ _NEG_BIG = 1e12
 # ------------------------------------------------------------------
 # 数据容器
 # ------------------------------------------------------------------
-def trials_from_arrays(rt, side, omission, P, T, W, is_self, is_match) -> dict:
-    """把逐试次数组打包为似然接口所需的 dict（全部 float ndarray）。"""
+def trials_from_arrays(rt, side, omission, P, T, W, is_self, is_match,
+                       lambda_guess=0.0) -> dict:
+    """把逐试次数组打包为似然接口所需的 dict（全部 float ndarray）。
+
+    ``lambda_guess``（D126）：污染项概率 λ，见 `per_trial_loglik`。**默认 0 = 关闭**，
+    因此所有既有调用（Stage 3/5/9）的似然逐位不变。
+    """
     return {
         "rt": np.asarray(rt, dtype=float),
         "side": np.asarray(side, dtype=int),          # 1 = 上边界(Match)，0 = 下边界
@@ -44,6 +49,7 @@ def trials_from_arrays(rt, side, omission, P, T, W, is_self, is_match) -> dict:
         "W": np.asarray(W, dtype=float),
         "is_self": np.asarray(is_self, dtype=float),
         "is_match": np.asarray(is_match, dtype=int),
+        "lambda_guess": float(lambda_guess),
     }
 
 
@@ -56,9 +62,26 @@ def per_trial_loglik(p: MappingParams, tr: dict):
     与 `log_likelihood` 共用同一段计算：后者只是它的求和。拆出来是为了
     `opg_information` 需要**逐试次得分**（score），而逐试次量级 O(1)，
     在差分里比总和量级 O(n) 的噪声小得多。
+
+    **污染项 λ（D126）**：``tr["lambda_guess"] = λ`` 时，每个试次有 λ 的概率不是由
+    证据累积产生的（"猜测"），其 RT ~ Uniform(0, W)、按键正确率 1/2。逐试次密度
+
+        f_mix = (1−λ)·f_ddm + λ·(1/W)·(1/2)
+        P(超时)_mix = (1−λ)·S_ddm        （污染试次总会在 W 内按键）
+
+    依据：实测 RT≤400 ms 的 11.1% 试次正确率 0.544（机会水平），>400 ms 的 88.9%
+    为 0.780 —— 双峰。λ=0 时逐位等价于原式（`log1p(0)=0`，走 else 分支）。
+
+    ⚠️ 污染项也**允许超时**：支撑取 `W_ref = max(W)`，于是慢的猜测会在 deadline
+    前没按下去，成为未响应试次。否则「漏答率高」的被试会被 λ>0 系统性惩罚
+    （实测 1-2 漏答 36%，λ=0.05 就要掉 7.3 个对数似然单位）。
     """
     tp = trial_params(tr, p)
     v, a, z, t0 = tp["v"], tp["a"], tp["z"], tp["t0"]
+    lam = float(tr.get("lambda_guess", 0.0) or 0.0)
+    if not (0.0 <= lam < 1.0):
+        return None
+    w_ref = float(np.max(tr["W"])) if lam > 0 else 1.0
 
     if not (np.all(np.isfinite(v)) and np.all(a > 0) and np.all(z > 0)
             and np.all(z < a) and t0 > 0):
@@ -80,7 +103,12 @@ def per_trial_loglik(p: MappingParams, tr: dict):
         f = flux(d, vv, a_r, t)
         if not np.all(np.isfinite(f)) or np.any(f <= 0):
             return None
-        out[responded] = np.log(f)
+        log_f = np.log(f)
+        if lam > 0:
+            log_c = np.log(lam) - np.log(w_ref) - np.log(2.0)   # 污染项：均匀 × 1/2
+            out[responded] = np.logaddexp(np.log1p(-lam) + log_f, log_c)
+        else:
+            out[responded] = log_f
 
     # --- 未响应：deadline 存活概率 ---
     if np.any(~responded):
@@ -90,7 +118,14 @@ def per_trial_loglik(p: MappingParams, tr: dict):
         s = survival_series(v[~responded], a[~responded], z[~responded], t_max)
         if not np.all(np.isfinite(s)) or np.any(s <= 0):
             return None
-        out[~responded] = np.log(s)
+        # 污染试次在 (0, W_ref) 均匀 ⇒ 未响应概率 1 − W/W_ref（W ≤ W_ref 恒成立）
+        if lam > 0:
+            p_omit = (1.0 - lam) * s + lam * (1.0 - tr["W"][~responded] / w_ref)
+        else:
+            p_omit = s
+        if not np.all(np.isfinite(p_omit)) or np.any(p_omit <= 0):
+            return None
+        out[~responded] = np.log(p_omit)
 
     return out
 
