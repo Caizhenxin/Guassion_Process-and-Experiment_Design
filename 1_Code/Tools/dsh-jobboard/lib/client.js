@@ -12,16 +12,17 @@ window.__ModuleLoader__.load({
 		const NS = "jobboard";
 		/** 侧边栏条目与主面板共用的 id。 */
 		const PANEL_ID = "jobboard";
-		/** 宿主侧提供的只读接口（见 lib/index.mjs）。 */
-		const API = "/jobboard-api/jobs";
+		/** 宿主侧提供的只读接口（见 lib/index.mjs）：作业 + 窗口 + 进程一次取回。 */
+		const API = "/jobboard-api/state";
 
 		/** 需要的服务：插槽、语言、布局。 */
 		const inject = ["slots", "locale", "layout"];
 
 		/* ---------------- 取数 ---------------- */
 
-		function useJobs(intervalMs) {
-			const [state, setState] = React.useState({ loading: true, jobs: [], root: "", error: null, at: 0 });
+		function useSnapshot(intervalMs) {
+			const empty = { loading: true, jobs: [], windows: [], procs: [], root: "", error: null, at: 0, procTotal: 0 };
+			const [state, setState] = React.useState(empty);
 			React.useEffect(() => {
 				let stop = false;
 				async function tick() {
@@ -30,7 +31,16 @@ window.__ModuleLoader__.load({
 						const body = await res.json();
 						if (stop) return;
 						if (!body.ok) throw new Error(body.error || "接口返回失败");
-						setState({ loading: false, jobs: body.jobs || [], root: body.root || "", error: null, at: Date.now() });
+						setState({
+							loading: false,
+							jobs: body.jobs || [],
+							windows: body.windows || [],
+							procs: body.procs || [],
+							root: body.jobs_root || "",
+							procTotal: body.proc_total || 0,
+							error: null,
+							at: Date.now()
+						});
 					} catch (error) {
 						if (stop) return;
 						setState((prev) => ({ ...prev, loading: false, error: String(error && error.message ? error.message : error) }));
@@ -122,36 +132,71 @@ window.__ModuleLoader__.load({
 
 		/* ---------------- 面板 ---------------- */
 
+		function Section({ title, hint, children }) {
+			return h("div", { style: styles.card },
+				h("div", { style: { display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" } },
+					h("strong", { style: { fontSize: "14px" } }, title),
+					hint ? h("span", { style: { ...styles.muted, fontSize: "12px" } }, hint) : null),
+				children);
+		}
+
+		function WindowRow({ win, procs }) {
+			const live = procs.filter((p) => p.project && win.cwd && win.cwd.endsWith(p.project));
+			return h("div", { style: { display: "flex", gap: "10px", alignItems: "baseline", flexWrap: "wrap", padding: "3px 0" } },
+				h("span", { style: { width: "104px", ...styles.muted, fontSize: "12px" } }, humanAge(win.ago_seconds)),
+				h("span", { style: { minWidth: "180px" } }, win.title),
+				h("code", { style: { ...styles.mono, ...styles.muted } }, win.sid),
+				win.cwd ? h("span", { style: { ...styles.mono, ...styles.muted, fontSize: "11px" } }, win.cwd) : null,
+				live.length ? h("span", { style: { ...styles.chip, background: "#ddf4ff", color: "#0969da", borderColor: "#b6e3ff" } }, "跑着 " + live.length + " 个进程") : null);
+		}
+
+		function ProcRow({ proc }) {
+			return h("div", { style: { display: "flex", gap: "10px", alignItems: "baseline", flexWrap: "wrap", padding: "3px 0" } },
+				h("span", { style: { width: "88px", ...styles.muted, fontSize: "12px" } }, humanAge(proc.age_seconds)),
+				h("span", { style: { width: "62px" } }, proc.name),
+				h("code", { style: { ...styles.mono, ...styles.muted } }, "pid " + proc.pid),
+				proc.project ? h("span", { style: { ...styles.chip, background: "#f6f8fa", color: "#59636e", borderColor: "#d0d7de" } }, proc.project) : null,
+				h("code", { style: { ...styles.mono, ...styles.muted, fontSize: "11px", maxWidth: "620px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, proc.cmd));
+		}
+
 		function JobBoardPage() {
-			const s = useJobs(2000);
+			const s = useSnapshot(3000);
 			const running = s.jobs.filter((j) => j.state === "running" && !j.stale).length;
 
 			return h("div", { style: styles.page },
 				h("div", { style: { display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" } },
 					h("h2", { style: { margin: 0, fontSize: "17px" } }, "作业面板"),
-					h("span", { style: styles.muted }, "运行中 ", running, " / 共 ", s.jobs.length),
-					h("span", { style: { ...styles.muted, fontSize: "12px" } },
-						"（每 2 秒刷新", s.root ? " · " + s.root : "", "）")),
+					h("span", { style: styles.muted }, "作业 ", running, " 个在跑 / 共 ", s.jobs.length),
+					h("span", { style: styles.muted }, "· 进程 ", s.procs.length, " / ", s.procTotal),
+					h("span", { style: styles.muted }, "· 窗口 ", s.windows.length),
+					h("span", { style: { ...styles.muted, fontSize: "12px" } }, "（每 3 秒刷新）")),
 
 				s.error
 					? h("div", { style: { ...styles.card, borderColor: "#ffcecb", background: "#ffebe9" } },
-						h("strong", null, "读不到作业状态"),
+						h("strong", null, "读不到状态"),
 						h("div", null, s.error),
 						h("div", { style: styles.muted },
-							"常见原因：宿主侧接口没加载（重启 DSH 后才会生效），或还没有任何作业写过 ",
-							h("code", { style: styles.mono }, "$DSH_HOME/jobboard/jobs/<id>/status.json"),
-							"（见 1_Code/Tools/jobstatus.py）。"))
+							"常见原因：宿主侧接口没加载（重启 DSH 后才会生效）。"))
 					: null,
 
-				!s.error && !s.loading && s.jobs.length === 0
-					? h("div", { style: styles.card },
-						h("strong", null, "接口通了，但还没有作业"),
+				h(Section, { title: "窗口", hint: "最近的 DSH 会话（标题 · 工作目录 · 最后活动）" },
+					s.windows.length === 0
+						? h("div", { style: styles.muted }, s.loading ? "加载中…" : "没有读到窗口")
+						: s.windows.slice(0, 12).map((w) => h(WindowRow, { key: w.sid, win: w, procs: s.procs }))),
+
+				h(Section, { title: "进程", hint: "正在跑的长进程（时长 · pid · 项目 · 命令行）" },
+					s.procs.length === 0
+						? h("div", { style: styles.muted }, s.loading ? "加载中…" : "没有 45 秒以上的进程")
+						: s.procs.map((p) => h(ProcRow, { key: p.pid, proc: p }))),
+
+				s.jobs.length > 0
+					? h(Section, { title: "作业", hint: "自报进度的作业（jobstatus.py 写 status.json）" },
+						s.jobs.map((job) => h(JobCard, { key: job.id + ":" + job.started_at, job })))
+					: h(Section, { title: "作业", hint: "还没有任何作业自报进度" },
 						h("div", { style: styles.muted },
 							"让脚本用 ", h("code", { style: styles.mono }, "jobstatus.Job(...)"),
-							" 写一个 status.json，这里就会出现卡片。"))
-					: null,
+							" 写一个 status.json，这里就会出进度卡片。")),
 
-				s.jobs.map((job) => h(JobCard, { key: job.id + ":" + job.started_at, job })),
 				s.loading ? h("div", { style: styles.muted }, "加载中…") : null);
 		}
 

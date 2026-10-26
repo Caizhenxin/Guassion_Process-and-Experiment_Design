@@ -21,14 +21,26 @@ $DSH_HOME/jobboard/jobs/<job_id>/status.json
 
 B 档仍然可用（`2_Data/Real_Data/New_Design/_pipeline/stage8_d123/status.html`），C 档只是为了不用另开窗口。
 
-## 二、结构
+## 二、三个数据源（0.2.0 起面板不只有「作业」）
+
+| 面板区块 | 回答的问题 | 数据源 | 是否需作业配合 |
+|---|---|---|---|
+| 窗口 | 有哪些 DSH 会话、标题、工作目录、最后活动 | `$DSH_HOME/storages/session_projcache/sessions/session-*.json` 头部 8 KB | 不用 |
+| 进程 | 什么在跑、跑了多久、pid、命令行 | `Win32_Process`（宿主侧 `execFile powershell`，5 s 缓存） | 不用 |
+| 作业 | 进度百分比、心跳、剩余时间 | `jobboard/jobs/<id>/status.json` | 要（`jobstatus.py`） |
+
+**边界（已实测）**：Windows 的进程表里没有「属于哪个 GUI 窗口」这一项，所以面板只能把进程挂到**项目级**
+（命令行里出现的那个工作目录），再在窗口行上标「跑着 N 个进程」。要做到精确到会话，得用 DSH 的 `sessions`/`jobs`
+服务——那是另一条路，本版没走（避免多依赖一个不稳定的服务名）。
 
 ```
 $DSH_HOME/jobboard/jobs/<id>/status.json      ← 作业写（jobstatus.py）
-        ↓ 读
-lib/index.mjs  →  GET /jobboard-api/jobs      ← 宿主侧：扫目录 + 把 mtime 换算成心跳年龄
+$DSH_HOME/storages/session_projcache/...      ← DSH 自己写（窗口）
+Win32_Process                                 ← Windows 自己维护（进程）
+        ↓ 宿主侧合并
+lib/index.mjs  →  GET /jobboard-api/state     ← 一次取回 窗口 + 进程 + 作业
         ↓ fetch
-lib/client.js  →  侧边栏「作业」→ 卡片        ← 前端：2 秒轮询
+lib/client.js  →  侧边栏「作业」→ 三个区块     ← 前端：3 秒轮询
 ```
 
 `status.json` 字段（都可缺省，除 `id`/`title`）：`state`（running/done/failed/stalled）、`step`、`done`/`total`、
@@ -56,7 +68,7 @@ python -X utf8 1_Code/Tools/dsh-jobboard/uninstall.py --apply  # 卸掉 → 重�
 ## 四、自测（不用启动 DSH）
 
 ```powershell
-node 1_Code/Tools/dsh-jobboard/test_host.mjs     # 13 项：导出、路由注册、JSON 形状、404/405
+node 1_Code/Tools/dsh-jobboard/test_host.mjs     # 20 项：导出、路由、/jobs、/state、404/405
 python -X utf8 1_Code/Tools/jobstatus.py         # 命令行列所有作业
 ```
 
@@ -87,7 +99,7 @@ job.finish("done")
 1_Code/Tools/dsh-jobboard/
 ├─ package.json                        插件清单（dsh.bundle / dsh.client）
 ├─ cordis.patch.yml                    insert 本插件
-├─ lib/index.mjs                       宿主侧：/jobboard-api/jobs
+├─ lib/index.mjs                       宿主侧：/jobboard-api/{jobs,state,health}
 ├─ lib/client.js                       前端：侧边栏 + 面板（__ModuleLoader__ 格式，无 JSX）
 ├─ install.py / uninstall.py           安装 / 卸载（默认 dry-run）
 └─ test_host.mjs                       宿主侧离线自测

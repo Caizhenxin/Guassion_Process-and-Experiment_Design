@@ -83,6 +83,27 @@ if (body?.jobs?.length) {
 	console.log(`   首个作业：${j.title} ${j.state} ${j.done}/${j.total}（心跳 ${j.age_seconds}s）`);
 }
 
+const state = await call("GET", "/jobboard-api/state");
+check("GET /state 返回 200", state.code === 200, `code=${state.code}`);
+let snapshot = null;
+try {
+	snapshot = JSON.parse(state.text);
+} catch {}
+check("state 是 JSON 且 ok", snapshot?.ok === true);
+for (const key of ["jobs", "windows", "procs"]) {
+	check(`state.${key} 是数组`, Array.isArray(snapshot?.[key]), `n=${snapshot?.[key]?.length}`);
+}
+if (snapshot?.windows?.length) {
+	const w = snapshot.windows[0];
+	check("窗口字段齐全", ["sid", "title", "cwd", "last", "ago_seconds"].every((k) => k in w),
+		`${w.title} · ${w.sid} · ${w.cwd || "(无 cwd)"}`);
+}
+if (snapshot?.procs?.length) {
+	const p = snapshot.procs[0];
+	check("进程字段齐全", ["pid", "name", "age_seconds", "cmd"].every((k) => k in p),
+		`${p.name} pid=${p.pid} ${Math.round((p.age_seconds ?? 0) / 60)} 分钟`);
+}
+
 const health = await call("GET", "/jobboard-api/health");
 check("GET /health 返回 200", health.code === 200, health.text.slice(0, 60));
 
