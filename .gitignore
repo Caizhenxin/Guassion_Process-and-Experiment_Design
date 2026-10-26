@@ -40,4 +40,5 @@ __pycache__/
 1_Code/DDM_Core/_scratch/_families_run*.log
 1_Code/DDM_Core/_scratch/_repro/
 /2_Data/Real_Data/*/_stage8_in/
+/2_Data/Real_Data/*/_stage6_in/
 1_Code/DDM_Core/_scratch/*.pid
