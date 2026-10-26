@@ -1,6 +1,6 @@
 # Stage 9 优化循环报告（由落盘件生成，请勿手改）
 
-- 日期：2026-10-17
+- 日期：2026-10-25
 - 状态：✅现行（由 `1_Code/AutoRA_SPE/stage9_report.py` 从一次运行的 payload 生成）
 - 依据：`1_Code/AutoRA_SPE/stage9_payload_nfim12_budget12_restamped.json`（377131 字节、sha256 `7157e9839421c854…`）
 - 权威性：**不超过这次运行** —— 结论只对本次读到的候选空间与这次 `n_fim` 成立
