@@ -42,7 +42,7 @@ sys.path.insert(0, str(ROOT / "1_Code" / "DDM_Core"))
 
 import run_pipeline as RP                                       # noqa: E402
 
-SYNTH = ROOT / "2_Data" / "Real_Data" / "_SYNTHETIC_DEMO_v1"
+SYNTH = ROOT / "2_Data" / "Generate_Data" / "_synth_datasets" / "_SYNTHETIC_DEMO_v1"
 
 results: list[tuple[str, bool, str]] = []
 
