@@ -7,8 +7,8 @@
 | 编号 | 场景 | 期望 |
 |---|---|---|
 | E1 | 2 名干净合成被试（组 1） | exit 0；「可进入 Stage 7」；N=2；S6-1/S6-5 各 PASS 2 |
-| E2 | 真实 v4.8 场次（练习段 0 行 + 整场跑两遍） | exit 1；N=0；出现「练习段 0 行」 |
-| E3 | 真实场次 + 2 名干净被试混放 | exit 0；N=2、不计入 1（**不计入的不能被算进判据**） |
+| E2 | 真实 v4.8 场次，且练习段被剔空（组 2 的 P=8 ⇒ 真缺陷） | exit 1；N=0；出现「练习段 0 行」 |
+| E3 | 同上真实场次 + 2 名干净被试混放 | exit 0；N=2、不计入 1（**不计入的不能被算进判据**） |
 | E4 | 干净数据但只有 2 档 T（`--defect-missing-t`） | exit 1；§3 出现 `S6-4` 分支 |
 | E5 | 空目录 | exit 2 |
 | E6 | 干净 2 人 + `--expect-n 8` | exit 1；「目标 N：8 ⇒ **不足**」 |
@@ -18,6 +18,7 @@
 """
 from __future__ import annotations
 
+import csv
 import shutil
 import subprocess
 import sys
@@ -30,9 +31,11 @@ HERE = Path(__file__).resolve().parent
 EXP = HERE.parent
 SCRIPT = EXP / "stage6_report.py"
 MAKER = EXP.parent / "DDM_Core" / "_scratch" / "make_fake_pilot.py"
-REAL_DIR = EXP / "exp_matlab"
-REAL_CSV = REAL_DIR / "EXP_data_group1_1.csv"
-REAL_TXT = REAL_DIR / "exp_group1_subject1.txt"
+# 真实场次必须取**组 2**（P=8）：D120 之后「练习段行数 = P」，组 1 的 P=0 本来就是零练习，
+# 拿它当「练习段 0 行」的缺陷 fixture 会与定稿设计自相矛盾。
+REAL_DIR = EXP.parent.parent / "2_Data" / "Real_Data" / "New_Design" / "Condition 2"
+REAL_CSV = REAL_DIR / "EXP_data_group2_1.csv"
+REAL_TXT = REAL_DIR / "exp_group2_subject1.txt"
 
 results: list[tuple[str, bool, str]] = []
 
@@ -61,9 +64,31 @@ def make_clean(dst: Path, n: int = 2, seed: int = 11, extra: list[str] | None = 
     return proc.returncode == 0
 
 
-def plant_real(dst: Path) -> None:
-    shutil.copy2(REAL_CSV, dst / REAL_CSV.name)
-    shutil.copy2(REAL_TXT, dst / REAL_TXT.name)
+def plant_real(dst: Path, strip_practice: bool = False) -> None:
+    """搬一份真实场次进临时目录；`strip_practice` 时把练习段从 **csv 与 txt 一起**剔掉。
+
+    只剔 csv 不管用：`n_practice` 是从 txt 读的，两边不一致反而会被记成另一条缺陷。
+    """
+    rows = list(csv.DictReader(REAL_CSV.open(encoding="utf-8")))
+    if strip_practice:
+        rows = [r for r in rows if r.get("stage") != "practice"]
+    with (dst / REAL_CSV.name).open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    lines = REAL_TXT.read_text(encoding="utf-8", errors="replace").splitlines()
+    if strip_practice:
+        cols = [c.strip() for c in lines[0].lstrip("#").split("\t")]
+        idx = cols.index("stage")
+        kept = [lines[0]]
+        for ln in lines[1:]:
+            parts = ln.split("\t")
+            if len(parts) > idx and parts[idx].strip() == "practice":
+                continue
+            kept.append(ln)
+        lines = kept
+    (dst / REAL_TXT.name).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def e1_clean(tmp: Path) -> None:
@@ -85,7 +110,7 @@ def e2_real(tmp: Path) -> None:
         return
     d = tmp / "e2"
     d.mkdir()
-    plant_real(d)
+    plant_real(d, strip_practice=True)
     code, out = run([str(d)])
     check("E2 exit 1", code == 1, f"code={code}")
     check("E2 N=0", "计入 N = **0**" in out, "")
@@ -95,11 +120,12 @@ def e2_real(tmp: Path) -> None:
 
 def e3_mixed(tmp: Path) -> None:
     d = tmp / "e3"
-    # 合成件必须放在**别的组**：组 1 的 (1,1) 会与真实场次同名，触发 intake 的「同一 (组,编号) 取最浅层」
-    if not make_clean(d, group=2):
+    # 合成件必须放在**别的组**：真实场次是组 2，合成件放组 1，否则 (组,编号) 同名会触发
+    # intake 的「同一 (组,编号) 取最浅层」
+    if not make_clean(d, group=1):
         check("E3 混放", False, "生成器失败")
         return
-    plant_real(d)
+    plant_real(d, strip_practice=True)
     code, out = run([str(d)])
     check("E3 exit 0", code == 0, f"code={code}")
     check("E3 场次 3 / N=2", "场次：3（计入 N = **2**，不计入 = 1）" in out, "")

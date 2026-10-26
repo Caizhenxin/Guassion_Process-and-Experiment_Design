@@ -126,11 +126,15 @@ def case_a(tmp: Path) -> None:
         ref = L.trials_from_arrays(
             tr1["rt"], tr1["side"], tr1["omission"], tr1["P"], tr1["T"], tr1["W"],
             tr1["is_self"], tr1["is_match"])
-        diffs = [k for k in ref
-                 if ref[k].dtype != tr1[k].dtype or not np.array_equal(
-                     ref[k], tr1[k], equal_nan=True)]
+        diffs = [k for k in ref if isinstance(ref[k], np.ndarray)
+                 and (ref[k].dtype != tr1[k].dtype or not np.array_equal(
+                     ref[k], tr1[k], equal_nan=True))]
+        # `lambda_guess` 是 D126 新加的**标量**键，不参与逐键数组比较，但默认必须是 0（等价旧行为）
+        lam_ok = float(ref.get("lambda_guess", 0.0)) == 0.0
+        n_arr = sum(1 for k in ref if isinstance(ref[k], np.ndarray))
         check("A7 to_trials 与 likelihood.trials_from_arrays 逐键逐 dtype 相等",
-              not diffs, f"不一致的键：{diffs}" if diffs else "8 个键全等")
+              not diffs and lam_ok,
+              f"不一致的键：{diffs}" if diffs else f"{n_arr} 个数组键全等、lambda_guess=0")
     except ImportError as e:  # pragma: no cover
         check("A7 跨模块接口可比", False, f"导入 likelihood 失败：{e}")
 
