@@ -1,0 +1,1831 @@
+
+
+
+
+
+ SPE–DDM 研究总结与实验设计建模指南
+
+
+
+
+# SPE–DDM 研究总结与实验设计建模指南
+
+- 自我优势效应（SPE）的
+DDM 生成模型与实验设计优化
+
+- 研究讨论总结、函数定义、程序审计与验证路线图
+
+- 内容导航
+
+- 1.
+执行摘要：已经达成的共识
+
+- 1.1
+核心研究目标
+
+- 1.2
+目前的模型决定
+
+- 1.3
+全项目的验证逻辑
+
+- 2.
+研究问题与总体生成架构
+
+- 2.1
+实验设计空间
+
+- 2.2
+为什么采用生成模型，而不是分别拟合 RT 与 accuracy？
+
+- 2.3 证据等级
+
+- 3. DDM 参数、选择编码与 SPE
+的定义
+
+- 3.1
+基本扩散过程
+
+- 3.2 DDM 参数的不同心理含义
+
+- 3.3 本项目暂用的 response
+coding
+
+- 3.4 为什么不把 Self
+直接映射到一个固定边界？
+
+- 3.5 SPE
+的候选定义
+
+- 4.
+P：练习次数的数学形式
+
+- 4.1 理论出发点
+
+- 4.2 第一版：无延迟的指数饱和
+
+- 4.3
+后续竞争模型（不作为第一版前提）
+
+- 4.4 P 的操作性定义必须写清楚
+
+- 5. T：刺激呈现时间、感觉编码与
+drift
+
+- 5.1 机制分层
+
+- 5.2 P 与 T 如何共同影响
+drift？
+
+- 5.3
+一项重要的时序近似：允许在刺激呈现期间反应
+
+- 6.
+W：总反应期限、静态边界与动态边界
+
+- 6.1 操作性定义
+
+- 6.2 W
+为什么会影响 a？
+
+- 6.3 W 模型 W0：固定边界、不让
+W 改变边界
+
+- 6.4 W 模型
+W1：静态指数边界（静态基线）
+
+- 6.5 W 模型
+W2：动态、对称收缩边界（机制性竞争模型）
+
+- 6.6 W 两种主模型的实现难度
+
+- 6.7
+Deadline 下的未响应
+
+- 7.
+生成方法：路径模拟、WFPT 与 deadline 数据
+
+- 7.1 旧 Notebook
+使用什么方法？
+
+- 7.2 Path simulation 与 WFPT
+的区别
+
+- 7.3 生成模型要保存的两份数据
+
+- 8. 第一批数据与 MATLAB
+程序审计
+
+- 8.1
+第一批数据的组别结构（按对话中提供的表格）
+
+- 8.2
+旧数据哪些仍然有价值？
+
+- 8.3
+旧程序的问题
+
+- 8.4
+新程序的改进与剩余技术风险
+
+- 9.
+正式数据收集的候选设计
+
+- 9.1 设计原则
+
+- 9.2 候选设计
+A：2×2×2，低成本筛选
+
+- 9.3 候选设计 B：3×3×3
+或折中设计（优先进入模拟比较）
+
+- 9.4 候选设计
+C：更高信息量设计
+
+- 9.5 T/W 条件的物理和行为约束
+
+- 9.6 被试数与 trial
+数不应该先验拍定
+
+- 10.
+参数恢复、模型恢复与真实数据拟合
+
+- 10.1
+没有真实数据可以做恢复吗？
+
+- 10.2
+Parameter recovery
+
+- 10.3 Model
+recovery
+
+- 10.4 真实数据的 model fitting
+
+- 10.5 Posterior predictive
+checks（PPC）
+
+- 10.6
+预测模型比较
+
+- 10.7
+最优设计不是“条件最多的设计”
+
+- 11.
+模型候选集合与分阶段比较计划
+
+- 阶段 A：基础模拟器正确性
+
+- 阶段 B：P/T
+映射
+
+- 阶段 C：W
+边界机制
+
+- 阶段 D：SPE
+机制
+
+- 阶段 E：真实数据拟合和
+model selection
+
+- 12. 建议的实施顺序与风险清单
+
+- 12.1
+当前推荐的执行顺序
+
+- 12.2 风险清单
+
+- 12.3
+最终研究立场
+
+- 13. 参考文献（APA
+7）
+
+- 13.1
+Practice 与学习曲线
+
+- 13.2 Visual
+encoding、temporal integration 与 T
+
+- 13.3 Self-prioritization
+/ SMT 与条件相关偏差
+
+- 13.4 DDM、WFPT、层级模型与
+deadline
+
+- 13.5
+模型恢复、Bayesian workflow、预测比较与模型平均
+
+- 13.6
+建议阅读顺序
+
+- 附录 A：传递给后续
+AI/开发者的最小规格
+
+# 自我优势效应（SPE）的
+DDM 生成模型与实验设计优化
+
+## 研究讨论总结、函数定义、程序审计与验证路线图
+
+版本： 1.0（研究工作稿）
+
+整理日期： 2026 年 10 月 13 日
+
+用途： 为《自我优势效应的实验设计空间优化：基于 \(\Omega\) 的 DDM
+参数预测与验证》提供理论整合、实验设计与计算建模规格；也可交给后续
+AI/研究助理作为实现依据。
+
+研究变量： \(\Omega=(P,T,W,M)\)。本文以 \(M\) 表示 Match/Nonmatch
+或匹配结构时会明确说明；旧实验代码还曾用 M 表示
+mask（掩蔽开关），建议未来程序统一改名，避免冲突。
+
+重要声明：本文区分三类内容：①已有文献直接支持的背景规律；②本研究提出、但尚待验证的机制假设；③为了方便模拟而选取的候选数学形式。函数图均为示意图，参数不是来自真实数据的拟合估计，也不应被解读为人类心理过程的既定定律。
+
+## 内容导航
+
+- 执行摘要：已经达成的共识
+
+- 研究问题与总体生成架构
+
+- DDM 参数、选择编码与 SPE
+的定义
+
+- P：练习次数的数学形式
+
+- T：刺激呈现时间、感觉编码与
+drift
+
+- W：总反应期限、静态边界与动态边界
+
+- 生成方法：路径模拟、WFPT
+与 deadline 数据
+
+- 第一批数据与 MATLAB
+程序审计
+
+- 正式数据收集的候选设计
+
+- 参数恢复、模型恢复与真实数据拟合
+
+- 模型比较与最优设计的选择规则
+
+- 建议的实施顺序与风险清单
+
+- 参考文献（APA 7）
+
+## 1. 执行摘要：已经达成的共识
+
+### 1.1 核心研究目标
+
+目标不是只拟合平均反应时，而是建立生成机制：实验设计因素通过潜在认知参数生成
+choice、RT、accuracy 与 deadline
+下的未响应，再用模拟和真实行为数据检查机制是否可识别、可区分以及可用于设计优化。
+
+\[
+\boxed{(P,T,W,\text{stimulus/response condition})
+\longrightarrow (v,a,z,t_0)
+\longrightarrow (RT,Choice,Accuracy,Omission)}
+\]
+
+其中 omission/timeout
+的心理生成机制可暂时不扩展，但数据采集程序必须记录所有未响应试次，否则无法恰当地建模
+deadline 产生的截尾/删失。
+
+### 1.2 目前的模型决定
+
+部分
+当前基线决定
+保留的竞争模型
+需要谨慎的地方
+
+ | Practice \(P\)
+ | 标准指数饱和
+ | 延迟指数、power、Sigmoid、线性/变点
+ | 没有直接证据时，不额外增加延迟参数
+
+ | Duration \(T\)
+ | 先定义编码函数，再映射到 drift magnitude
+ | 不同饱和函数、时间变化编码
+ | 编码曲线与 DDM 的证据积累不是同一个层次
+
+ | Deadline \(W\)
+ | 从刺激 onset 到最晚响应时刻的总期限
+ | 静态 \(a(W)\) 与动态 \(a(t;W)\)
+ | 动态边界需要匹配的 likelihood，不能直接套固定边界 WFPT
+
+ | DDM 选择编码
+ | 暂定固定 Match/Nonmatch response coding
+ | 正确性/刺激编码作为对照或转换检查
+ | 先明确定义边界和 drift 符号；不能只改列标签
+
+ | 起点 \(z\)
+ | 暂设中心起点：下边界 0、上边界 \(a\)，故绝对起点 \(z=a/2\)，相对起点 \(z_r=0.5\)
+ | 后续有证据再加入 response bias
+ | 不估计 \(z\)
+意味着当前基础模型不能直接检验起点偏向机制
+
+ | P/T 对 SPE 的作用
+ | 区分一般加工效应与 Self-specific 调节
+ | 无交互、P×Self、T×Self、二者兼有
+ | 由参数/模型恢复判断现有设计能否区分，不凭直觉预选
+
+ | 生成算法
+ | 路径模拟可用于动态边界；静态模型优先高效 WFPT
+ | 数值动态边界 likelihood
+ | 生成和拟合的边界假设必须匹配
+
+ | 数据验证
+ | 先做 prior predictive、参数恢复、模型恢复
+ | 随后才收集主实验数据并拟合行为
+ | 模拟可在无真实数据时开始，但不能证明哪个机制真实
+
+### 1.3 全项目的验证逻辑
+
+从生成假设到设计优化的完整流程
+
+优先原则： 不是把“LOO 最好”或“AIC/BIC
+最小”直接宣布为真实心理机制，而是先确保模型能生成合理数据、参数能恢复、不同模型能被区分，随后检查真实数据拟合与样本外预测。若多个模型不可区分，应报告不确定性、优先简约模型或进行预测分布的
+stacking，而不是强行宣布唯一赢家（Wilson & Collins, 2019; Ofir &
+Landau, 2025）。
+
+## 2. 研究问题与总体生成架构
+
+### 2.1 实验设计空间
+
+本项目将设计向量写为：
+
+\[
+\Omega=(P,T,W,M)
+\]
+
+- \(P\)：正式测试之前的额外匹配练习次数（建议命名为
+P_additional_practice_trials）。
+
+- \(T\)：形状与标签同时呈现的目标持续时间。
+
+- \(W\)：从刺激 onset
+到最晚可接受反应时刻的总 response deadline。
+
+- \(M\)：如果保留原符号，请在不同语境里明确是
+matching_condition 还是
+mask_condition。代码层面建议分别命名为
+is_match 和 mask_enabled。
+
+总体上，把不同变量对应到不同候选心理机制：
+
+\[
+P\rightarrow\text{association learning / practice adaptation}
+\] \[
+T\rightarrow\text{sensory information availability / encoding}
+\] \[
+W\rightarrow\text{temporal constraint / response policy / urgency}
+\] \[
+\text{Self/Other, Match/Nonmatch}\rightarrow\text{stimulus-related
+evidence and response alternatives}
+\]
+
+然后通过 DDM 生成 response choice 与反应时分布。
+
+### 2.2
+为什么采用生成模型，而不是分别拟合 RT 与 accuracy？
+
+DDM 将二选一决策表现建模为带噪声的证据积累过程。它联合约束正确反应
+RT、错误反应 RT、反应比例及 RT
+分布；相比只拟合均值，多个观测指标会共同限制模型参数（Ratcliff &
+Rouder, 1998; Ratcliff & McKoon, 2008）。
+
+项目的基本生成链为：
+
+- 生成被试与试次条件（包括已平衡的刺激配对、被试的练习组、T 与
+W）。
+
+- 根据函数映射获得每个试次的潜在 DDM 参数。
+
+- 模拟 Wiener
+证据过程并确定首次触及边界的时间和方向，或根据相应首次通过时间分布抽样。
+
+- 加入非决策时间 \(t_0\)，得到观测
+RT。
+
+- 由按键与当前试次的正确答案推导 Accuracy。
+
+- 若截至 W 仍无有效响应，保存为
+timeout/no-response，而不是丢弃再重抽。
+
+- 同时另存模拟真值，以便后续参数恢复与模型恢复使用。
+
+### 2.3 证据等级
+
+- 文献支持：practice
+常呈非线性改善；视觉信息的时间整合可能随呈现时间增加而饱和；DDM
+的边界可表示谨慎程度；Self-prioritization 在部分 SMT
+研究中与信息积累效率和反应偏向均有关。
+
+- 本研究假设：P 主要通过联结学习影响 drift；T
+先通过编码质量影响 drift；W 主要改变静态谨慎程度或动态 urgency。
+
+- 待检验选择：以上映射具体是否为指数函数，P/T
+是否调节 Self–Other 差异，动态边界是否胜过静态边界。
+
+## 3. DDM 参数、选择编码与 SPE
+的定义
+
+### 3.1 基本扩散过程
+
+标准 Wiener diffusion process 可写为：
+
+\[
+dX_t=v\,dt+\sigma\,dB_t
+\]
+
+其中：
+
+- \(X_t\)：潜在决策变量；
+
+- \(v\)：有符号 drift rate；
+
+- \(\sigma\)：扩散噪声尺度；
+
+- \(B_t\)：标准 Wiener 过程。
+
+通常将 \(\sigma=1\)
+固定以设定模型尺度。若同时任意估计 \(v,a,\sigma\)
+的绝对尺度，参数可能无法被单独识别。\(v\) 不是现实空间中以 m/s
+表示的物理速度，而是潜在一维决策轴上的平均有符号漂移率。
+
+- \(v>0\)：平均证据朝定义的上边界漂移。
+
+- \(v<0\)：平均证据朝定义的下边界漂移。
+
+- \(|v|\)
+越大，通常意味着证据更有效地支持某一方向，但具体的 RT/accuracy 仍取决于
+\(a,z,t_0\)、扩散尺度及 stimulus
+coding。
+
+### 3.2 DDM 参数的不同心理含义
+
+参数
+基本含义
+常见操作解释
+本项目第一版
+
+ | \(v\)
+ | 单位时间的有符号平均证据积累率
+ | 信息积累效率、证据支持方向
+ | P/T 与 Self/Other 的主假设作用位置
+
+ | \(a\)
+ | 上下决策边界间距
+ | response caution；一般较大时更慢、更准确
+ | W 的静态/动态候选作用位置
+
+ | \(z\)
+ | 初始证据位置
+ | 反应前偏向 / 起点偏向
+ | 暂固定中心起点，不额外估计
+
+ | \(t_0\)
+ | 非决策时间
+ | 编码以外的延迟与运动响应等；标准模型中加到决策时间上
+ | 固定或由外部证据设定为合理值，后续可扩展
+
+参数机制不可直接互换。例如，\(v\)
+增加可能同时加快 RT 和提升 accuracy；降低 \(a\) 也可能加快
+RT，但通常伴随准确率下降。两者的预测分布并不相同（Ratcliff & Rouder,
+1998; Ratcliff, 2002）。
+
+### 3.3 本项目暂用的 response
+coding
+
+为减少初版工作量，建议以反应编码（response
+coding）为主：
+
+- 上边界：Match response；
+
+- 下边界：Nonmatch response；
+
+- 当前试次的正确答案由 shape–label 配对规则决定；
+
+- drift 的方向反映证据偏向 Match 还是 Nonmatch；
+
+- 起点位于中心，代表第一版不预设 Match/Nonmatch 的先验反应偏向。
+
+若用上下边界 \(0\) 与 \(a\)，第一版设绝对起点 \(z=a/2\)，等价于相对起点比例 \(z_r=z/a=0.5\)。
+
+术语提醒： 前面讨论中“方案 A”指“上边界 Match、下边界
+Nonmatch”的固定 response-coded
+表示法。严格说，它不一定等同于软件包文档中名为
+stimulus coding
+的特定实现选项。不同编码在把边界、漂移符号、起点及条件标签一致转换时，可以表达等价的行为模型；但若只改变响应列或把正负
+drift
+机械交换，而没有同步转换模型参数/先验/回归结构，就不保证拟合等价。开发者必须在实际使用的工具包内验证编码约定。
+
+### 3.4 为什么不把 Self
+直接映射到一个固定边界？
+
+Self/Other 是刺激标签或关联属性；Match/Nonmatch
+是被试需要作出的反应。两者不是同一分类维度。对于 2 个形状与 2 个标签的
+SMT，Self 标签既会出现在匹配试次，也会出现在不匹配试次；同样，Other
+标签也可能出现在两类反应要求中。
+
+因此，不能简单令“Self = 上边界”或“Other = 下边界”。固定 response
+coding 后，Self-related processing 可以通过 drift
+的条件差异体现，而中心起点则暂时不表示 Self-specific 起点偏向。
+
+### 3.5 SPE 的候选定义
+
+外显层面：
+
+\[
+SPE_{RT}=RT_{Other}-RT_{Self}
+\] \[
+SPE_{ACC}=ACC_{Self}-ACC_{Other}
+\]
+
+潜在证据积累层面，可以比较在正确反应方向上的 drift
+magnitude：
+
+\[
+\Delta d_{SPE}=d_{Self}-d_{Other}
+\]
+
+其中 \(d\) 是按试次正确反应方向对
+drift 有符号量进行对齐后得到的量，而不是直接把原始带符号的 \(v\) 在 Match、Nonmatch
+混合试次上随意平均。
+
+建议在后续模型中至少区分两个解释：
+
+- 一般加工效率模型：P/T 对 Self 与 Other
+的影响相同；基础 SPE 可以存在，但不随 P/T 改变。
+
+- SPE 调节模型：P/T 与 Self/Other
+有交互，对两类刺激的 drift magnitude 产生不同影响。
+
+与 SMT 直接相关的研究表明，自我优先化可能与更高的信息摄取率相关；部分
+DDM 分析也发现 Match response bias / starting-point bias 的作用，说明
+SPE 不宜在理论上预先锁定为单一参数（Sui et al., 2012; Golubickis et al.,
+2017; Svensson et al., 2022; Jalalian et al., 2023, 2024）。
+
+## 4. P：练习次数的数学形式
+
+### 4.1 理论出发点
+
+传统练习定律常讨论幂律改善（Newell & Rosenbloom, 1981; Anderson,
+1982），而在个体层级数据上，指数函数也被提出作为练习—RT
+关系的重要候选（Heathcote et al.,
+2000）。群体平均还可能改变所观察到的曲线形状（Murre & Chessa,
+2011）。确有任务观察到 S
+形学习曲线，但其出现可能依赖材料熟悉程度、学习者差异和学习阶段（Murre,
+2014）；策略转换还可能造成学习曲线的局部突变（Delaney et al.,
+1998）。因此，S 型不能仅凭“练习后表现变好”推出。
+
+### 4.2 第一版：无延迟的指数饱和
+
+先定义归一化练习函数：
+
+\[
+\boxed{f_P(P)=1-e^{-P/\tau_P}},\qquad \tau_P>0
+\]
+
+性质：
+
+\[
+f_P(0)=0,\quad \lim_{P\to\infty}f_P(P)=1
+\]
+
+其一阶导数为正、二阶导数为负：练习效应随 P
+增加而上升，但边际增益逐渐减少。
+
+把它映射到证据积累效率：
+
+\[
+\boxed{d_P(P)=d_0+\beta_P f_P(P)}
+\]
+
+其中 \(d_0\) 为基线 drift
+magnitude，\(\beta_P\)
+为练习可带来的最大增量，\(\tau_P\)
+为学习时间尺度。第一版不增加延迟参数，遵循简约原则。
+
+另一种等价的写法是：
+
+\[
+V_P(P)=V_\infty-(V_\infty-V_{initial})e^{-rP}
+\]
+
+它强调从初值向渐近值靠近。两种表达形式的差别主要在参数命名/参数化，而不是基本曲线家族。
+
+### 4.3
+后续竞争模型（不作为第一版前提）
+
+延迟指数：
+
+\[
+f_{P,delay}(P)=1-\exp\left[-\frac{\max(P-P_{delay},0)}{\tau_P}\right]
+\]
+
+此模型假定 \(P\le P_{delay}\)
+阶段没有额外练习增量，只有超过延迟点后才开始改善。除非理论或数据支持“早期平台”，不先增加该参数。
+
+其他竞争函数可包括：
+
+\[
+f_{P,power}(P)=1-(1+P/c)^{-b}
+\]
+
+或
+logistic/Sigmoid，以及分段/变点模型。它们应在生成数据能否被恢复、不同函数是否可区分后再考虑。
+
+不同练习函数的示意图
+
+图 1 注释：
+函数图仅用于比较曲线形状；没有哪条曲线是由本项目真实数据拟合得到的。若正式实验中
+P 只有两个水平，则无法充分识别连续学习曲线的弯曲程度或 \(\tau_P\)。
+
+### 4.4 P 的操作性定义必须写清楚
+
+当前 MATLAB 程序所有被试在练习试次前均有固定 60 秒的 shape–label
+关联学习阶段。因而 P = 0
+表示没有额外匹配练习试次，并不代表“完全没有接触过联结”。后续模型与文稿应使用
+P_additional_practice_trials
+等名称，避免把它误解为总学习暴露量为零。
+
+如果正式实验阶段还持续产生联结学习，那么 \(P\)
+的影响不一定在整个正式阶段始终固定。可以预先将 trial index/block
+作为另一个时间因素，或在基础模型中说明暂时假设正式阶段没有额外的 P
+变化效应。
+
+## 5. T：刺激呈现时间、感觉编码与
+drift
+
+### 5.1 机制分层
+
+不把 T 直接映射为 RT
+的某个形状，而是先定义可用的视觉信息/编码质量：
+
+\[
+\boxed{Q_T(T)=1-e^{-T/\tau_T}},\qquad \tau_T>0
+\]
+
+然后映射到 drift magnitude：
+
+\[
+\boxed{d_T(T)=d_0+\beta_T Q_T(T)}
+\]
+
+这表达的是：呈现时间增加，在一定时间范围内可能带来更多可用视觉证据，但额外信息的边际收益可能逐步减小。它是有心理物理与视觉时间整合研究动机的候选模型，并非固定生物学定律（Ratcliff,
+2002; Kiani et al., 2008; Deodato & Melcher, 2024; Ketz et al.,
+2026）。
+
+Bloch’s law
+指向非常短刺激时长下，刺激强度和呈现时间在特定范围内的时间总和/互易关系；这可用于支持“时间能影响有效视觉信息”，但不能直接证明
+SMT 的编码质量必为指数或 Sigmoid。Stevens (1957)
+的心理物理幂律主要针对物理刺激强度到主观感觉量的关系，也不构成“Practice→SPE
+必为 Sigmoid”的直接依据。
+
+### 5.2 P 与 T 如何共同影响 drift？
+
+第一版建议从加法结构开始：
+
+\[
+\boxed{d(P,T)=d_0+\beta_P f_P(P)+\beta_T Q_T(T)}
+\]
+
+理由不是“数学里所有东西都应该相加”，而是这是一个清晰、参数较少的基线假设：练习与可用视觉信息分别对潜在证据效率提供一个增量。
+
+原代码曾采用乘法及 \(1+\alpha\)
+放大项。这样的形式不是数学上错误，但它表达的是比例变化/交互约束，需要单独的心理理论理由。旧代码中数值系数
+3
+仅是缩放常数，若未通过扩散尺度与参数化解释，不能直接赋予其心理意义。建议固定
+\(\sigma=1\)，在稳定的尺度下设定可解释的参数范围。
+
+如果后续理论认为 P 与 T 存在交互，可以加入：
+
+\[
+d(P,T)=d_0+\beta_P f_P(P)+\beta_TQ_T(T)
++\beta_{PT}f_P(P)Q_T(T)
+\]
+
+但这一项应作为模型竞争的一部分，不是第一版必需成分。
+
+### 5.3
+一项重要的时序近似：允许在刺激呈现期间反应
+
+新程序从 stimulus onset
+起采集第一次有效按键，且程序目前在记录早期反应后仍继续完成设定的 T 和
+mask 阶段，然后进入反馈。因此：
+
+- 刺激实际持续时间可能仍然约为设定 T（但目前读取 mask
+文件的延迟会延长实际时长，见第 8 节）；
+
+- 决策/按键发生时间可能早于 T；
+
+- 如果生成模型从试次一开始就直接采用“完整 T
+对应的最终编码质量”来设定恒定 drift，那么对 \(RT<T\)
+的试次，它相当于假定编码质量提前达到最终值。
+
+这是一项可接受但需要明示的简化。建议先用修正后的程序开展小规模技术试测，估计
+\(RT<T\)
+的比例；若其很低，可先采用恒定 \(d_T(T)\)
+的基线。若其较高，则需要后续考虑时间变化输入，例如：
+
+\[
+Q(t)=Q_{max}(1-e^{-t/\tau_T}),\quad 0\le t\le T
+\]
+
+刺激消失后是否保持已形成的表征、如何处理遮罩对后续信息的影响，也应成为另一个明确的模型假设，不能默认只有一个答案。
+
+T 到编码质量再到 drift
+的函数示意图
+
+图 2 注释：
+左图显示候选编码函数；右图显示其经过线性映射后的 drift
+magnitude。它们是两个不同层次的映射。
+
+## 6.
+W：总反应期限、静态边界与动态边界
+
+### 6.1 操作性定义
+
+本项目已选定：
+
+\[
+\boxed{W=\text{从 stimulus onset 到 response deadline 的总时间}}
+\]
+
+刺激呈现时间 T 是 W 内一个独立设定的事件时长，不再把 W
+解释为刺激结束后的剩余时长。刺激结束后的时间是一个派生量，不是与 T
+完全无关的第三个因素：
+
+\[
+W-T
+\]
+
+若刺激后还有固定的 mask/blank 段时长 \(T_m=200\,ms\)，则空白响应阶段剩余时长约为：
+
+\[
+W-T-T_m
+\]
+
+当前程序要求 \(W>T+T_m\)。实际呈现时间还须依赖屏幕刷新与程序延迟，不能只看名义参数。
+
+### 6.2 W 为什么会影响 a？
+
+较短 deadline 会增加延迟响应的成本，可能使被试采用更快、更不谨慎的
+response policy；较长 deadline 可能允许更谨慎的决策。Boundary separation
+\(a\) 是经典 DDM 的 response caution
+参数之一（Ratcliff & Rouder, 1998; Ratcliff, 2002; Bogacz et al.,
+2006; Simen et al., 2009）。但这并不意味着 W 必然以某个固定函数影响
+a，也不能仅凭 deadline 就证明存在主观“动机”改变。文稿优先用 response
+policy、temporal constraint、urgency 和 speed–accuracy trade-off
+等术语。
+
+### 6.3 W 模型 W0：固定边界、不让
+W 改变边界
+
+建议额外保留一个诊断性模型：
+
+\[
+a(W)=a_0
+\]
+
+W 只通过观测 deadline 限制可见 RT/choice，而没有预先改变静态
+boundary。这能帮助区分“W 仅截断数据”与“被试策略确实随 W
+改变”两种解释。
+
+### 6.4 W 模型
+W1：静态指数边界（静态基线）
+
+\[
+\boxed{a(W)=A_{min}+(A_{max}-A_{min})(1-e^{-W/\tau_a})}
+\]
+
+这意味着 W
+在试次开始时决定一个固定阈值；在单个试次内边界不再变化。
+
+- \(A_{min}>0\)：最短期限下的边界下限；
+
+- \(A_{max}>A_{min}\)：宽松期限下可达到的渐近边界；
+
+- \(\tau_a>0\)：边界对 deadline
+的饱和时间尺度。
+
+这里“W 增加，a
+增加”是当前需要检验的假设，而不是一般定律。实际结果可能支持无 W
+effect、反方向或更复杂的动态策略。
+
+### 6.5 W 模型
+W2：动态、对称收缩边界（机制性竞争模型）
+
+用户倾向的动态公式可改为带正下限的候选：
+
+\[
+\boxed{a(s;W)=A_{min}+(A_0-A_{min})
+\left[1-\left(\frac{s}{W-t_0}\right)^\Gamma\right]}
+\]
+
+其中：
+
+- \(s\) 是 DDM
+决策时钟上的经过时间；
+
+- W 是从 stimulus onset 计时的总 deadline；
+
+- 在标准“观测 RT = decision time + \(t_0\)”参数化下，decision time 可用的时限为
+\(W-t_0\)，前提是 \(W>t_0\)；
+
+- \(A_0>A_{min}>0\)；
+
+- \(\Gamma>0\)
+控制边界收缩形状。
+
+为了避免下边界固定为零、只降低上边界而引入中心移动/偏向，第一版动态模型建议用对称收缩边界。若以中心为原点，可用：
+
+\[
+L(s)=-a(s;W)/2,\quad U(s)=+a(s;W)/2,\quad X_0=0
+\]
+
+这与常见 \(0\) 到 \(a\)
+的边界表示在正确平移与转换下对应中心起点。动态边界是一个候选
+urgency/deadline
+机制；它不是已证实的人类“最优策略”，而且已有研究指出固定边界与
+collapsing boundary 的证据取决于任务和数据（Frazier & Yu, 2008;
+Hawkins et al., 2015; Zhang et al., 2014）。
+
+### 6.6 W 两种主模型的实现难度
+
+项目
+W1 静态边界
+W2 动态边界
+
+ | 边界规则
+ | 单个试次内固定
+ | 随经过决策时间收缩
+
+ | 数据生成
+ | 标准固定边界 WFPT 抽样或路径模拟
+ | 路径模拟或时变边界数值求解
+
+ | likelihood
+ | 标准固定边界 WFPT 密度 + deadline 未响应概率
+ | 匹配的时变边界首次通过时间 likelihood / 数值近似
+
+ | 实现与诊断
+ | 相对简单
+ | 显著更复杂，需验证数值误差
+
+ | 本项目定位
+ | 静态基线
+ | 机制性竞争模型
+
+### 6.7 Deadline 下的未响应
+
+若被试直到 W 仍未触及边界，这不是应该重抽的“无效试次”。它是 response
+deadline 下的 timeout/omission 观测。第一版可以只记录而不建立单独
+omission 心理机制，但至少要保存
+responded_by_deadline、response_time、deadline_W
+和 trial conditions。
+
+在固定边界模型中，响应试次使用响应方向与 RT
+的联合密度；超时试次要使用截至期限仍未触及边界的概率，而不能直接从拟合数据中删除。截尾/删失数据的
+diffusion modelling 有专门的方法研究（Henrich & Klauer, 2026）。
+
+W 的静态与动态边界函数
+
+图 3 注释： 左图为 W
+到单一静态边界的示意指数饱和；右图为不同 \(\Gamma\)
+下的动态收缩曲线。数值只用于画图，不是参数估计。
+
+## 7.
+生成方法：路径模拟、WFPT 与 deadline 数据
+
+### 7.1 旧 Notebook 使用什么方法？
+
+上传的 S2 gen_data_jh.ipynb 是离散时间的 Wiener
+diffusion path simulation（Euler–Maruyama
+风格的离散路径近似）：每一步更新 drift
+项与高斯噪声，检查证据是否到达上下边界，然后记录首次触及时间和反应方向。旧代码使用
+\(\Delta t=0.001\,s\)，并用 \(z=a/2\) 的中心起点。
+
+它不是直接由 WFPT 密度产生 RT。
+
+### 7.2 Path simulation 与 WFPT
+的区别
+
+- Wiener path
+simulation：直接模拟潜在证据路径，直到首次触及边界。灵活，便于实现时变
+drift、时变
+boundary、复杂时序；但离散步长可能造成穿越边界的时间偏差，且大量试次成本较高。
+
+- WFPT（Wiener first-passage-time
+density）：是固定参数 Wiener
+扩散模型首次触及边界的时间密度。固定边界、恒定 drift 的标准 DDM
+可以用该密度计算
+likelihood，并可用适当的抽样算法直接抽样首次通过时间。Navarro 和 Fuss
+(2009) 讨论了高效、准确计算该密度的办法。
+
+- 术语限制：WFPT
+是分布/密度，不是另一种心理机制。所谓“用 WFPT
+生成数据”，具体可以是“从对应首次通过时间分布抽样”；所谓“WFPT
+likelihood”则指以该密度计算观测数据 likelihood。
+
+- 动态边界：普通固定边界 WFPT 不能不经修改就直接用于
+\(a(t;W)\)。动态边界可用数值方法求解，但生成和拟合都要匹配同一套边界定义（Zhang
+et al., 2014）。
+
+固定边界与动态边界下的示意证据轨迹
+
+### 7.3 生成模型要保存的两份数据
+
+观测试次文件 simulated_trials.csv：
+
+- subject_id, trial_id, block,
+stage
+
+- P_additional_practice_trials, T_ms,
+W_total_ms
+
+- shape, label,
+association_type, match_condition
+
+- correct_response, response,
+accuracy
+
+- RT_sec, responded_by_deadline,
+timeout
+
+- mask_enabled, stimulus_onset_actual,
+stimulus_offset_actual, mask_onset_actual
+
+- generator_model_id, random_seed,
+以及必要的仿真元数据
+
+真值文件
+simulation_truth.csv/json：
+
+- 被试层级：真实层级参数、随机效应、起点/边界配置等；
+
+- 试次层级：真实 v 或
+d、a/a(t)、z、t0、边界首次通过时间与方向（如可获得）；
+
+- 生成模型标识与参数值；
+
+- 随机种子和软件版本。
+
+拟合代码必须只读取观测数据文件，不能将 simulation_truth
+中的真实参数当作拟合输入。真值文件仅用于参数恢复和模型恢复。
+
+## 8. 第一批数据与 MATLAB
+程序审计
+
+### 8.1
+第一批数据的组别结构（按对话中提供的表格）
+
+组别
+P
+T (ms)
+旧版刺激后窗口 \(W_{post}\) (ms)
+\(T+W_{post}\) (ms)
+N
+
+ | G1
+ | 0
+ | 30
+ | 300
+ | 330
+ | 11
+
+ | G2
+ | 0
+ | 30
+ | 600
+ | 630
+ | 12
+
+ | G3
+ | 120
+ | 30
+ | 600
+ | 630
+ | 10
+
+ | G4
+ | 120
+ | 80
+ | 600
+ | 680
+ | 11
+
+ | G5
+ | 8
+ | 100
+ | 1100
+ | 1200
+ | 11
+
+ | G6
+ | 120
+ | 500
+ | 1500
+ | 2000
+ | 10
+
+ | G7
+ | 120
+ | 30
+ | 800
+ | 830
+ | 12
+
+ | G8
+ | 120
+ | 80
+ | 800
+ | 880
+ | 11
+
+核查事项： 对话中的数据表把 G7 最大允许时间写为 880
+ms，但 \(30+800=830\)
+ms。应以实际配置文件和原始日志为准，不能静默地把一个数值更正成另一个。
+
+另一个来源版本差异：旧 MATLAB 程序
+experiment_formal_newcon.m 的条件表包含第 7 行
+P=0, T=100ms, W=1100ms，注释称其为程序崩溃后继续实验的应急条件；更新版
+Exp_Design_Formal.m 则把组 7 改为
+P=8, T=100ms, W=1100ms, mask_enabled=0
+的无掩蔽对照。因而，历史数据表的 G7 与不同版本程序中的 Group 7
+不可直接视为同一配置；应根据每名被试的真实文件和程序版本重建设计编码。
+
+### 8.2 旧数据哪些仍然有价值？
+
+旧数据不需要因为程序问题而一概删除，但应将用途分层：
+
+- 描述性分析：分条件检查 accuracy、已记录 RT 分布、可观测的
+timeout/漏答与数据质量；
+
+- 探索性对比：如 G1/G2（旧窗口）、G2/G3（P）、G3/G4 与 G7/G8（T
+的部分比较）等；
+
+- 模拟参数范围：仅提供粗略量级参考，不能把旧程序产生的偏差数据拟合所得参数当成已知真值；
+
+- 主确认性
+DDM：优先使用修正新程序采集的数据。只有在可以准确描述旧程序的漏记/截尾机制时，才考虑建立专门的观测机制模型并联合处理旧数据。
+
+G1–G2 的 P、T 固定但旧窗口变化；G2–G3 的 T 与旧窗口相同但 P
+不同，是较清楚的 P 对比。T 对比（G3–G4、G7–G8）也同时改变总期限 \(T+W_{post}\)，因此不能视作控制总期限后的纯
+T 操纵。G5、G6 没有直接匹配的组别对照，更适合探索性使用。
+
+### 8.3 旧程序的问题
+
+旧版响应读取发生在刺激呈现及 mask
+结束之后。早期按键可能漏记或被晚读，形成与真实首次反应时间不同的记录。这类机制既可能导致漏反应，也可能造成
+RT 延迟，不能通过简单删除某个 RT 阈值下的记录完整修复。
+
+### 8.4 新程序的改进与剩余技术风险
+
+Exp_Design_Formal.m 已实现以下改动：
+
+- W 定义为 onset-to-deadline；
+
+- 刺激期、mask 阶段和后续空白阶段都在轮询 f/j；
+
+- 首次有效按键按 stimulus onset 计时；
+
+- 漏答可以保存为未响应而不是错误反应；
+
+- 新程序包含固定的 200 ms mask/blank 阶段；
+
+- 正式阶段 10 个 block × 52 个试次，共 520 个正式试次。
+
+仍需修正/验证：
+
+- mask 文件与纹理仍在刺激呈现结束后读取/创建。
+imread 和 Screen('MakeTexture') 可能使刺激实际
+offset 晚于名义 T。应预加载纹理，减少关键时段的文件 I/O，并保存实际
+stimulus onset/offset 时间戳。
+
+- 程序使用高频 KbCheck
+轮询，可能漏掉轮询之间极短的按键事件。建议评估 Psychtoolbox keyboard
+queue (KbQueue)
+的时间戳机制，并在每试次清理事件、正确管理按键释放状态。
+
+- 从 stimulus onset 到 W 的截止时刻必须一致；不要将旧 Wpost 与新
+Wtotal 混用。
+
+- 主实验应统一 mask 状态，除非掩蔽本身是明确研究因素。现版组 5 与组 7
+的 P/T/W 相同但 mask
+状态不同，可构成探索性掩蔽对比，却不能与其余组混作单一条件效应而忽略掩蔽。
+
+- 试次期间记录到早期按键后，程序仍继续显示剩余 T 和
+mask；因此按键发生时的行为进程与最终物理显示持续时间不同。模拟模型应清楚表达这一规则。
+
+- 要确保
+Correct、Response、RT、timeout
+字段缺失值在文件中稳定表示为
+NaN/NA，而不是被格式化为字面字符串或错误的零。
+
+- 如果显示器刷新率为 60 Hz，名义的 30 ms 不对应整数帧（约 1.8
+帧）；代码按 round(T / FlipIntv)
+变成离散帧数。因此应根据实际刷新率选择帧数可实现的 T
+水平，并在输出中保存目标时长和实际时长。
+
+建议的 trial timeline：
+
+W 从 stimulus onset
+起算的试次时间轴
+
+## 9. 正式数据收集的候选设计
+
+### 9.1 设计原则
+
+不先凭经验宣布 2×2×2 或 3×3×3
+必然最优。二水平全因子有利于主效应与交互效应筛选，但只有两个水平通常不足以可靠估计指数/幂函数的时间常数或曲线弯曲形状。多水平设计也并不自动保证可恢复；需要通过候选模型的
+parameter recovery 和 model recovery 决定。
+
+建议的初始结构为混合因子设计：
+
+- P：被试间因素，代表正式实验前额外练习量；
+
+- T：被试内因素；
+
+- W：被试内因素，但 deadline 应当在被试作答前可知（可在 block
+开始时提示），以便合理检验 response policy 是否随 W 调整；
+
+- Self/Other × Match/Nonmatch：在每个 T × W cell 中平衡；
+
+- stimulus-shape 配对、正确键映射、block
+顺序和手指/按键优势需在被试间平衡。
+
+混合因子设计结构示意图
+
+### 9.2 候选设计 A：2×2×2，低成本筛选
+
+- P：0、120 次；
+
+- T：30、150 ms；
+
+- W：600、1200 ms；
+
+- P 为被试间；T×W 为被试内，共 4 个 T×W cell；
+
+- 如果每个 T×W cell 的四个刺激子条件（Self/Other ×
+Match/Nonmatch）各重复 16 次，则每人正式试次为 \(4\times4\times16=256\)。
+
+优点：负担较低，适合筛查端点效应与较大的交互。局限：难以充分识别
+P/T/W 的非线性曲线，不能仅凭该设计认真裁定指数与 Sigmoid
+的形状差异。
+
+### 9.3 候选设计 B：3×3×3
+或折中设计（优先进入模拟比较）
+
+一个折中候选：
+
+- P：0、8、32、120（四个被试间水平；仅为候选集合，非已定最优水平）；
+
+- T：30、80、150 ms；
+
+- W：600、900、1200 ms；
+
+- 每人 9 个 T×W 组合；若每个组合的 4 个刺激子条件各 16 次，则每人 576
+个正式试次。
+
+该方案可更好覆盖曲线增长与饱和区，又保留较可控的工作量。P 水平为 4
+的倍数以适配现有程序每轮呈现 4
+类练习刺激的结构。由于所有被试在正式实验前均经历 60 秒关联学习，P=0
+仍有学习暴露。
+
+### 9.4 候选设计 C：更高信息量设计
+
+- P：0、8、32、120；
+
+- T：30、80、150、250 ms；
+
+- W：600、800、1000、1300 ms；
+
+- 每人 16 个 T×W cell；如果每个 cell 的四类刺激各重复 12 次，则每人
+768 个正式试次。
+
+优势：T 与 W
+的多水平覆盖更有机会区分非线性函数与边界机制。代价：被试疲劳、总实验时长、学习/疲劳混合趋势和超时率的控制压力都会提高。它不是默认优于方案
+B，需要 model-recovery 结果证明新增水平带来有效信息。
+
+### 9.5 T/W 条件的物理和行为约束
+
+- 所有条件必须满足 \(W>T+T_m\)，当前 \(T_m=200\)
+ms；更严格地需检查实际事件时刻。
+
+- 若 W 在同一被试内改变，应通过 block 顺序平衡（例如 Latin/Williams
+类平衡次序）减轻 W 条件与 session time 的混淆；T 在 block
+内随机平衡。
+
+- W 应在该 block 或试次开始前对被试可知；否则 W 对主观 response policy
+的效应可能弱化，而对数据的截断效应仍存在。
+
+- 同一个 T×W cell 必须平衡 Self/Other 与
+Match/Nonmatch，也应平衡各形状、身份标签与正确按键。
+
+- 设计中应保留实际按键时间戳、timeout、stimulus offset、mask onset 和
+block/trial index，以便检测早期反应、超时和随时间变化的学习/疲劳。
+
+### 9.6 被试数与 trial
+数不应该先验拍定
+
+候选方案可以比较每个 P 组 15、25、35 人等多个场景；每位被试
+256、576、768
+试次也可作为候选模拟版本。它们只是设计模拟的网格，不是功效分析已确定的最终招募量。
+
+最终选择应基于：
+
+- 关键参数的偏差、RMSE 与区间覆盖；
+
+- 指数 vs. Sigmoid / 静态 vs. 动态边界 / SPE 交互模型的恢复率；
+
+- deadline timeout 是否过多、条件下是否出现严重极端准确率；
+
+- 每个被试的时间成本、疲劳和 trial-order 效应；
+
+- 关键目标量（例如 \(\Delta
+d_{SPE}\)）的识别精度。
+
+## 10.
+参数恢复、模型恢复与真实数据拟合
+
+### 10.1 没有真实数据可以做恢复吗？
+
+可以。参数恢复和模型恢复的定义本来就是基于已知生成真值的模拟检验。需要先设定一组合理但宽泛的参数范围，可以参考文献、当前程序/任务时间尺度以及旧数据提供的粗略行为范围；旧数据因漏记机制不应被当成无偏真值。建议对多个合理参数区域重复模拟，检验设计结论是否敏感。
+
+恢复模拟能回答“如果某个模型/参数是真的，在本设计的被试数和 trial
+数下，我们能否认出它”，不能回答“哪个模型一定是真实心理过程”。后者需要真实数据与模型比较共同支持。
+
+### 10.2 Parameter recovery
+
+对每个候选模型：
+
+- 从先验/宽参数范围抽取真值 \(\theta^{true}\)；
+
+- 按实际候选设计生成多套数据；
+
+- 使用与候选生成机制匹配的模型重新拟合；
+
+- 将 \(\hat\theta\) 与 \(\theta^{true}\) 比较。
+
+报告不应只看相关系数，还应包含：
+
+\[
+Bias=\mathbb E[\hat\theta-\theta^{true}]
+\] \[
+RMSE=\sqrt{\mathbb E[(\hat\theta-\theta^{true})^2]}
+\]
+
+以及区间覆盖率、收敛率、参数相关/补偿、关键效应的符号恢复概率。重点参数包括
+\(\tau_P,\tau_T,\tau_a,\Gamma,\beta_S,\beta_{SP},\beta_{ST}\)
+等；第一版不要一次性全部放入同一个复杂模型，而要按阶段增加。
+
+### 10.3 Model recovery
+
+对每个模型作为生成模型分别生成许多套数据，然后将每一套数据分别拟合所有候选模型，统计最终模型选择结果，构建
+confusion
+matrix。矩阵对角线越高，说明该生成机制较常被正确识别；非对角线揭示哪些模型互相混淆。
+
+建模流程图
+
+Ofir 和 Landau (2025) 的 temporal generalization DDM
+工作可作为验证工作流的范例：它包含参数恢复、模型恢复以及对真实行为的模型拟合。但其任务的证据变量和反应结构与
+SMT + response deadline
+不同，因此可借鉴验证逻辑，不能照搬其参数解释或试次数要求。
+
+### 10.4 真实数据的 model fitting
+
+设计方案通过恢复模拟筛选、程序验证后，才开展主实验并对真实数据拟合。建议使用
+trial-level RT + choice 的联合模型，而不是只对条件平均 RT/accuracy
+做曲线拟合。
+
+- 固定边界模型：可使用标准 WFPT likelihood，并使用 deadline
+适配的未响应概率。
+
+- 动态边界模型：使用动态边界首次通过时间的数值解或经过验证的
+likelihood；不能用静态 WFPT density 直接冒充。
+
+- 层级模型：可用 participant-level varying
+parameters/regression，避免只拟合一个群体均值（Vandekerckhove et al.,
+2011; Wiecki et al., 2013; Boehm et al., 2018）。
+
+### 10.5 Posterior predictive
+checks（PPC）
+
+模型拟合后，从 posterior predictive distribution 重新生成 RT、choice
+和 timeout，并按原设计条件比较真实数据与预测。至少检查：
+
+- 正确与错误 RT 的分位数（例如 .1、.3、.5、.7、.9）和分布形状；
+
+- 正确率/错误率；
+
+- RT 与 accuracy 的联合模式；
+
+- Self/Other × Match/Nonmatch 的条件模式；
+
+- \(SPE_{RT}\)、\(SPE_{ACC}\) 与潜在 \(\Delta d_{SPE}\) 的可预测后果；
+
+- P/T/W 条件趋势、block/trial order 趋势、deadline timeout 比例。
+
+只重现平均 RT 不足以验证一个
+DDM，因为不同参数组合可能产生相似的均值，却有不同的 RT
+分布和错误模式（Ratcliff & Rouder, 1998; Gabry et al., 2019）。
+
+### 10.6 预测模型比较
+
+对于 Bayesian hierarchical 模型，建议把 PSIS-LOO 的 ELPD
+作为主要样本外预测比较指标之一，同时检查 Pareto \(k\) 诊断和 \(\Delta ELPD\) 标准误（Vehtari et al., 2017,
+2024）。WAIC 可作辅助；AIC/BIC
+可用于适用的最大似然模型，但不应随意与不同
+likelihood/不同观测单位的结果混比。
+
+如果模型的预测差异相对于不确定度很小，不能强行宣布唯一赢家。可选择更简约、理论更明确的模型；或者用
+stacking 加权组合预测分布，再做模型平均的设计优化（Yao et al.,
+2018）。Bayes factor 能比较边际似然，但可能对先验敏感；若采用，需做
+prior sensitivity，并选择适用于证据积累模型的方法（Gronau et al.,
+2020）。
+
+重要： trial-level LOO 通常更接近对同一个被试的遗漏
+trial 做预测；若目标是泛化到新被试，则需用 participant-level
+K-fold/leave-one-participant-out，不能让同一被试的数据同时泄漏到训练和测试折中。
+
+### 10.7
+最优设计不是“条件最多的设计”
+
+对候选设计 \(\Omega\)，选择规则应综合：
+
+- 关键参数可恢复程度；
+
+- 模型机制可区分程度；
+
+- 对 reasonable parameter ranges 的鲁棒性；
+
+- timeout 与疲劳负担；
+
+- 预期的 SPE 量估计精度；
+
+- 实验实施可行性。
+
+如果多个模型无法可靠区分，可以在可接受模型集合上进行 model-averaged
+design utility：
+
+\[
+U(\Omega)=\sum_m w_m U_m(\Omega)
+\]
+
+其中 \(w_m\) 可来自 stacking
+或另一个事先声明的方法。这会使最终设计对心理机制不确定性更鲁棒，而不是只在单一假设下“最优”。
+
+## 11.
+模型候选集合与分阶段比较计划
+
+为了避免一下子形成过多交叉模型，推荐按以下顺序逐步比较。
+
+### 阶段 A：基础模拟器正确性
+
+- 静态边界、恒定 drift、中心起点、固定 \(t_0\)；
+
+- 验证 RT/choice 是否符合标准 DDM 预期；
+
+- 若采用 path simulation，将不同 \(\Delta
+t\) 的结果与固定边界 WFPT 进行对比，检查时间步长偏差；
+
+- 验证 deadline 下 timeout 概率计算正确。
+
+### 阶段 B：P/T 映射
+
+- P：标准指数饱和 vs. legacy Sigmoid（以及必要时 power/linear）；
+
+- T：指数编码饱和 vs. 一种预先指定的替代函数；
+
+- 先保持 W 边界简单，不要同时改变太多机制。
+
+### 阶段 C：W 边界机制
+
+- W0：固定 \(a\)，仅外部
+deadline；
+
+- W1：静态 \(a(W)\) 指数饱和；
+
+- W2：动态对称 collapsing boundary \(a(s;W)\)。
+
+### 阶段 D：SPE 机制
+
+- G0：P/T 影响一般 drift，Self–Other 差异不随 P/T 变化；
+
+- G1：加入 P × Self；
+
+- G2：加入 T × Self；
+
+- G3：两种调节都加入。
+
+若没有足够证据，可先不估计 Self-specific \(z\)；之后若导师要求研究响应偏向，再让 \(z\) 随 stimulus/response condition
+变化，并通过 recovery 检验。
+
+### 阶段 E：真实数据拟合和
+model selection
+
+所有候选模型使用同一套符合规则的 trial-level
+数据、同一明确的数据排除标准和可比较的 prior/predictive
+evaluation。若某模型不收敛、关键参数不可恢复、PPC 明显失败或 deadline
+likelihood 错误，不能只因为它的某个信息准则较低就入选。
+
+## 12. 建议的实施顺序与风险清单
+
+### 12.1 当前推荐的执行顺序
+
+- 程序技术验证：预加载 mask；记录真实 flip 时间；验证
+keyboard event time；核实条件表、实际帧数、RT 起点和 W deadline；
+
+- 建立最小静态 DDM 生成器：固定 \(\sigma\)，中心起点、恒定
+drift、固定边界，验证 Choice/RT 分布；
+
+- 实现 P 与 T
+的函数映射：用清楚命名的参数、宽合理范围；先不加延迟、交互或自我起点偏向；
+
+- 实现 W0/W1：固定边界与静态指数边界，加入 deadline
+未响应概率；
+
+- 再实现 W2：确定时变边界
+likelihood/数值求解器；对生成和拟合进行数值正确性检查；
+
+- 运行 prior predictive 与参数恢复；
+
+- 对候选模型做 model recovery；
+
+- 比较 2×2×2、3×3×3 与高信息量设计，决定 P/T/W
+以及样本规模；
+
+- 完成小规模 pilot 并检查实际
+RT、早期反应、timeout、刺激呈现时长；
+
+- 正式数据收集；
+
+- Fitting the model to behavior + PPC +
+PSIS-LOO/模型比较；
+
+- 把最可靠的模型或模型集合用于设计空间优化。
+
+### 12.2 风险清单
+
+风险
+为什么重要
+缓解办法
+
+ | 旧/新 W 定义混用
+ | deadline 与 RT 分布不同
+ | 旧数据使用 W_post，新数据使用
+W_total，不要混列
+
+ | stimulus offset 被 mask 读取拖延
+ | 名义 T 与真实 T 不同
+ | 预加载图像/texture，记录 flip timestamps
+
+ | 仅保存有反应试次
+ | timeout likelihood 无法建立
+ | 每试次都记录是否响应与截止时间
+
+ | 直接把 Self 映射到某个边界
+ | Self 与 Match 不等同
+ | 统一 response coding，Self-specific effect 先进入 drift
+magnitude
+
+ | 用完整 T 的 Q(T) 解释 T 前的 response
+ | 暗含瞬时达到完整编码
+ | 先估早期反应比例；必要时发展时间变化输入模型
+
+ | 只看模型的 LOO winner
+ | 预测优势不等于心理机制可识别
+ | 参数恢复、模型恢复、PPC 和预测比较都通过后才解释
+
+ | P 太少的水平
+ | 非线性时间常数可能不可识别
+ | 通过设计模拟选水平，而非只用高/低两个点
+
+ | 复杂模型太多
+ | Recovery 命中率可能低、参数补偿
+ | 按阶段增复杂度，逐步加入交互/时变边界
+
+ | 所有被试都按同一 block 顺序
+ | W 与 trial time/练习趋势混淆
+ | 平衡 block 顺序并记录 trial/block index
+
+ | 只拟合均值 RT
+ | 忽略错误 RT 与分布尾部
+ | RT + choice 联合拟合并做 PPC
+
+### 12.3 最终研究立场
+
+本项目并不是先证明“所有变量都服从某种特定曲线”，再把曲线塞进
+DDM。更可靠的路线是：为 P、T、W
+各自提出有心理解释的可计算映射；让候选机制生成可观察的 RT/choice/timeout
+分布；用参数恢复和模型恢复评估设计是否有能力识别机制；再用新实验数据检验模型是否能解释真实行为。
+
+这个框架能够允许结果是：指数比 Sigmoid
+更稳健、静态边界已足够、某些交互不需要、或者当前设计不能区分两种模型。上述任何一种都可能是有价值的实证结果。
+
+## 13. 参考文献（APA 7）
+
+以下收录本次讨论中实质使用或此前回答已提到的主要理论、方法与 SMT
+研究。DOI 优先以 DOI
+链接提供。文献的证据角色不一样：有的是一般学习曲线依据，有的是一般视觉时间整合，有的是
+DDM 方法，还有的是直接 SMT
+证据。不要把相邻任务的结果当作对本研究特定函数的直接证明。
+
+### 13.1 Practice 与学习曲线
+
+Anderson, J. R. (1982). Acquisition of cognitive skill.
+Psychological Review, 89(4), 369–406.
+https://doi.org/10.1037/0033-295X.89.4.369
+
+Delaney, P. F., Reder, L. M., Staszewski, J. J., & Ritter, F. E.
+(1998). The strategy-specific nature of improvement: The power law
+applies by strategy within task. Psychological Science, 9(1),
+1–7. https://doi.org/10.1111/1467-9280.00001
+
+Heathcote, A., Brown, S., & Mewhort, D. J. K. (2000). The power
+law repealed: The case for an exponential law of practice.
+Psychonomic Bulletin & Review, 7(2), 185–207.
+https://doi.org/10.3758/BF03212979
+
+Leibowitz, N., Baum, B., Enden, G., & Karniel, A. (2010). The
+exponential learning equation as a function of successful trials results
+in sigmoid performance. Journal of Mathematical Psychology,
+54(3), 338–340. https://doi.org/10.1016/j.jmp.2010.01.006
+
+Murre, J. M. J. (2014). S-shaped learning curves. Psychonomic
+Bulletin & Review, 21(2), 344–356.
+https://doi.org/10.3758/s13423-013-0522-0
+
+Murre, J. M. J., & Chessa, A. G. (2011). Power laws from
+individual differences in learning and forgetting: Mathematical
+analyses. Psychonomic Bulletin & Review, 18(3), 592–597.
+https://doi.org/10.3758/s13423-011-0076-y
+
+Newell, A., & Rosenbloom, P. S. (1981). Mechanisms of skill
+acquisition and the law of practice. In J. R. Anderson (Ed.),
+Cognitive skills and their acquisition (pp. 1–51). Lawrence
+Erlbaum Associates.
+
+### 13.2 Visual
+encoding、temporal integration 与 T
+
+Deodato, M., & Melcher, D. (2024). Continuous temporal
+integration in the human visual system. Journal of Vision,
+24(13), Article 5. https://doi.org/10.1167/jov.24.13.5
+
+Ketz, C. C., Bach, M., & Heinrich, S. P. (2026). Landolt C acuity
+follows Bloch’s law for short-duration flashes. Frontiers in
+Neuroscience, 20, Article 1954783.
+https://doi.org/10.3389/fnins.2026.1954783
+
+Eckhoff, P., Holmes, P., Law, C., Connolly, P. M., & Gold, J. I.
+(2008). On diffusion processes with variable drift rates as models for
+decision making during learning. New Journal of Physics, 10,
+Article 015006. https://doi.org/10.1088/1367-2630/10/1/015006
+
+Kiani, R., Hanks, T. D., & Shadlen, M. N. (2008). Bounded
+integration in parietal cortex underlies decisions even when viewing
+duration is dictated by the environment. The Journal of
+Neuroscience, 28(12), 3017–3029.
+https://doi.org/10.1523/JNEUROSCI.4761-07.2008
+
+Ratcliff, R. (2002). A diffusion model account of response time and
+accuracy in a brightness discrimination task: Fitting real data and
+failing to fit fake but plausible data. Psychonomic Bulletin &
+Review, 9(2), 278–291. https://doi.org/10.3758/BF03196283
+
+Ratcliff, R. (2014). Measuring psychometric functions with the
+diffusion model. Journal of Experimental Psychology: Human
+Perception and Performance, 40(2), 870–888.
+https://doi.org/10.1037/a0034954
+
+Stevens, S. S. (1957). On the psychophysical law. Psychological
+Review, 64(3), 153–181. https://doi.org/10.1037/h0046162
+
+Thorpe, S., Fize, D., & Marlot, C. (1996). Speed of processing in
+the human visual system. Nature, 381, 520–522.
+https://doi.org/10.1038/381520a0
+
+### 13.3 Self-prioritization
+/ SMT 与条件相关偏差
+
+Golubickis, M., Falben, J. K., Sahraie, A., Visokomogilski, A.,
+Cunningham, W. A., Sui, J., & Macrae, C. N. (2017).
+Self-prioritization and perceptual matching: The effects of temporal
+construal. Memory & Cognition, 45(7), 1223–1239.
+https://doi.org/10.3758/s13421-017-0722-3
+
+Golubickis, M., Selvaraj, E. S., Caughey, S., Jalalian, P., Sharma,
+Y., & Macrae, C. N. (2026). It’s probably mine: Self-prioritization
+can be a decisional strategy. Cognitive Science, 50(3), Article
+e70190. https://doi.org/10.1111/cogs.70190
+
+Jalalian, P., Golubickis, M., Sharma, Y., & Macrae, C. N. (2023).
+Electrophysiological correlates of self-prioritization.
+Consciousness and Cognition, 108, Article 103475.
+https://doi.org/10.1016/j.concog.2023.103475
+
+Jalalian, P., Golubickis, M., Sharma, Y., & Macrae, C. N. (2023).
+Learning about me and you: Only deterministic stimulus associations
+elicit self-prioritization. Consciousness and Cognition, 116,
+Article 103602. https://doi.org/10.1016/j.concog.2023.103602
+
+Jalalian, P., Golubickis, M., Sharma, Y., & Macrae, C. N. (2024).
+The temporal profile of self-prioritization. Consciousness and
+Cognition, 125, Article 103763.
+https://doi.org/10.1016/j.concog.2024.103763
+
+Jalalian, P., Golubickis, M., Sharma, Y., Kanakraj, R., Selvaraj, E.
+S., & Macrae, C. N. (2026). Reward value shapes the time course of
+self-bias. Memory & Cognition, 54, 483–500.
+https://doi.org/10.3758/s13421-025-01763-4
+
+Sui, J., He, X., & Humphreys, G. W. (2012). Perceptual effects of
+social salience: Evidence from self-prioritization effects on perceptual
+matching. Journal of Experimental Psychology: Human Perception and
+Performance, 38(5), 1105–1117. https://doi.org/10.1037/a0029792
+
+Svensson, S. L., Golubickis, M., Maclean, H., Falbén, J. K.,
+Cunningham, W. A., Sui, J., & Macrae, C. N. (2022). More or less of
+me and you: Self-relevance augments the effects of item probability on
+stimulus prioritization. Psychological Research, 86(4),
+1145–1164. https://doi.org/10.1007/s00426-021-01562-x
+
+### 13.4 DDM、WFPT、层级模型与
+deadline
+
+Bogacz, R., Brown, E., Moehlis, J., Holmes, P., & Cohen, J. D.
+(2006). The physics of optimal decision making: A formal analysis of
+models of performance in two-alternative forced-choice tasks.
+Psychological Review, 113(4), 700–765.
+https://doi.org/10.1037/0033-295X.113.4.700
+
+Frazier, P. I., & Yu, A. J. (2008). Sequential hypothesis testing
+under stochastic deadlines. In Advances in Neural Information
+Processing Systems 20 (pp. 465–472). Curran Associates.
+
+Hawkins, G. E., Forstmann, B. U., Wagenmakers, E.-J., Ratcliff, R.,
+& Brown, S. D. (2015). Revisiting the evidence for collapsing
+boundaries and urgency signals in perceptual decision-making. The
+Journal of Neuroscience, 35(6), 2476–2484.
+https://doi.org/10.1523/JNEUROSCI.2410-14.2015
+
+Henrich, F., & Klauer, K. C. (2026). Modeling truncated and
+censored data with the diffusion model in Stan. Behavior Research
+Methods, 58, Article 42.
+https://doi.org/10.3758/s13428-025-02822-z
+
+Navarro, D. J., & Fuss, I. G. (2009). Fast and accurate
+calculations for first-passage times in Wiener diffusion models.
+Journal of Mathematical Psychology, 53(4), 222–230.
+https://doi.org/10.1016/j.jmp.2009.02.003
+
+Ratcliff, R., & McKoon, G. (2008). The diffusion decision model:
+Theory and data for two-choice decision tasks. Neural Computation,
+20(4), 873–922. https://doi.org/10.1162/neco.2008.12-06-420
+
+Ratcliff, R., & Rouder, J. N. (1998). Modeling response times for
+two-choice decisions. Psychological Science, 9(5), 347–356.
+https://doi.org/10.1111/1467-9280.00067
+
+Ratcliff, R., & Tuerlinckx, F. (2002). Estimating parameters of
+the diffusion model: Approaches to dealing with contaminant reaction
+times and parameter variability. Psychonomic Bulletin & Review,
+9(3), 438–481. https://doi.org/10.3758/BF03196302
+
+Reinhartz, A., Strobach, T., Jacobsen, T., & von Bastian, C. C.
+(2023). Mechanisms of training-related change in processing speed: A
+drift-diffusion model approach. Journal of Cognition, 6(1),
+Article 46. https://doi.org/10.5334/joc.310
+
+Simen, P., Contreras, D., Buck, C., Hu, P., Holmes, P., & Cohen,
+J. D. (2009). Reward rate optimization in two-alternative decision
+making: Empirical tests of theoretical predictions. Journal of
+Experimental Psychology: Human Perception and Performance, 35(6),
+1865–1897. https://doi.org/10.1037/a0016926
+
+Vandekerckhove, J., Tuerlinckx, F., & Lee, M. D. (2011).
+Hierarchical diffusion models for two-choice response times.
+Psychological Methods, 16(1), 44–62.
+https://doi.org/10.1037/a0021765
+
+Wiecki, T. V., Sofer, I., & Frank, M. J. (2013). HDDM:
+Hierarchical Bayesian estimation of the Drift-Diffusion Model in Python.
+Frontiers in Neuroinformatics, 7, Article 14.
+https://doi.org/10.3389/fninf.2013.00014
+
+Zhang, S., Lee, M. D., Vandekerckhove, J., Maris, G., &
+Wagenmakers, E.-J. (2014). Time-varying boundaries for diffusion models
+of decision making and response time. Frontiers in Psychology,
+5, Article 1364. https://doi.org/10.3389/fpsyg.2014.01364
+
+### 13.5
+模型恢复、Bayesian workflow、预测比较与模型平均
+
+Boehm, U., Steingroever, H., & Wagenmakers, E.-J. (2018). Using
+Bayesian regression to test hypotheses about relationships between
+parameters and covariates in cognitive models. Behavior Research
+Methods, 50(3), 1248–1269.
+https://doi.org/10.3758/s13428-017-0940-4
+
+Gabry, J., Simpson, D., Vehtari, A., Betancourt, M., & Gelman, A.
+(2019). Visualization in Bayesian workflow. Journal of the Royal
+Statistical Society: Series A (Statistics in Society), 182(2),
+389–402. https://doi.org/10.1111/rssa.12378
+
+Gronau, Q. F., Heathcote, A., & Matzke, D. (2020). Computing
+Bayes factors for evidence-accumulation models using Warp-III bridge
+sampling. Behavior Research Methods, 52(2), 918–937.
+https://doi.org/10.3758/s13428-019-01290-6
+
+Ofir, N., & Landau, A. N. (2025). A drift-diffusion model of
+temporal generalization outperforms existing models and captures
+modality differences and learning effects. Behavior Research
+Methods, 57, Article 334.
+https://doi.org/10.3758/s13428-025-02819-8
+
+Vehtari, A., Gelman, A., & Gabry, J. (2017). Practical Bayesian
+model evaluation using leave-one-out cross-validation and WAIC.
+Statistics and Computing, 27, 1413–1432.
+https://doi.org/10.1007/s11222-016-9696-4
+
+Vehtari, A., Simpson, D., Gelman, A., Yao, Y., & Gabry, J.
+(2024). Pareto smoothed importance sampling. Journal of Machine
+Learning Research, 25(72), 1–58.
+https://www.jmlr.org/papers/v25/19-556.html
+
+Wilson, R. C., & Collins, A. G. E. (2019). Ten simple rules for
+the computational modeling of behavioral data. eLife, 8,
+Article e49547. https://doi.org/10.7554/eLife.49547
+
+Yao, Y., Vehtari, A., Simpson, D., & Gelman, A. (2018). Using
+stacking to average Bayesian predictive distributions (with discussion).
+Bayesian Analysis, 13(3), 917–1007.
+https://doi.org/10.1214/17-BA1091
+
+### 13.6 建议阅读顺序
+
+- 总体建模流程：Wilson & Collins (2019)。
+
+- DDM 参数意义、正确与错误 RT：Ratcliff & Rouder
+(1998); Ratcliff & McKoon (2008)。
+
+- 练习函数家族：Newell & Rosenbloom (1981);
+Heathcote et al. (2000); Murre (2014); Delaney et al. (1998)。
+
+- T 与 drift：Ratcliff (2002); Kiani et al. (2008);
+Deodato & Melcher (2024); Ketz et al. (2026)。
+
+- Deadline 与动态边界：Bogacz et al. (2006); Frazier
+& Yu (2008); Hawkins et al. (2015); Zhang et al. (2014); Henrich
+& Klauer (2026)。
+
+- 直接 SMT/SPE 机制：Sui et al. (2012); Golubickis et
+al. (2017); Svensson et al. (2022); Jalalian et al. (2024)。
+
+- 恢复、拟合与模型比较：Wiecki et al. (2013); Boehm
+et al. (2018); Gabry et al. (2019); Vehtari et al. (2017); Ofir &
+Landau (2025); Yao et al. (2018)。
+
+## 附录 A：传递给后续
+AI/开发者的最小规格
+
+- 不改变 \(W\) 定义：W 从 stimulus
+onset 到 deadline。
+
+- 所有时间单位内部统一为秒；导出文件可同时保存 ms 列。
+
+- \(\sigma=1\)；第一版以中心起点
+\(z_r=0.5\) 为主。
+
+- P/T 首版函数使用归一化指数饱和，先用加性 drift magnitude。
+
+- 明确 Match/Nonmatch 与 Self/Other 的条件关系；上边界固定代表 Match
+response，下边界固定代表 Nonmatch response。
+
+- P/T 先允许一般加工效率效应；另建候选模型检验其是否调节 Self–Other
+drift difference。
+
+- W 的静态指数模型作为基线；动态对称边界作为竞争机制模型。
+
+- 动态边界不得使用未经修改的固定边界 WFPT likelihood。
+
+- timeout 不得从数据中删除或反复重抽。
+
+- 生成的 trial data 与 truth data 分开。
+
+- 先验证静态模拟器，再验证 P/T 映射，再实现
+deadline，再实现动态边界。
+
+- 每个候选设计都做参数恢复与模型恢复；真实数据阶段做 PPC
+与模型比较。
+
+- 程序输出实际 stimulus flip/offset 与 key timestamp；预加载 mask
+texture，避免 T 的实际呈现时长被 IO 延迟改变。
+
+- 新旧程序数据不可在不建模记录机制的前提下简单合并。
+
+- 所有函数图是候选机制的示意，不是拟合到真实 SPE 数据的结果。
+
+文档完。
