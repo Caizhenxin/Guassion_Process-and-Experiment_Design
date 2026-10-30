@@ -2,6 +2,24 @@
 
 ---
 
+## v0.28 (2026-10-30) Stage S 服务端：场景清单改读总台 + 切场景
+
+**责任人**：蔡振辛
+
+### 新增功能
+- 面板插件新增 hub 模块：`loadScenes` / `toScenes` / `pickScene` / `describeScenes` / `readActiveId` / `writeActiveId`（纯函数与磁盘 IO 分开，便于无盘自测）。
+- 新增接口 `GET|POST /api/dsh-project-panels/hub`：GET 列场景（缺 id 或 root 的坏条目直接剔除，绝不猜）、POST `{id}` 切场景；清单读不到时交回 `problem` 字段 + 空清单 + `active: null`，不静默装成「没有项目」。
+- 项目根从固定常量改成运行期状态：默认取配置 `projectRoot`，之后按「面板偏好 → 配置根 → 清单第一项」三级挑选；切场景先校验登记表有、目录真的在，再落 `current-project.json`。
+- 顶栏加场景下拉（清单唯一出处 = 总台 `projects.json`），切场景后网格换 key 重挂全部面板 —— 避免旧项目的数字留在屏幕上（半套数字比报错更难发现）。
+- 待办板改按当前项目根取（`createBoard({ getRoot })`），切场景后自动落到新项目的行。
+
+### 验证
+- 插件七份自测全绿：server（14 条路由 + 切场景六种反例）、client（Stage S 源码级契约）、board 13、health 46、render、scenes 14、handover。
+- 插件体检 18 条：14 通过 / 4 警告 / **0 失败**（警告都是体量接近红线：客户端 2249/2600 行、服务端 856/900 行、体检 652/700 行、README 16205/16384 字节）。
+- 交接 §〇 第 14 次写；`_交接/_tools/一致性.py` 全过。
+
+---
+
 ## v0.27 (2026-10-30) 协作三件落地（M4.1/M4.3）+ 脚手架真跑 + 纪律补两节
 
 **责任人**：蔡振辛
