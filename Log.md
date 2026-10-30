@@ -1,4 +1,4 @@
-# 版本更新日志
+﻿# 版本更新日志
 
 ---
 
@@ -12,6 +12,7 @@
 - 项目根从固定常量改成运行期状态：默认取配置 `projectRoot`，之后按「面板偏好 → 配置根 → 清单第一项」三级挑选；切场景先校验登记表有、目录真的在，再落 `current-project.json`。
 - 顶栏加场景下拉（清单唯一出处 = 总台 `projects.json`），切场景后网格换 key 重挂全部面板 —— 避免旧项目的数字留在屏幕上（半套数字比报错更难发现）。
 - 待办板改按当前项目根取（`createBoard({ getRoot })`），切场景后自动落到新项目的行。
+- 顶栏加「总进度 N/M」：从总台 `index/进度.md` 的阶段表数完成数、抽「下一步」前 3 条；读不到索引时该 chip 直接不显示（不拿旧数字充数）。
 
 ### 验证
 - 插件七份自测全绿：server（14 条路由 + 切场景六种反例）、client（Stage S 源码级契约）、board 13、health 46、render、scenes 14、handover。
@@ -1003,3 +1004,4 @@ kabuki 的 `chains>1` 会 `deepcopy` 后用 `nodes_db` 重建 MCMC，**把势函
 - 新建: `1_Code/Experiment/exp_matlab/EXP_NEW.m`
 
 ---
+
