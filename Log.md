@@ -2,6 +2,203 @@
 
 ---
 
+## v0.27 (2026-10-30) 协作三件落地（M4.1/M4.3）+ 脚手架真跑 + 纪律补两节
+
+- 总台新增 `tools/派单.py` + `boards/派单台账.jsonl`（只追加事件、状态推导、四件套缺一拒收、`ACK_TIMEOUT_H=24` 超时标 ⚠、自证 6/6）；`tools/体检.py` 增第 ⑤ 类 `dispatch:check`（⚠ 不阻断），反例测试 11/11 → **12/12**，体检 0/0/12。
+- `tools/新项目.py` 真仓库首跑：`academic` 接入（3 项目登记、场景三件、项目侧交接 463B、archive），体检 0/0/18；修掉「projects.json 写 `log: Log.md` 却不建文件 → 新项目第一天带 ⚠」的洞，`--dry-run` 计划同步补上第 ④ 步。
+- `_交接/工作台纪律.md` §三 增「派单必须登记台账（add→deliver→ack→close，只有 add = 没投递）」；§四 改名「禁止无限对话与会话超线」，增「≥80% 报一行、≥100% 先写 §〇 再换会话」，并写明这条只能纪律化（判据 `acp_status` 只在会话内，做工具就是假判据）。
+- 待办板去脏 17→6（删 8 条重复/过期跟踪行，`[x]` 留证不删）；M4.1/M4.3/脚手架试用销账；M4.2 定案纪律化，M2.1 仍挂起。
+
+---
+
+## v0.26 (2026-10-30) 工作台差距审计 + 纪律落地 + 一致性自检器（P0-3 / P0-4）
+
+- 审计报告 `6_Workbench/审计-与淋雨家工作台差距-20261030.md`：对照淋雨家工作台五问（跨窗口协作 0/5 未实现、自动归档≈60%、宪法≈70%、UI≈75%）。
+- 新增 `_交接/工作台纪律.md`（宪法 v1）：只认机主 / 单一权威 / 派单与回执（投递通道未接，先人工中转）/ 禁止无限对话 / 修改权分层 / 记忆三层。
+- `AGENTS.md` 只加指针不加长度：纪律入口、自检命令；「该做什么」权威改指总台待办板（项目内板作废只读）。
+- 新增 `_交接/_tools/一致性.py`：C1 缺小节 / C2 死条目 / C3 超 4096 字节 / C4 覆盖写前快照，`--selftest` 需 4/4；C2 先按文档目录解析、再退回根、最后按文件名全工作区兜底（索引爱省目录前缀），`{}` 占位与 glob 跳过。
+- 实跑抓到 1 条真死条目并修好：`5_Reference/README.md` L242 指向 `正式采集_候选设计_v1.md`（从未存在，实际是 `正式采集_候选设计.md`）。改后全过。
+- P0-1 / P0-2 当天完成（机主放开文件权限后直接执行，未用备用脚本）：审计报告复制进总台 `docs/`（SHA256 一致，15704 B）；总台 `index/总索引.md` 删掉「插件·留档·搁置」行、在「活」表补插件/纪律/审计三行（41→43 行）；总台 `tools/体检.py` 恢复可写，本轮 11 绿、`index/体检报告.md` 已重生成。
+- 备用补丁 `_交接/_tools/总台同步.ps1` 保留（幂等 + 回读校验），权限再收紧时可用；未执行。
+
+---
+
+## v0.25 (2026-10-30) 工作台插件 P5：待办收成一处 + 归档快照 + 键统一 + 拆出 boardStore
+
+- 待办板唯一落点改为总工作台 boards/待办板.md，每行带项目标签；插件只改自己标签的行，别人的项目行与人写的说明一个字不许动。
+- 修掉认领 bug：板上已有任何项目标签时，无标签行谁都不许认领（此前先打开面板的项目会把别人的活改写成自己的标签）。
+- 体检的阻断项改为写进总板并带去重键，问题修好后下次体检自动打勾（人工与机器同一句标记，不再各写一份）。
+- index.js 撞体积红线（33098/32768 B），把待办落盘层拆到 dsh/boardStore.js：781 行 / 29080 B，该判据由 fail 转 warn。
+- 自测 7 份全绿：test-health 46 条、test-board 13 条、test-server 14 条接口，其余四份照旧；真项目探针：待办读总板、正文无标签、归档可读。
+- 遗留：交接面板与待办面板需重启 DSH Desktop 验收；总览的「总进度」摘要尚未做。
+
+## v0.24 (2026-10-29)
+
+**责任人**：蔡振辛
+
+### 新增功能
+- **按 `5_Reference/08_工作流` 重做的 v2 运行时架构图 + 工作流公式示意图**（取代 v1 的"生成模型规格"版本）
+  - 仓库位置：`1_Code/Animation_Manim/Architecture_Visualization/`（v1 已归档到 `Architecture_Visualization_v1/`）
+    - `SPE_workflow_architecture_v2.html`（archify 单文件 784 KB，sha256 `57f1c390…`）与 `candidate_v2.json`；全部回执/截图在 `.archify/architecture-spe-workflow-20261029-133937/`
+  - PPT 副本：`Desktop/.../_通用_项目介绍/PPT/SPE_workflow_architecture_v2.html`；公式示意图 `figures/speddm_wf_f01..f07.png` + 脚本 `make_workflow_figures.py`
+  - **12 个组件**：Participants → Experiment Program (v4.9, 576 试次) → Real Data Batches → Admission & QC Gates（intake/qc G1–G9/S6）→ One-Command Pipeline → Hierarchical DDM Fit（Laplace-EM · M-T1/M-T3）→ LOO Health Gate → Thesis Drafts & Figures；外加 Simulation Line（Stage 2–5）→ CRLB Design Evaluator（D4）、Stage-9 GP Optimizer、Reference Data（87 历史 + SPE-DB）
+  - **一条加粗主路径**（采集 → 入库质控 → 一键流水线 → 层级拟合 → LOO 闸门 → 可引用结果），以及 **4 个信任区**：实验机（外部输入）· 已入库真实数据（v4.1 txt 契约）· 模拟线（假设真值、不碰真实数据）· 可引用结果（LOO 闸门后）
+  - **5 张卡片**：主路径 / 闸门与判据 / 公式（F1–F7）/ 外部依赖与环境 / 范围与已知限制
+  - **公式示意图 7 张**：两阶段漂移（M-T1 vs M-T3）、Laplace–EM、PSIS-LOO 与三道闸、PPC 12 项 95% 带、CRLB 与所需人数、Stage-9 目标 J + GP/EI、D4 设计网格（4T×3W×576）
+  - 证据引用全部为**已提交**文件（08_工作流 5 份 + 程序/DDM_Core/AutoRA/文档共 17 个路径），绑定 revision `ff6e0cc0`
+
+### 与 v1 的实质差异
+- 从"SPE–DDM 生成模型规格（2026-10-11）"改为**当前工作流事实**（Stage 0–9、一键流水线 D98、LOO 健康闸门 D73–D76、Stage 9 冻结目标、D4 定稿）
+- 移除 v1 的 HDDM 容器/真值隔离结构，改为 intake/QC 闸门、v4.1 输入契约、模拟线隔离、可引用结果闸门
+- deadline 口径按 **D48 两代**写法（v4.1 `onset + W` vs 历史 `onset + T + W`，换算走 `spe_timing_convention.py`）
+
+### 验证
+- archify finalize 四道门全 pass（validate/deliver/check/browser-check），0 诊断，无绕行/交叉提示
+- visual-check 5 项全 pass；4 张截图（1440×900、2048×1320 × 深浅）已人工目视复核
+- 7 张示意图逐张检查，修正了 F5 人数标注重叠与 F6 三次版面挤压（标题/面板/公式越界）
+
+### 工具链
+- archify 报告有新版本（3.0.1 → 3.2.0），**未自动升级**（需用户决定）
+- 修复几何后按 SKILL 用 `--out-dir review-2` 重跑，避免旧 browser 证据归属冲突（10-13 的坑 3 再次生效）
+
+---
+
+## v0.23 (2026-10-28)
+
+**责任人**：蔡振辛
+
+### 新增功能：交接归档快照（工作台阶段 A / V7）
+- 覆盖写 `_交接/当前交接.md` 之前，自动把上一版存进总工作台 `DSH_Workbench\archive\gp-experiment\`（保留最近 10 份，按时间戳+序号排序裁剪，非快照文件不碰）。
+- 新增 `POST /snapshot` 手动存快照；交接面板加「存快照」按钮，副标题显示「归档 N 份」。
+- 场景 id 从总工作台 `projects.json` 按项目根反查，查不到退回目录名 —— 同一套插件单项目也能用。
+- 体检新增第 17 条判据 `handover:archive`（目录可读 / 最新一份含 §〇 / 份数 ≤ 12），并造了 5 个反例。
+- 「内容没变不归档」「同分钟加序号」两条规则是为了不让快照刷成一堆重复品。
+
+### 问题与信号
+- 体检从 16 全过变成 **14 通过 / 3 警告**：`dsh/index.js` 869/900 行（96%）、`dsh/health.js` 630/700 行（90%）、`README.md` 161/260 行。**没有改判据迁就现状**，而是把「拆 index.js」记进待办。
+
+### 验证
+- 六份自测全过：`test-handover` / `test-health`（46 条）/ `test-server`（13 条接口）/ `test-client` / `test-scenes` / `test-render`。
+- 命名统一后复跑：六份仍全绿；真项目探针第二次通过（归档 3 份、`handover:archive = pass`）。
+- 真项目探针 `probe_archive.mjs`：快照落盘、内容逐字一致、原文件未动、`handover:archive = pass`。
+
+### 文件变更
+- 工作台仓库：`dsh/index.js`、`dsh/health.js`、`lib/client.js`、`_evidence/test-handover.mjs`、`_evidence/test-health.mjs`、`_evidence/test-server.mjs`、`README.md`、`_evidence/v7-2026-10-28.md`（新）
+- 总工作台：`archive\gp-experiment\交接-20261028-222200.md`（首份快照，命名已与 `tools\交接.py` 统一）
+- 本项目：`_交接\当前交接.md`、`_交接\_tools\patch_a.py`、`_交接\_tools\patch_a2_unify.py`、`_交接\_tools\probe_archive.mjs`、`_交接\_tools\write_a_records.py`、`Log.md`
+
+### 补充：快照命名统一（同日晚）
+- 发现总工作台 `tools\交接.py`（M3.3）早就在写同一个 `archive\<id>\` 目录，命名是 `交接-YYYYMMDD-HHMMSS.md`；插件侧原来是 `当前交接-YYYYMMDD-HHMM.md`。
+- **两个入口、两套 glob、各留 10 份 ⇒「保留最近 10 份」名存实亡**。已把插件侧统一到 `交接-YYYYMMDD-HHMMSS.md`（含秒、同秒加 `-2` 后缀），并把已存在的 `当前交接-20261028-2222.md` 迁移为 `交接-20261028-222200.md`。
+- 改完 `test-health` 先红了 3 条（夹具还在用旧命名）—— 这正是判据该有的反应；夹具改完 `ALL 46 PASSED`。
+
+
+---
+
+## v0.22 (2026-10-28)
+
+**责任人**：蔡振辛
+
+### 新增：总工作台（DSH_Workbench）骨架
+- 目标形态定为「**场景 = 项目**」：场景是身份与长期记忆的家，项目是进度与资料的家，两者不重复存同一事实。
+- 新建 `D:\GitHub_programe\GitHub\DSH_Workbench`（git 已初始化，首次提交 `71ec5a2`，作者蔡振辛，远端待挂 private）：
+  - `projects.json` —— 场景登记表，第一个场景 `gp-experiment` 指向本项目根；
+  - `boards\待办板.md`（最终全机唯一落点，行首带【项目 id】）、`boards\通知看板.md`；
+  - `index\总索引.md` —— 四状态台账（活 / 常备180天 / 留档 / 待清7天）；
+  - `scenes\gp-experiment\` —— 定位卡 / 画像 / 私有记忆（对应参考实现图里「场景1」框内的几件）；
+  - `archive\gp-experiment\` —— 交接快照目录（`.gitignore` 排除，不进 git）；
+  - `AGENTS.md` 注入层（1.3 KB，只写"去哪找"，不写正文）。
+- 决策记录：① 待办板唯一落点 = 总板（插件阶段 C 切换，切换前仍以项目内 `_交接\待办板.md` 为临时唯一落点）② git 现在就 init ③ 插件暂不改代码，多项目切换留到阶段 C。
+
+### 验证
+- `git log` 首条提交在位；`.gitignore` 实测生效（`git check-ignore` 命中 `archive/**/*`）；骨架 11 个文件全部落盘。
+
+### 文件变更
+- 新增（工作台仓库之外的独立目录）：`DSH_Workbench` 全部 11 个文件 + `.git`
+- 本项目：`_交接\总工作台规划_20261028.md`（新）、`_交接\当前交接.md`、`_交接\待办板.md`、`Log.md`
+
+---
+
+## v0.21 (2026-10-28)
+
+**责任人**：蔡振辛
+
+### 新增功能：工作台场景配置驱动（V6 / P3）
+- 版式从 `lib/client.js` 硬编码搬进插件根目录 **`scenes.json`**：加场景/调分栏只改配置，不动代码。新增 `GET /scenes` 只读接口；配置坏了整份退回内置默认，并把问题原文交回客户端（顶栏提示）。
+- 新增 `dsh/scenes.js`：`DEFAULT_SCENES` + `ALL_PANEL_IDS` + 校验器（未知面板 id / 同场景重复面板 / 场景 id 重复 / 空 rows / 坏 JSON 全部 fail）+ `readScenes()` 区分「没有文件」「文件坏了」「文件合法」三种来源。
+- 第 4 个场景 **「收工」**（左：当前交接；右：待办 + 便利贴）是**纯配置新增**，没有改一行代码 —— 作为以后加场景的样板。
+- 体检从 13 条扩到 **16 条**：新增 `config:scenes`（配置本身合法）与 `config:scenes-readme`（README 场景表 ↔ 生效场景，防止「只改配置忘了改文档」）。
+- 客户端 `nodeFor` 对未知面板 id 改为返回空 —— 以前会把未知 id 悄悄渲染成 AI 对话面板。
+
+### 问题修复
+- 新增 `scenes` 路由后 README 未同步（仍写「11 条接口」），被 `index:routes` 双向比对当场抓出 → 改为 12 条。
+- `dsh/scenes.js` 加了体量红线后，`test-health` 夹具缺该文件，导致 3 条断言连带失败 → 夹具补桩文件。
+
+### 验证
+- 六份自测全部通过：`test-client` / `test-scenes`(14) / `test-handover` / `test-render` / `test-server`(12 接口) / `test-health`(41 条检查)。
+- 真项目探针：`16 条判据：16 通过 / 0 警告 / 0 失败`。
+
+### 文件变更
+- 工作台仓库：新增 `dsh/scenes.js`、`scenes.json`、`_evidence/test-scenes.mjs`、`_evidence/p3-2026-10-28.md`；改 `dsh/index.js`、`dsh/health.js`、`lib/client.js`、`_evidence/test-server.mjs`、`_evidence/test-health.mjs`、`README.md`
+- 本项目：`_交接/当前交接.md`、`_交接/待办板.md`、`Log.md`
+
+---
+
+## v0.20 (2026-10-28)
+
+**责任人**：蔡振辛
+
+### 新增功能：工作台体检层（V5）
+- 工作台仓库 `dsh-my-project-workbench` 新增 `dsh/health.js`，**13 条判据**：体量 4 + 索引 5（面板表 / `__test.panels` / 接口表 / 自测脚本 / 正文数字）+ 交接 3（§〇 四问齐全 / 距今新鲜度 / 指针指向的文件存在）+ 待办板 1（身份键合法）。
+- 新增接口 `health`：`GET` 只读出报告（`status` + 每条判据实测值 + `digest`），`POST {append:true}` 才把 ⛔ 项写进 `_交接/待办板.md`（同一件只留一行，`[x]` 记 `staleDone` 不算已修）。
+- 「当前交接」面板下半截显示体检读数（状态 + 通过/警告/失败 + 最多 5 行 digest），一个按钮「跑体检并记待办」。
+- 实现规矩四条：`scanned===0` 一律 fail；索引锚点不命中即 fail；量纲用磁盘字节与 `\n` 计数；阈值定在预算位置（越 85% 告警），「会红」由 38 条反例证明而非生产环境常红。
+
+### 问题修复（体检第一天抓出的三个真问题）
+- **两段判定缺失**：初版用项目根找 `lib/client.js`，换项目就全红 → 拆成「工作台自身」与「当前项目」两段判定。
+- **`__test.panels` 少 2 项**（缺 `handover`/`arch`）：测试少覆盖两个面板 → 补齐为 12↔12。
+- **§〇 里混入跨仓库路径**：指向工作台仓库的 `_evidence/v4-2026-10-28.md`，项目根里不存在 → 改为普通文字说明归属。
+
+### 验证
+- `test-client` / `test-handover` / `test-render` / `test-server` / `test-health` 五份全部 `PASSED`（`test-health` 38 条检查，13 条判据各造红至少一次）。
+- 真项目只读探针：`13 条判据：13 通过 / 0 警告 / 0 失败`，§〇 2499/4096 字节，四问齐全。
+
+### 文件变更
+- 工作台仓库：新增 `dsh/health.js`、`_evidence/test-health.mjs`、`_evidence/p2-2026-10-28.md`；改 `dsh/index.js`、`lib/client.js`、`_evidence/test-server.mjs`、`README.md`（V5 章节）
+- 本项目：`_交接/当前交接.md`（§〇 覆盖写）、`_交接/待办板.md`、`Log.md`
+
+---
+
+## v0.19 (2026-10-28)
+
+**责任人**：蔡振辛
+
+### 补记：v0.18 → 本版之间漏记的工作（2026-10-14 至 10-28）
+> 这 15 天有实质推进但没回写日志，属记忆漏记。以下按已确认的结论补记，具体数字以对应文档为准。
+
+- **D48 决策落定：`deadline` 口径分两代**。现行 v4.1（`1_Code/Experiment/exp_matlab/Exp_Design_Formal.m`）为 `deadline = onset + W`，可反应时长为 `W − T − 200 ms`；历史 v2 程序与 `1_Code/AutoRA_SPE/spe_design_model.py` 为 `onset + T + W`，可反应时长为 `W − 200 ms`。两者差**恰好 `T + 200 ms`**，换算只许走 `1_Code/AutoRA_SPE/spe_timing_convention.py`，不得跨代套用 W。
+- **SPE「匹配 / 非匹配 × 自我 / 他人」交互检验已执行**，用于判断四层 SPE 结构是否有实证支撑。
+- **建模决策三条**：① 保留四层，但**只覆盖 self↔stranger 一格** ② 旧 87 人数据**只作展示、不当结论依据** ③ Practice-Effect 纳入步骤 1 重算，**统一口径**。
+- 同期完成工作台仓库 `dsh-my-project-workbench` 的 **V3**（常用入口面板、`homeFolders` 快捷夹、固定组标签、状态小字写绑定对象），见该仓库 `_evidence/v3-2026-10-28.md`。
+
+### 新增：AI 交接层（本项目 `_交接/`）
+- **`_交接/当前交接.md`**：私有层「§〇 当前交接」，**覆盖写不追加**、全文 ≤ 4096 字节，只答四问（我是谁 / 干到哪 / 下一步 / 卡在哪）+ 一行"细节在哪"指针。换会话前必须覆盖写这一份，这是唯一入口。
+- **`_交接/待办板.md`**：共享层「该做什么」的**全机唯一落点**，一行一件 `- [ ] YYYY-MM-DD 事项`；工作台 `todos` 面板已改落这份文件（老数据首次读取自动迁移）。
+- **`AGENTS.md`（项目根，注入层）**：只放"不读就会白干"的铁律 + 单一权威表（进度 → §〇；流水 → 本文件；事实口径 → `5_Reference/AGENTS.md` §三；索引 → `5_Reference/README.md`；待办 → 待办板；长期决策 → cg）+ 会话卫生。
+- **判据来源**：参考仓库 <https://github.com/mashanglinyu/luanyujia-workbench>（MIT）`00-核心机制\二-记忆机制.md`。全量副本已落在工作台仓库 `docs/reference/luanyujia-workbench-main\`（145 个文件）。
+
+### 验证
+- 工作台四条自测全部 PASS：`test-handover.mjs`（10 项，**三个反例必须报错**：空文件 / 超 4096 字节 / 缺「卡点」）、`test-server.mjs`（10 条路由）、`test-client.mjs`（12 个面板）、`test-render.mjs`（渲染与弹性）。
+- 真项目只读探针：§〇 判据 `ok=true`、缺字段 0、1951/4096 B；待办 3 条从 `_交接/待办板.md` 正确解析。
+- 待人工确认（需重启 DSH Desktop）：handover 面板出现在「项目总览」、能读能覆盖写、缺字段与超线会标红。
+
+### 文件变更
+- 新增: `_交接/当前交接.md`、`_交接/待办板.md`、`_交接/_tools/patch_p1.py`、`_交接/_tools/probe_handover.mjs`、`AGENTS.md`
+- 变更: `Log.md`（本条）
+- 仓库外: `D:\GitHub_programe\GitHub\dsh-my-project-workbench`（V4 交接层，见其 `_evidence/v4-2026-10-28.md`）
+
+---
+
 ## v0.18 (2026-10-13)
 
 **责任人**：蔡振辛
