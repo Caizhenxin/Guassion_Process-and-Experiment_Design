@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "733de19e-2d4a-43f6-9d72-e9ebb3ee2211",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\1_Code\\Animation_Manim\\Architecture_Visualization\\.archify\\architecture-spe-workflow-20261029-133937\\candidate.json",
+  "output": "D:\\GitHub_programe\\GitHub\\Guassion-Process-Experiment-Design\\1_Code\\Animation_Manim\\Architecture_Visualization\\.archify\\architecture-spe-workflow-20261029-133937\\workflow-architecture.html",
+  "specification": {
+    "sha256": "68d31c599134030011e66664c858a708e7c3816837e279a9c952d4fb062550bf",
+    "bytes": 12987
+  },
+  "artifact": {
+    "sha256": "57f1c390266e78ea455728fe6d9d934fbfb67d79783060aab96f2cc7ee7a60c0",
+    "bytes": 784008
+  }
+}

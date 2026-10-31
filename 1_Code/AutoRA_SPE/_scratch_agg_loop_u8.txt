@@ -12,10 +12,10 @@ stage9_loop 自测（n_fim=1、rho=0.6）
 ✅ A5b 全部否决都来自 C3（C1 单独不会剔除任何候选） —— 被 C1 否决 0 个
 
 [B 组] 单位与缓存（这一组就是为‘毫秒当秒’那个坑立的）
-✅ B1 缓存路径与直接 `inner_eval` 的 relative_se **逐位相同** —— max|Δ| = 0.000e+00（5.2s）
+✅ B1 缓存路径与直接 `inner_eval` 的 relative_se **逐位相同** —— max|Δ| = 0.000e+00（4.2s）
 ✅ B1b omission / rt_ms / cond / se_rho 也逐位相同 —— omission=0.3455 rt=738.3ms cond=1.25e+05 se_rho=0.2136
 ✅ B1c 锚点读数落在健康区间（cond < 1e10、n_bad = 0、遗漏在带外也算读数） —— cond=1.25e+05 n_bad=0 omission=0.3455 A=0.3478 B=7.6941
-✅ B2 把毫秒当秒喂进去会给出**完全不同**的读数（这个坑不报错） —— Δ遗漏=0.345；cond 1.28e+17 vs 1.25e+05
+✅ B2 把毫秒当秒喂进去会给出**完全不同**的读数（这个坑不报错） —— Δ遗漏=0.345；cond 1.17e+16 vs 1.25e+05
 ✅ B3 缓存命中不重算（第二次 get 的 n_evals 不变） —— n_evals = 2
 
 [C 组] CRN：种子由内容决定、与候选表形状无关
@@ -26,17 +26,17 @@ stage9_loop 自测（n_fim=1、rho=0.6）
 [D 组] 四臂同预算（消融的前提）
 
 [臂 grid] 预算 4…
-[臂 grid] 完成：可行 0/4、best A = inf（参考 best J = inf）（15.5s）
+[臂 grid] 完成：可行 0/4、best A = inf（参考 best J = inf）（7.5s）
 
 [臂 random] 预算 4…
-[臂 random] 完成：可行 0/4、best A = inf（参考 best J = inf）（2.8s）
+[臂 random] 完成：可行 0/4、best A = inf（参考 best J = inf）（1.7s）
 
 [臂 manual] 预算 4…
-[臂 manual] 完成：可行 0/4、best A = inf（参考 best J = inf）（2.9s）
+[臂 manual] 完成：可行 0/4、best A = inf（参考 best J = inf）（1.9s）
 
 [臂 bo] 预算 4…
   [臂 bo] ⚠️ 预算 4 ≤ n_init 4：GP 不会拟合，本臂退化为**随机采样**，其读数**不能作为 BO 的证据**
-[臂 bo] 完成：可行 0/4、best A = inf（参考 best J = inf）（0.4s）
+[臂 bo] 完成：可行 0/4、best A = inf（参考 best J = inf）（1.0s）
 ✅ D1 四个臂都用满且仅用 4 次评估 —— {'grid': 4, 'random': 4, 'manual': 4, 'bo': 4}
   [臂 bo] ⚠️ 预算 3 ≤ n_init 3：GP 不会拟合，本臂退化为**随机采样**，其读数**不能作为 BO 的证据**
 ✅ D2 `arm_bo` 的 `n_init` 被预算夹住（budget=3 时取 3 个，不会按 n_init=8 超支） —— budget=3 < 默认 n_init=8
@@ -104,7 +104,7 @@ stage9_loop 自测（n_fim=1、rho=0.6）
 
 ========================================================================
 共 53 项，未通过 0 项（另有 4 条实测读数）。
-总耗时 47.0s
+总耗时 30.4s
   · A1b 候选空间形状：n_t∈[3, 4, 6] n_w∈[2, 3] n_rep∈[8, 12, 16, 18, 24]
   · A5 可行性过滤的构成：被 C1 否决 0 个、被 C3 否决 186 个
   · E 组读数：D54 约束带 = [0.05, 0.2]；判据 CRITERION = ['A', 'B']

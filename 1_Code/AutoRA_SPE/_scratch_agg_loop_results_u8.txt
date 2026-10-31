@@ -3,10 +3,10 @@ OK  A2 锚点 D4 在候选集里，且名字与 T_POOL[:4]×W_POOL[:3]×r12 逐�
 OK  A3 `levels_sec` 是毫秒→秒（33.33 → 0.03333，逐位） :: (0.03333, 0.14999)
 OK  A4 `postmask_s` 与桥模块的 `current_postmask_pressable_ms` 逐位一致 :: max|Δ| = 0.000e+00
 OK  A5b 全部否决都来自 C3（C1 单独不会剔除任何候选） :: 被 C1 否决 0 个
-OK  B1 缓存路径与直接 `inner_eval` 的 relative_se **逐位相同** :: max|Δ| = 0.000e+00（5.2s）
+OK  B1 缓存路径与直接 `inner_eval` 的 relative_se **逐位相同** :: max|Δ| = 0.000e+00（4.2s）
 OK  B1b omission / rt_ms / cond / se_rho 也逐位相同 :: omission=0.3455 rt=738.3ms cond=1.25e+05 se_rho=0.2136
 OK  B1c 锚点读数落在健康区间（cond < 1e10、n_bad = 0、遗漏在带外也算读数） :: cond=1.25e+05 n_bad=0 omission=0.3455 A=0.3478 B=7.6941
-OK  B2 把毫秒当秒喂进去会给出**完全不同**的读数（这个坑不报错） :: Δ遗漏=0.345；cond 1.28e+17 vs 1.25e+05
+OK  B2 把毫秒当秒喂进去会给出**完全不同**的读数（这个坑不报错） :: Δ遗漏=0.345；cond 1.17e+16 vs 1.25e+05
 OK  B3 缓存命中不重算（第二次 get 的 n_evals 不变） :: n_evals = 2
 OK  C1 同一个设计在完整表与截断表里有**相同的 CRN 种子与相同读数**（种子由内容导出，不由下标导出） :: seed=1820496569；下标 完整表=0 截断表=20
 OK  C2 不同设计的种子不碰撞 :: 174 个设计 → 174 个不同种子

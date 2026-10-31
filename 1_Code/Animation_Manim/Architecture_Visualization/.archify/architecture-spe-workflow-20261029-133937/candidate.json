@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SPE Design-Space Workflow: Runtime Architecture",
+    "locale": "en",
+    "output": ".archify/architecture-spe-workflow-20261029-133937/workflow-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Caizhenxin/Guassion_Process-and-Experiment_Design.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "ff6e0cc066da4d409843a53832de85d6ea6759de"
+    }
+  },
+  "components": [
+    {
+      "id": "participants",
+      "type": "external",
+      "label": "Participants",
+      "sublabel": "20 collected / 17 usable",
+      "pos": [60, 300],
+      "size": [190, 76],
+      "sources": [
+        { "path": "5_Reference/08_工作流/工作流_主计划.md", "line": 339, "end_line": 339, "label": "collection status (20 / 17)" },
+        { "path": "5_Reference/08_工作流/工作流_主计划.md", "line": 12, "end_line": 12, "label": "cap 55, due 2026-02-21" }
+      ]
+    },
+    {
+      "id": "exp-program",
+      "type": "external",
+      "label": "Experiment Program",
+      "sublabel": "v4.9 \u00b7 MATLAB + PTB \u00b7 576 trials",
+      "pos": [390, 300],
+      "size": [210, 76],
+      "sources": [
+        { "path": "1_Code/Experiment/exp_matlab/Exp_Design_Formal.m", "line": 5, "end_line": 5, "label": "576 trials / person" },
+        { "path": "1_Code/Experiment/exp_matlab/Exp_Design_Formal.m", "line": 147, "end_line": 147, "label": "v4.9 practice-block fix" },
+        { "path": "1_Code/Experiment/exp_matlab/Exp_Design_Formal.m", "line": 1286, "end_line": 1286, "label": "writes CSV + txt" }
+      ]
+    },
+    {
+      "id": "real-batches",
+      "type": "database",
+      "label": "Real Data Batches",
+      "sublabel": "New_Design \u00b7 CSV + twin txt",
+      "pos": [720, 300],
+      "size": [210, 76],
+      "sources": [
+        { "path": "5_Reference/08_工作流/全流程一键跑通_使用说明.md", "line": 12, "end_line": 16, "label": "batch folder layout" },
+        { "path": "5_Reference/08_工作流/工作流_主计划.md", "line": 341, "end_line": 341, "label": "Condition 1..4, 20 files" }
+      ]
+    },
+    {
+      "id": "admission-qc",
+      "type": "backend",
+      "label": "Admission & QC Gates",
+      "sublabel": "intake \u00b7 qc G1-G9 \u00b7 S6 criteria",
+      "pos": [1050, 300],
+      "size": [230, 76],
+      "sources": [
+        { "path": "1_Code/Experiment/intake.py", "line": 92, "end_line": 92, "label": "session discovery, shadowed" },
+        { "path": "1_Code/Experiment/qc_group.py", "line": 222, "end_line": 222, "label": "per-group G1 progress" },
+        { "path": "5_Reference/08_工作流/Stage7_数据采集执行与质控方案.md", "line": 96, "end_line": 96, "label": "any FAIL must be handled" }
+      ]
+    },
+    {
+      "id": "pipeline",
+      "type": "backend",
+      "label": "One-Command Pipeline",
+      "sublabel": "run_pipeline.py \u00b7 quick / formal",
+      "pos": [1410, 300],
+      "size": [220, 76],
+      "sources": [
+        { "path": "1_Code/Experiment/run_pipeline.py", "line": 12, "end_line": 12, "label": "four steps and outputs" },
+        { "path": "1_Code/Experiment/run_pipeline.py", "line": 46, "end_line": 46, "label": "imports the LOO gate" },
+        { "path": "5_Reference/08_工作流/全流程一键跑通_使用说明.md", "line": 24, "end_line": 32, "label": "profiles and flags" }
+      ]
+    },
+    {
+      "id": "stage8",
+      "type": "backend",
+      "label": "Hierarchical DDM Fit",
+      "sublabel": "Laplace-EM \u00b7 WFPT \u00b7 M-T1/M-T3",
+      "pos": [1410, 620],
+      "size": [220, 76],
+      "sources": [
+        { "path": "1_Code/DDM_Core/stage8_run.py", "line": 5, "end_line": 5, "label": "fit to LOO to comparison" },
+        { "path": "1_Code/DDM_Core/hier.py", "line": 268, "end_line": 268, "label": "Laplace-EM hierarchical fit" },
+        { "path": "1_Code/DDM_Core/stage8.py", "line": 161, "end_line": 161, "label": "12 PPC statistics" }
+      ]
+    },
+    {
+      "id": "health-gate",
+      "type": "backend",
+      "label": "LOO Health Gate",
+      "sublabel": "p_loo in [0, n_obs] \u00b7 k <= 0.7",
+      "pos": [1030, 620],
+      "size": [230, 76],
+      "sources": [
+        { "path": "1_Code/DDM_Core/stage8_health.py", "line": 21, "end_line": 21, "label": "three hard gates, two warnings" },
+        { "path": "5_Reference/08_工作流/全流程一键跑通_使用说明.md", "line": 54, "end_line": 59, "label": "hard gate and exit code" },
+        { "path": "1_Code/DDM_Core/stage8_health.py", "line": 240, "end_line": 240, "label": "strict CLI entry" }
+      ]
+    },
+    {
+      "id": "thesis-outputs",
+      "type": "backend",
+      "label": "Thesis Drafts & Figures",
+      "sublabel": "results + model chapters",
+      "pos": [700, 620],
+      "size": [210, 76],
+      "sources": [
+        { "path": "1_Code/Experiment/manuscript.py", "line": 78, "end_line": 78, "label": "results-chapter draft" },
+        { "path": "1_Code/Experiment/manuscript.py", "line": 63, "end_line": 63, "label": "synthetic-data banner" },
+        { "path": "5_Reference/08_工作流/全流程一键跑通_使用说明.md", "line": 43, "end_line": 52, "label": "artifacts and read order" }
+      ]
+    },
+    {
+      "id": "sim-line",
+      "type": "backend",
+      "label": "Simulation Line",
+      "sublabel": "WFPT \u00b7 two-phase drift \u00b7 recovery",
+      "pos": [60, 150],
+      "size": [210, 76],
+      "sources": [
+        { "path": "1_Code/DDM_Core/twophase.py", "line": 5, "end_line": 8, "label": "M-T1 drift definition" },
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/sim_utils.py", "line": 92, "end_line": 92, "label": "canonical simulator" },
+        { "path": "5_Reference/08_工作流/工作流_主计划.md", "line": 117, "end_line": 117, "label": "Stage 2 static generator" }
+      ]
+    },
+    {
+      "id": "design-crlb",
+      "type": "backend",
+      "label": "CRLB Design Evaluator",
+      "sublabel": "SE = sqrt(diag(I^-1)) \u00b7 D4",
+      "pos": [390, 150],
+      "size": [210, 76],
+      "sources": [
+        { "path": "1_Code/DDM_Core/design_fim.py", "line": 111, "end_line": 111, "label": "design SE from average FIM" },
+        { "path": "1_Code/DDM_Core/design_fim.py", "line": 103, "end_line": 103, "label": "N_FIM = 12" },
+        { "path": "5_Reference/08_工作流/正式采集_候选设计_v2_定稿.md", "line": 15, "end_line": 15, "label": "frozen D4 structure" }
+      ]
+    },
+    {
+      "id": "stage9-optimizer",
+      "type": "backend",
+      "label": "Stage-9 GP Optimizer",
+      "sublabel": "J = A - 0.5B + C \u00b7 GP + EI",
+      "pos": [1410, 900],
+      "size": [220, 76],
+      "sources": [
+        { "path": "1_Code/AutoRA_SPE/stage9_objective.py", "line": 67, "end_line": 67, "label": "frozen objective dict" },
+        { "path": "1_Code/AutoRA_SPE/stage9_loop.py", "line": 420, "end_line": 420, "label": "GP + EI arm" },
+        { "path": "5_Reference/08_工作流/Stage9_设计空间优化与论文整合方案.md", "line": 251, "end_line": 251, "label": "J = A_norm - 0.5B_norm + C" }
+      ]
+    },
+    {
+      "id": "ref-data",
+      "type": "external",
+      "label": "Reference Data",
+      "sublabel": "87 historical + SPE-DB subset",
+      "pos": [720, 150],
+      "size": [210, 76],
+      "sources": [
+        { "path": "5_Reference/08_工作流/Stage6_Pilot方案.md", "line": 100, "end_line": 100, "label": "87-participant anchors (D85)" },
+        { "path": "1_Code/Python_for_Check/TenRules_Revision_20260912/spe_database_analysis.py", "line": 11, "end_line": 11, "label": "SPE-DB analysable subset" },
+        { "path": "5_Reference/08_工作流/工作流_主计划.md", "line": 316, "end_line": 316, "label": "anchored thresholds" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Experiment machine (external input)",
+      "wraps": ["participants", "exp-program"]
+    },
+    {
+      "kind": "region",
+      "label": "Admitted real data (v4.1 txt contract)",
+      "wraps": ["real-batches", "admission-qc"]
+    },
+    {
+      "kind": "region",
+      "label": "Simulation line (assumed truth, no real data)",
+      "wraps": ["sim-line", "design-crlb"]
+    },
+    {
+      "kind": "region",
+      "label": "Citable results (LOO gate)",
+      "wraps": ["health-gate", "thesis-outputs"]
+    }
+  ],
+  "connections": [
+    { "id": "participant-run", "from": "participants", "to": "exp-program", "label": "576 trials", "variant": "emphasis" },
+    { "id": "program-export", "from": "exp-program", "to": "real-batches", "label": "CSV + txt", "variant": "emphasis" },
+    { "id": "batches-admission", "from": "real-batches", "to": "admission-qc", "label": "intake / qc", "variant": "emphasis" },
+    { "id": "admission-pipeline", "from": "admission-qc", "to": "pipeline", "label": "admitted 17/20", "variant": "emphasis" },
+    { "id": "pipeline-stage8", "from": "pipeline", "to": "stage8", "label": "step 3: hierarchical fit", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "stage8-gate", "from": "stage8", "to": "health-gate", "label": "LOO check", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "gate-thesis", "from": "health-gate", "to": "thesis-outputs", "label": "PASS => citable", "variant": "emphasis", "fromSide": "left", "toSide": "right" },
+    { "id": "sim-design", "from": "sim-line", "to": "design-crlb", "label": "design SE (CRLB)", "variant": "default" },
+    { "id": "design-program", "from": "design-crlb", "to": "exp-program", "label": "D4", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "stage8-stage9", "from": "stage8", "to": "stage9-optimizer", "label": "models + params", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "reference-qc", "from": "ref-data", "to": "admission-qc", "label": "87 anchors (D85)", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "via": [[825, 260], [1165, 260]] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main path (bold arrows)",
+      "items": [
+        "Participants -> v4.9 program -> batches -> intake + QC -> one-command pipeline",
+        "Step 3: hierarchical Laplace-EM fit -> LOO health gate -> citable thesis drafts",
+        "Simulation line (Stages 2-5) fixes D4 before collection; Stage 9 plans the next round",
+        "Collection in progress: 20 collected, 17 usable (4/5/4/4), cap 55"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Gates and criteria",
+      "items": [
+        "intake.py: technical / structure / consistency; duplicate batches are flagged as shadowed",
+        "qc_group.py G1-G9 per P group; G8 = the P value must match the group design",
+        "S6-1 ... S6-6 thresholds anchored on 87 historical participants (D85)",
+        "LOO gate: n_flipped = 0, trial-level matrix, p_loo in [0, n_obs], k <= 0.7, n_draws >= 10; any BAD => exit 1",
+        "Synthetic data (synth_truth.json) may enter Methods but never the Results chapter"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Equations (schematics: figures/speddm_wf_f01 ... f07)",
+      "items": [
+        "F1  d(t) = d_stim (t <= T); rho*d_stim (t > T), rho in [0, 3]; rho = 1 => M-T3",
+        "F2  log Z = g(x*) + (K/2)ln2pi - 0.5 ln| -H |;  sigma^2 = mean[(x* - mu)^2 + Cov]",
+        "F3  ELPD = sum log( mean_s w_s p(y_i | theta_s) );  cite only if p_loo and k hat pass",
+        "F4  PPC: at least 10 of 12 statistics inside the 95% band",
+        "F5  SE = sqrt(diag(I^-1));  n = (SD / SE_target)^2",
+        "F6  J = A - 0.5B + C;  EI(x) = (mu* - mu)Phi(z) + sigma phi(z)",
+        "F7  D4: 3 blocks x 4 T x 4 classes x 12 = 576 trials per person"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "External dependencies and environment",
+      "items": [
+        "MATLAB R2023b + Psychtoolbox 3.0.19 on the experiment machine (program v4.9)",
+        "Python 3.13.9 + numpy 2.3.5 / scipy 1.16.3 / pandas 2.3.3 / matplotlib 3.10.6 / sklearn 1.7.2",
+        "Zero-dependency route: Laplace approximation + own PSIS-LOO (no PPL in the pipeline)",
+        "Optional HSSM env (pymc 5.28.5 + arviz 0.23.4 + hssm 0.3.0): probe only, pm.sample unavailable",
+        "Real data: current batches + 87 historical + SPE-DB subset (25 datasets / 2,488 people)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Scope and known limits",
+      "items": [
+        "All inference is MLE + Laplace approximation: never call it a Bayesian posterior",
+        "Participant-level PSIS-LOO is structurally unestimable; compare models at trial level (D73)",
+        "Deadline convention (D48): v4.1 deadline = onset + W; historical line onset + T + W; convert, never mix",
+        "Stage 9 does not change this round's collection; it reports the next-round prescription (D4 ranks 4th)",
+        "Current state: 20 collected / 17 usable, cap 55, due 2026-02-21"
+      ]
+    }
+  ]
+}
